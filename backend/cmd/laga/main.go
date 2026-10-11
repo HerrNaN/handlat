@@ -13,7 +13,7 @@ import (
 const appName = "LAGA"
 
 func main() {
-	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		AddSource: true,
 	}))
 	slog.SetDefault(logger)
@@ -31,7 +31,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+	logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		AddSource: true,
 		Level:     cfg.LogLevel,
 	}))
