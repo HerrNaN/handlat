@@ -28,6 +28,7 @@
             await navigate("/user");
         } catch (cause) {
             error = cause instanceof Error ? cause.message : "Registration failed";
+            console.error("Registration failed:", cause)
         } finally {
             pending = false;
         }

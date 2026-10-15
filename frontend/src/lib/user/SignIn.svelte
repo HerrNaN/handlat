@@ -28,6 +28,7 @@
             await navigate("/user");
         } catch (cause) {
             error = cause instanceof Error ? cause.message : "Sign-in failed";
+            console.error("Sign-in failed:", cause)
         } finally {
             pending = false;
         }
