@@ -184,6 +184,7 @@ func (h *Handler) finishRegistration(w http.ResponseWriter, r *http.Request) {
 
 	credential, err := h.wa.FinishRegistration(u, ceremony, r)
 	if err != nil {
+		h.log.Error("Passkey verification failed", "err", err)
 		http.Error(w, "Passkey verification failed; try again", http.StatusBadRequest)
 		return
 	}
@@ -339,6 +340,7 @@ func (h *Handler) finishLogin(w http.ResponseWriter, r *http.Request) {
 
 	u, credential, err := h.wa.FinishPasskeyLogin(lookup, ceremony, r)
 	if err != nil {
+		h.log.Error("Passkey verification failed", "err", err)
 		http.Error(w, "Passkey verification failed; try again", http.StatusBadRequest)
 		return
 	}
