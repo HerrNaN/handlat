@@ -5,6 +5,8 @@ pulumi = "latest"
 hk = "latest"
 pkl = "latest"
 gh = "latest"
+helm = "4.3.1"
+yq = "4"
 # Needed for pkl language server
 java = "24"
 
@@ -38,19 +40,15 @@ run = "pnpm dev"
 hide = true
 
 [tasks.dev-be]
-depends = ["generate", "dev-db"]
+depends = ["generate"]
 dir = "backend"
 run = "go run ./cmd/laga"
 env.EXTERNAL_WEB_SERVER_ADDRESS = "http://localhost:5173"
 env.PORT = 8080
-env.DATABASE_URL = "postgres://laga:laga@localhost:5432/laga?sslmode=disable"
+env.DATABASE_PATH = "../_data/laga.sqlite"
 env.WEBAUTHN_RP_ID = "localhost"
 env.WEBAUTHN_ORIGIN = "http://localhost:8080"
 hide = true
-
-[tasks.dev-db]
-description = "Start the development database and wait until it is healthy"
-run = "docker compose up -d --wait db"
 
 # === Building ===
 
@@ -72,6 +70,9 @@ depends = ["build-fe", "generate"]
 dir = "backend/cmd/laga"
 run = "go run ."
 env.PORT = 9090
+env.DATABASE_PATH = "../../../_data/laga.sqlite"
+env.WEBAUTHN_RP_ID = "localhost"
+env.WEBAUTHN_ORIGIN = "http://localhost:9090"
 
 [tasks.generate]
 description = "Regenerate sqlc queries"
@@ -85,6 +86,38 @@ description = "Run backlog web UI"
 run = "backlog-bun browser"
 
 # === Deployment ===
+
+[tasks.package-chart]
+description = "Package a Helm chart pinned to an image digest"
+usage = '''
+flag "--version <version>" required=#true
+flag "--app-version <app_version>" required=#true
+flag "--image-repository <image_repository>" required=#true
+flag "--image-digest <image_digest>" required=#true
+flag "--output-dir <output_dir>" default="_data/charts"
+'''
+run = [
+  'mkdir -p "$usage_output_dir/source"',
+  'cp -R deploy/charts/laga/. "$usage_output_dir/source/"',
+  '''
+  yq -i '
+    .image.repository = strenv(usage_image_repository) |
+    .image.digest = strenv(usage_image_digest) |
+    .image.tag = ""
+  ' "$usage_output_dir/source/values.yaml"
+  ''',
+  'helm lint --strict "$usage_output_dir/source" --set webAuthn.rpID=laga.example.com --set webAuthn.origin=https://laga.example.com',
+  'helm template laga "$usage_output_dir/source" --set webAuthn.rpID=laga.example.com --set webAuthn.origin=https://laga.example.com > /dev/null',
+  'helm package "$usage_output_dir/source" --destination "$usage_output_dir" --version "$usage_version" --app-version "$usage_app_version"',
+]
+
+[tasks.publish-chart]
+description = "Publish a packaged Helm chart to an OCI registry"
+usage = '''
+arg "<archive>"
+arg "<registry>"
+'''
+run = 'helm push "$usage_archive" "$usage_registry"'
 
 [tasks.deploy]
 description = "Deploy application IaC"

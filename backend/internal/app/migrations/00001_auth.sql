@@ -1,34 +1,34 @@
 -- +goose Up
 CREATE TABLE users (
-    id bytea PRIMARY KEY,
+    id BLOB PRIMARY KEY NOT NULL,
     name text NOT NULL,
-    created_at timestamptz NOT NULL DEFAULT now()
+    created_at INTEGER NOT NULL DEFAULT (unixepoch())
 );
 
 CREATE TABLE credentials (
-    id bytea PRIMARY KEY,
-    user_id bytea NOT NULL UNIQUE REFERENCES users(id),
-    data jsonb NOT NULL
+    id BLOB PRIMARY KEY NOT NULL,
+    user_id BLOB NOT NULL UNIQUE REFERENCES users(id),
+    data TEXT NOT NULL
 );
 
 CREATE TABLE registration_attempts (
-    token_hash bytea PRIMARY KEY,
-    user_id bytea NOT NULL,
+    token_hash BLOB PRIMARY KEY NOT NULL,
+    user_id BLOB NOT NULL,
     name text NOT NULL,
-    ceremony jsonb NOT NULL,
-    expires_at timestamptz NOT NULL
+    ceremony TEXT NOT NULL,
+    expires_at INTEGER NOT NULL
 );
 
 CREATE TABLE sessions (
-    token_hash bytea PRIMARY KEY,
-    user_id bytea NOT NULL REFERENCES users(id),
-    expires_at timestamptz NOT NULL
+    token_hash BLOB PRIMARY KEY NOT NULL,
+    user_id BLOB NOT NULL REFERENCES users(id),
+    expires_at INTEGER NOT NULL
 );
 
 CREATE TABLE login_attempts (
-    token_hash bytea PRIMARY KEY,
-    ceremony jsonb NOT NULL,
-    expires_at timestamptz NOT NULL
+    token_hash BLOB PRIMARY KEY NOT NULL,
+    ceremony TEXT NOT NULL,
+    expires_at INTEGER NOT NULL
 );
 
 -- +goose Down

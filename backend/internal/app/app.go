@@ -9,29 +9,33 @@ import (
 	"time"
 
 	"github.com/herrnan/laga/internal/app/auth"
+	"github.com/herrnan/laga/internal/app/database"
 	"github.com/herrnan/laga/internal/app/migrations"
 	"github.com/herrnan/laga/internal/app/web"
 	"github.com/herrnan/laga/internal/util"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/sync/errgroup"
 )
 
 func Run(ctx context.Context, log *slog.Logger, cfg Config) error {
-	if cfg.DatabaseURL == "" {
-		return errors.New("missing database url")
+	if cfg.DatabasePath == "" {
+		return errors.New("missing database path")
 	}
 
-	pool, err := pgxpool.New(ctx, cfg.DatabaseURL)
+	db, err := database.Open(ctx, cfg.DatabasePath)
 	if err != nil {
-		return fmt.Errorf("create database pool: %w", err)
+		return err
 	}
-	defer pool.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Error("Close database", "error", err)
+		}
+	}()
 
-	if err := migrations.Up(pool); err != nil {
+	if err := migrations.Up(db); err != nil {
 		return err
 	}
 
-	authHandler, err := auth.New(pool, cfg.WebAuthnRPID, cfg.WebAuthnOrigin, log)
+	authHandler, err := auth.New(db, cfg.WebAuthnRPID, cfg.WebAuthnOrigin, log)
 	if err != nil {
 		return fmt.Errorf("configure authentication: %w", err)
 	}

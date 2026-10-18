@@ -9,16 +9,6 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: "docker compose up",
-      cwd: fileURLToPath(new URL("..", import.meta.url)),
-      port: 5432,
-      reuseExistingServer: true,
-      gracefulShutdown: {
-        signal: "SIGINT",
-        timeout: 5000,
-      },
-    },
-    {
       command: "pnpm dev",
       cwd: fileURLToPath(new URL(".", import.meta.url)),
       url: "http://localhost:5173",
@@ -29,7 +19,7 @@ export default defineConfig({
       cwd: fileURLToPath(new URL("../backend/", import.meta.url)),
       env: {
         PORT: "8080",
-        DATABASE_URL: "postgres://laga:laga@localhost:5432/laga?sslmode=disable",
+        DATABASE_PATH: ":memory:",
         WEBAUTHN_RP_ID: "localhost",
         WEBAUTHN_ORIGIN: "http://localhost:8080",
         EXTERNAL_WEB_SERVER_ADDRESS: "http://localhost:5173",

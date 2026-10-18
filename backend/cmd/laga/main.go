@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"syscall"
 
 	"github.com/herrnan/laga/internal/app"
 	"github.com/kelseyhightower/envconfig"
@@ -18,7 +19,7 @@ func main() {
 	}))
 	slog.SetDefault(logger)
 
-	ctx, cleanup := signal.NotifyContext(context.Background(), os.Interrupt)
+	ctx, cleanup := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	go func(ctx context.Context, cleanup context.CancelFunc) {
 		<-ctx.Done()
 		cleanup()

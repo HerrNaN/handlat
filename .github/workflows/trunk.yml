@@ -7,6 +7,11 @@ on:
 env:
   REGISTRY: ghcr.io
 
+# Only the newest main build needs to finish publishing.
+concurrency:
+  group: devel-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-image:
     name: Build Custom Image
@@ -38,13 +43,50 @@ jobs:
         run: hk run test --all
 
       - name: Build
+        id: image
         uses: ./.github/actions/build-image
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Deploy
-        uses: ./.github/actions/deploy
-        with:
-          access-key: ${{ secrets.SCW_ACCESS_KEY }}
-          secret-key: ${{ secrets.SCW_SECRET_KEY }}
-          pulumi-config-passphrase: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
+      - name: Package devel chart
+        id: chart
+        shell: bash
+        env:
+          IMAGE_DIGEST: ${{ steps.image.outputs.digest }}
+        run: |
+          base_version=$(yq -r '.version' deploy/charts/laga/Chart.yaml)
+          version="${base_version}-$(date -u +%Y%m%d%H%M%S)"
+          package_dir="$RUNNER_TEMP/charts"
+
+          mise package-chart \
+            --version "$version" --app-version "$GITHUB_SHA" \
+            --image-repository "${REGISTRY}/${GITHUB_REPOSITORY,,}" \
+            --image-digest "$IMAGE_DIGEST" --output-dir "$package_dir"
+
+          echo "archive=$package_dir/laga-$version.tgz" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "registry=oci://${REGISTRY}/${GITHUB_REPOSITORY_OWNER,,}/charts/devel" >> "$GITHUB_OUTPUT"
+
+      - name: Publish devel chart
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CHART_ARCHIVE: ${{ steps.chart.outputs.archive }}
+          CHART_VERSION: ${{ steps.chart.outputs.version }}
+          CHART_REGISTRY: ${{ steps.chart.outputs.registry }}
+          IMAGE_DIGEST: ${{ steps.image.outputs.digest }}
+        run: |
+          printf '%s' "$GH_TOKEN" | helm registry login "$REGISTRY" \
+            --username "$GITHUB_ACTOR" --password-stdin
+
+          mise publish-chart "$CHART_ARCHIVE" "$CHART_REGISTRY"
+
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+          ## Devel published
+          - Chart: \`$CHART_REGISTRY/laga\`
+          - Version: \`$CHART_VERSION\`
+          - Image: \`${REGISTRY}/${GITHUB_REPOSITORY,,}@$IMAGE_DIGEST\`
+          EOF
+
+      # Deployment is paused: the legacy infrastructure requires PostgreSQL.
+      # Kubernetes deployment will be configured separately.

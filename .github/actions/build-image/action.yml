@@ -5,6 +5,11 @@ inputs:
     required: true
     description: Github Token
 
+outputs:
+  digest:
+    description: Digest of the published image
+    value: ${{ steps.push.outputs.digest }}
+
 runs:
   using: composite
   steps:
@@ -15,7 +20,7 @@ runs:
         if [ "${{ github.event_name }}" == "pull_request" ]; then
           TAGS="pr-${{ github.event.pull_request.number }} ${{ github.event.pull_request.head.sha }}"
         elif [ "${{ github.event_name }}" == "push" ] || [ "${{ github.ref_name }}" == "main" ]; then
-          TAGS="latest ${{ github.sha }}"
+          TAGS="devel ${{ github.sha }}"
         fi
         echo "tags=$TAGS" >> "$GITHUB_OUTPUT"
 

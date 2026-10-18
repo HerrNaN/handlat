@@ -1,8 +1,8 @@
 package auth
 
 import (
-	"context"
 	"crypto/rand"
+	"database/sql"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -15,9 +15,6 @@ import (
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/herrnan/laga/internal/app/auth/db"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 const (
@@ -27,11 +24,10 @@ const (
 	registrationTTL    = 5 * time.Minute
 	loginTTL           = 5 * time.Minute
 	sessionTTL         = 30 * 24 * time.Hour
-	rollbackTimeout    = 5 * time.Second
 )
 
 type Handler struct {
-	pool    *pgxpool.Pool
+	dbConn  *sql.DB
 	queries *db.Queries
 	wa      *webauthn.WebAuthn
 	log     *slog.Logger
@@ -50,7 +46,7 @@ func (u user) WebAuthnName() string                       { return u.name }
 func (u user) WebAuthnDisplayName() string                { return u.name }
 func (u user) WebAuthnCredentials() []webauthn.Credential { return u.credentials }
 
-func New(pool *pgxpool.Pool, rpID, origin string, log *slog.Logger) (*Handler, error) {
+func New(conn *sql.DB, rpID, origin string, log *slog.Logger) (*Handler, error) {
 	if rpID == "" || origin == "" {
 		return nil, errors.New("rp id and origin are required")
 	}
@@ -80,7 +76,7 @@ func New(pool *pgxpool.Pool, rpID, origin string, log *slog.Logger) (*Handler, e
 		return nil, fmt.Errorf("configure passkeys: %w", err)
 	}
 
-	return &Handler{pool: pool, queries: db.New(pool), wa: wa, log: log}, nil
+	return &Handler{dbConn: conn, queries: db.New(conn), wa: wa, log: log}, nil
 }
 
 func (h *Handler) Register(mux *http.ServeMux) {
@@ -135,11 +131,8 @@ func (h *Handler) beginRegistration(w http.ResponseWriter, r *http.Request) {
 		TokenHash: hash,
 		UserID:    u.id,
 		Name:      u.name,
-		Ceremony:  ceremonyJSON,
-		ExpiresAt: pgtype.Timestamptz{
-			Time:  time.Now().Add(registrationTTL),
-			Valid: true,
-		},
+		Ceremony:  string(ceremonyJSON),
+		ExpiresAt: time.Now().Add(registrationTTL).Unix(),
 	})
 	if err != nil {
 		h.fail(w, "save registration", err)
@@ -164,7 +157,7 @@ func (h *Handler) finishRegistration(w http.ResponseWriter, r *http.Request) {
 	}
 
 	attempt, err := h.queries.PopRegistrationAttempt(r.Context(), hash)
-	if errors.Is(err, pgx.ErrNoRows) {
+	if errors.Is(err, sql.ErrNoRows) {
 		http.Error(w, "Registration expired; try again", http.StatusBadRequest)
 		return
 	} else if err != nil {
@@ -176,7 +169,7 @@ func (h *Handler) finishRegistration(w http.ResponseWriter, r *http.Request) {
 
 	var ceremony webauthn.SessionData
 
-	err = json.Unmarshal(attempt.Ceremony, &ceremony)
+	err = json.Unmarshal([]byte(attempt.Ceremony), &ceremony)
 	if err != nil {
 		h.fail(w, "decode registration", err)
 		return
@@ -201,12 +194,12 @@ func (h *Handler) finishRegistration(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tx, err := h.pool.Begin(r.Context())
+	tx, err := h.dbConn.BeginTx(r.Context(), nil)
 	if err != nil {
 		h.fail(w, "begin account transaction", err)
 		return
 	}
-	defer h.rollback(r.Context(), tx)
+	defer h.rollback(tx)
 
 	queries := h.queries.WithTx(tx)
 	err = queries.InsertUser(r.Context(), db.InsertUserParams{ID: u.id, Name: u.name})
@@ -218,7 +211,7 @@ func (h *Handler) finishRegistration(w http.ResponseWriter, r *http.Request) {
 	err = queries.InsertCredential(r.Context(), db.InsertCredentialParams{
 		ID:     credential.ID,
 		UserID: u.id,
-		Data:   credentialJSON,
+		Data:   string(credentialJSON),
 	})
 	if err != nil {
 		h.fail(w, "save registration credential", err)
@@ -228,17 +221,14 @@ func (h *Handler) finishRegistration(w http.ResponseWriter, r *http.Request) {
 	err = queries.InsertSession(r.Context(), db.InsertSessionParams{
 		TokenHash: sessionHash,
 		UserID:    u.id,
-		ExpiresAt: pgtype.Timestamptz{
-			Time:  time.Now().Add(sessionTTL),
-			Valid: true,
-		},
+		ExpiresAt: time.Now().Add(sessionTTL).Unix(),
 	})
 	if err != nil {
 		h.fail(w, "create registration session", err)
 		return
 	}
 
-	err = tx.Commit(r.Context())
+	err = tx.Commit()
 	if err != nil {
 		h.fail(w, "commit account transaction", err)
 		return
@@ -272,11 +262,8 @@ func (h *Handler) beginLogin(w http.ResponseWriter, r *http.Request) {
 
 	err = h.queries.InsertLoginAttempt(r.Context(), db.InsertLoginAttemptParams{
 		TokenHash: hash,
-		Ceremony:  ceremonyJSON,
-		ExpiresAt: pgtype.Timestamptz{
-			Time:  time.Now().Add(loginTTL),
-			Valid: true,
-		},
+		Ceremony:  string(ceremonyJSON),
+		ExpiresAt: time.Now().Add(loginTTL).Unix(),
 	})
 	if err != nil {
 		h.fail(w, "save login", err)
@@ -302,7 +289,7 @@ func (h *Handler) finishLogin(w http.ResponseWriter, r *http.Request) {
 
 	// Consume the challenge atomically to prevent replaying a login ceremony.
 	ceremonyJSON, err := h.queries.PopLoginAttempt(r.Context(), hash)
-	if errors.Is(err, pgx.ErrNoRows) {
+	if errors.Is(err, sql.ErrNoRows) {
 		http.Error(w, "Sign-in expired; try again", http.StatusBadRequest)
 		return
 	} else if err != nil {
@@ -312,7 +299,7 @@ func (h *Handler) finishLogin(w http.ResponseWriter, r *http.Request) {
 	h.cookie(w, loginCookie, "", "/api/auth/login", -time.Second)
 
 	var ceremony webauthn.SessionData
-	if err = json.Unmarshal(ceremonyJSON, &ceremony); err != nil {
+	if err = json.Unmarshal([]byte(ceremonyJSON), &ceremony); err != nil {
 		h.fail(w, "decode login", err)
 		return
 	}
@@ -327,7 +314,7 @@ func (h *Handler) finishLogin(w http.ResponseWriter, r *http.Request) {
 		}
 
 		var credential webauthn.Credential
-		if err = json.Unmarshal(account.Data, &credential); err != nil {
+		if err = json.Unmarshal([]byte(account.Data), &credential); err != nil {
 			return nil, err
 		}
 
@@ -357,16 +344,16 @@ func (h *Handler) finishLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tx, err := h.pool.Begin(r.Context())
+	tx, err := h.dbConn.BeginTx(r.Context(), nil)
 	if err != nil {
 		h.fail(w, "begin login transaction", err)
 		return
 	}
-	defer h.rollback(r.Context(), tx)
+	defer h.rollback(tx)
 
 	queries := h.queries.WithTx(tx)
 	err = queries.UpdateCredential(r.Context(), db.UpdateCredentialParams{
-		ID: credential.ID, UserID: u.WebAuthnID(), Data: credentialJSON,
+		ID: credential.ID, UserID: u.WebAuthnID(), Data: string(credentialJSON),
 	})
 	if err != nil {
 		h.fail(w, "update credential", err)
@@ -376,17 +363,14 @@ func (h *Handler) finishLogin(w http.ResponseWriter, r *http.Request) {
 	err = queries.InsertSession(r.Context(), db.InsertSessionParams{
 		TokenHash: sessionHash,
 		UserID:    u.WebAuthnID(),
-		ExpiresAt: pgtype.Timestamptz{
-			Time:  time.Now().Add(sessionTTL),
-			Valid: true,
-		},
+		ExpiresAt: time.Now().Add(sessionTTL).Unix(),
 	})
 	if err != nil {
 		h.fail(w, "create session", err)
 		return
 	}
 
-	if err = tx.Commit(r.Context()); err != nil {
+	if err = tx.Commit(); err != nil {
 		h.fail(w, "complete login", err)
 		return
 	}
@@ -413,7 +397,7 @@ func (h *Handler) me(w http.ResponseWriter, r *http.Request) {
 	}
 
 	account, err := h.queries.GetUserBySession(r.Context(), hash)
-	if errors.Is(err, pgx.ErrNoRows) {
+	if errors.Is(err, sql.ErrNoRows) {
 		http.Error(w, "Not signed in", http.StatusUnauthorized)
 		return
 	} else if err != nil {
@@ -424,10 +408,8 @@ func (h *Handler) me(w http.ResponseWriter, r *http.Request) {
 	h.writeAccount(w, http.StatusOK, account.ID, account.Name)
 }
 
-func (h *Handler) rollback(ctx context.Context, tx pgx.Tx) {
-	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), rollbackTimeout)
-	defer cancel()
-	if err := tx.Rollback(ctx); err != nil && !errors.Is(err, pgx.ErrTxClosed) {
+func (h *Handler) rollback(tx *sql.Tx) {
+	if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
 		h.log.Error("roll back auth transaction", "error", err)
 	}
 }
