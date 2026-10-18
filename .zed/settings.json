@@ -1,4 +1,9 @@
 {
+  "file_types": {
+    "Helm": [
+      "**/templates/**/*.yaml"
+    ]
+  },
   "lsp": {
     "css-variables": {
       "binary": {

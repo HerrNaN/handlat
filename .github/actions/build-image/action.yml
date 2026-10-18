@@ -5,18 +5,37 @@ inputs:
     required: true
     description: Github Token
 
+outputs:
+  repository:
+    description: Fully qualified image repository
+    value: ${{ steps.tags.outputs.repository }}
+  digest:
+    description: Digest of the published image
+    value: ${{ steps.push.outputs.digest }}
+
 runs:
   using: composite
   steps:
     - name: Generate Image Tags
       id: tags
       shell: bash
+      env:
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
       run: |
-        if [ "${{ github.event_name }}" == "pull_request" ]; then
-          TAGS="pr-${{ github.event.pull_request.number }} ${{ github.event.pull_request.head.sha }}"
-        elif [ "${{ github.event_name }}" == "push" ] || [ "${{ github.ref_name }}" == "main" ]; then
-          TAGS="latest ${{ github.sha }}"
+        image="${GITHUB_REPOSITORY,,}"
+
+        if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+          TAGS="pr-${PR_NUMBER} ${PR_HEAD_SHA}"
+        elif [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF" == "refs/heads/main" ]]; then
+          TAGS="devel ${GITHUB_SHA}"
+        else
+          echo "Unsupported image publishing event" >&2
+          exit 1
         fi
+
+        echo "image=$image" >> "$GITHUB_OUTPUT"
+        echo "repository=${REGISTRY}/$image" >> "$GITHUB_OUTPUT"
         echo "tags=$TAGS" >> "$GITHUB_OUTPUT"
 
     - run: "mise build"
@@ -26,7 +45,7 @@ runs:
       id: build
       uses: redhat-actions/buildah-build@v2
       with:
-        image: ${{ github.repository }}
+        image: ${{ steps.tags.outputs.image }}
         containerfiles: Containerfile
         tags: ${{ steps.tags.outputs.tags }}
 

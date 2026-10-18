@@ -5,6 +5,8 @@ pulumi = "latest"
 hk = "latest"
 pkl = "latest"
 gh = "latest"
+helm = "4.3.1"
+yq = "4"
 # Needed for pkl language server
 java = "24"
 
