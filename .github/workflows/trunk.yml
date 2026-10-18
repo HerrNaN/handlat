@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   build-image:
-    name: Publish Devel
+    name: Build Custom Image
     permissions:
       contents: read
       packages: write
@@ -52,10 +52,10 @@ jobs:
         id: chart
         shell: bash
         env:
-          IMAGE_REPOSITORY: ${{ steps.image.outputs.repository }}
           IMAGE_DIGEST: ${{ steps.image.outputs.digest }}
         run: |
           : "${IMAGE_DIGEST:?missing published image digest}"
+          export IMAGE_REPOSITORY="${REGISTRY}/${GITHUB_REPOSITORY,,}"
 
           chart_dir="$RUNNER_TEMP/laga-devel"
           package_dir="$RUNNER_TEMP/charts"
@@ -94,7 +94,6 @@ jobs:
           CHART_ARCHIVE: ${{ steps.chart.outputs.archive }}
           CHART_VERSION: ${{ steps.chart.outputs.version }}
           CHART_REGISTRY: ${{ steps.chart.outputs.registry }}
-          IMAGE_REPOSITORY: ${{ steps.image.outputs.repository }}
           IMAGE_DIGEST: ${{ steps.image.outputs.digest }}
         run: |
           printf '%s' "$GH_TOKEN" | helm registry login "$REGISTRY" \
@@ -106,7 +105,7 @@ jobs:
           ## Devel published
           - Chart: \`$CHART_REGISTRY/laga\`
           - Version: \`$CHART_VERSION\`
-          - Image: \`$IMAGE_REPOSITORY@$IMAGE_DIGEST\`
+          - Image: \`${REGISTRY}/${GITHUB_REPOSITORY,,}@$IMAGE_DIGEST\`
           EOF
 
       # Deployment is paused: the legacy infrastructure requires PostgreSQL.
