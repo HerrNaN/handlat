@@ -7,15 +7,13 @@ package db
 
 import (
 	"context"
-
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const getUserByCredential = `-- name: GetUserByCredential :one
 SELECT users.id, users.name, credentials.data
 FROM credentials
 JOIN users ON users.id = credentials.user_id
-WHERE credentials.id = $1 AND users.id = $2
+WHERE credentials.id = ?1 AND users.id = ?2
 `
 
 type GetUserByCredentialParams struct {
@@ -26,11 +24,11 @@ type GetUserByCredentialParams struct {
 type GetUserByCredentialRow struct {
 	ID   []byte
 	Name string
-	Data []byte
+	Data string
 }
 
 func (q *Queries) GetUserByCredential(ctx context.Context, arg GetUserByCredentialParams) (GetUserByCredentialRow, error) {
-	row := q.db.QueryRow(ctx, getUserByCredential, arg.CredentialID, arg.UserID)
+	row := q.db.QueryRowContext(ctx, getUserByCredential, arg.CredentialID, arg.UserID)
 	var i GetUserByCredentialRow
 	err := row.Scan(&i.ID, &i.Name, &i.Data)
 	return i, err
@@ -40,7 +38,7 @@ const getUserBySession = `-- name: GetUserBySession :one
 SELECT users.id, users.name
 FROM sessions
 JOIN users ON users.id = sessions.user_id
-WHERE sessions.token_hash = $1 AND sessions.expires_at > now()
+WHERE sessions.token_hash = ?1 AND sessions.expires_at > unixepoch()
 `
 
 type GetUserBySessionRow struct {
@@ -49,7 +47,7 @@ type GetUserBySessionRow struct {
 }
 
 func (q *Queries) GetUserBySession(ctx context.Context, tokenHash []byte) (GetUserBySessionRow, error) {
-	row := q.db.QueryRow(ctx, getUserBySession, tokenHash)
+	row := q.db.QueryRowContext(ctx, getUserBySession, tokenHash)
 	var i GetUserBySessionRow
 	err := row.Scan(&i.ID, &i.Name)
 	return i, err
@@ -57,51 +55,51 @@ func (q *Queries) GetUserBySession(ctx context.Context, tokenHash []byte) (GetUs
 
 const insertCredential = `-- name: InsertCredential :exec
 INSERT INTO credentials (id, user_id, data)
-VALUES ($1, $2, $3)
+VALUES (?1, ?2, ?3)
 `
 
 type InsertCredentialParams struct {
 	ID     []byte
 	UserID []byte
-	Data   []byte
+	Data   string
 }
 
 func (q *Queries) InsertCredential(ctx context.Context, arg InsertCredentialParams) error {
-	_, err := q.db.Exec(ctx, insertCredential, arg.ID, arg.UserID, arg.Data)
+	_, err := q.db.ExecContext(ctx, insertCredential, arg.ID, arg.UserID, arg.Data)
 	return err
 }
 
 const insertLoginAttempt = `-- name: InsertLoginAttempt :exec
 INSERT INTO login_attempts (token_hash, ceremony, expires_at)
-VALUES ($1, $2, $3)
+VALUES (?1, ?2, ?3)
 `
 
 type InsertLoginAttemptParams struct {
 	TokenHash []byte
-	Ceremony  []byte
-	ExpiresAt pgtype.Timestamptz
+	Ceremony  string
+	ExpiresAt int64
 }
 
 func (q *Queries) InsertLoginAttempt(ctx context.Context, arg InsertLoginAttemptParams) error {
-	_, err := q.db.Exec(ctx, insertLoginAttempt, arg.TokenHash, arg.Ceremony, arg.ExpiresAt)
+	_, err := q.db.ExecContext(ctx, insertLoginAttempt, arg.TokenHash, arg.Ceremony, arg.ExpiresAt)
 	return err
 }
 
 const insertRegistrationAttempt = `-- name: InsertRegistrationAttempt :exec
 INSERT INTO registration_attempts (token_hash, user_id, name, ceremony, expires_at)
-VALUES ($1, $2, $3, $4, $5)
+VALUES (?1, ?2, ?3, ?4, ?5)
 `
 
 type InsertRegistrationAttemptParams struct {
 	TokenHash []byte
 	UserID    []byte
 	Name      string
-	Ceremony  []byte
-	ExpiresAt pgtype.Timestamptz
+	Ceremony  string
+	ExpiresAt int64
 }
 
 func (q *Queries) InsertRegistrationAttempt(ctx context.Context, arg InsertRegistrationAttemptParams) error {
-	_, err := q.db.Exec(ctx, insertRegistrationAttempt,
+	_, err := q.db.ExecContext(ctx, insertRegistrationAttempt,
 		arg.TokenHash,
 		arg.UserID,
 		arg.Name,
@@ -113,23 +111,23 @@ func (q *Queries) InsertRegistrationAttempt(ctx context.Context, arg InsertRegis
 
 const insertSession = `-- name: InsertSession :exec
 INSERT INTO sessions (token_hash, user_id, expires_at)
-VALUES ($1, $2, $3)
+VALUES (?1, ?2, ?3)
 `
 
 type InsertSessionParams struct {
 	TokenHash []byte
 	UserID    []byte
-	ExpiresAt pgtype.Timestamptz
+	ExpiresAt int64
 }
 
 func (q *Queries) InsertSession(ctx context.Context, arg InsertSessionParams) error {
-	_, err := q.db.Exec(ctx, insertSession, arg.TokenHash, arg.UserID, arg.ExpiresAt)
+	_, err := q.db.ExecContext(ctx, insertSession, arg.TokenHash, arg.UserID, arg.ExpiresAt)
 	return err
 }
 
 const insertUser = `-- name: InsertUser :exec
 INSERT INTO users (id, name)
-VALUES ($1, $2)
+VALUES (?1, ?2)
 `
 
 type InsertUserParams struct {
@@ -138,54 +136,54 @@ type InsertUserParams struct {
 }
 
 func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) error {
-	_, err := q.db.Exec(ctx, insertUser, arg.ID, arg.Name)
+	_, err := q.db.ExecContext(ctx, insertUser, arg.ID, arg.Name)
 	return err
 }
 
 const popLoginAttempt = `-- name: PopLoginAttempt :one
 DELETE FROM login_attempts
-WHERE token_hash = $1 AND expires_at > now()
+WHERE token_hash = ?1 AND expires_at > unixepoch()
 RETURNING ceremony
 `
 
-func (q *Queries) PopLoginAttempt(ctx context.Context, tokenHash []byte) ([]byte, error) {
-	row := q.db.QueryRow(ctx, popLoginAttempt, tokenHash)
-	var ceremony []byte
+func (q *Queries) PopLoginAttempt(ctx context.Context, tokenHash []byte) (string, error) {
+	row := q.db.QueryRowContext(ctx, popLoginAttempt, tokenHash)
+	var ceremony string
 	err := row.Scan(&ceremony)
 	return ceremony, err
 }
 
 const popRegistrationAttempt = `-- name: PopRegistrationAttempt :one
 DELETE FROM registration_attempts
-WHERE token_hash = $1 AND expires_at > now()
+WHERE token_hash = ?1 AND expires_at > unixepoch()
 RETURNING user_id, name, ceremony
 `
 
 type PopRegistrationAttemptRow struct {
 	UserID   []byte
 	Name     string
-	Ceremony []byte
+	Ceremony string
 }
 
 func (q *Queries) PopRegistrationAttempt(ctx context.Context, tokenHash []byte) (PopRegistrationAttemptRow, error) {
-	row := q.db.QueryRow(ctx, popRegistrationAttempt, tokenHash)
+	row := q.db.QueryRowContext(ctx, popRegistrationAttempt, tokenHash)
 	var i PopRegistrationAttemptRow
 	err := row.Scan(&i.UserID, &i.Name, &i.Ceremony)
 	return i, err
 }
 
 const updateCredential = `-- name: UpdateCredential :exec
-UPDATE credentials SET data = $1
-WHERE id = $2 AND user_id = $3
+UPDATE credentials SET data = ?1
+WHERE id = ?2 AND user_id = ?3
 `
 
 type UpdateCredentialParams struct {
-	Data   []byte
+	Data   string
 	ID     []byte
 	UserID []byte
 }
 
 func (q *Queries) UpdateCredential(ctx context.Context, arg UpdateCredentialParams) error {
-	_, err := q.db.Exec(ctx, updateCredential, arg.Data, arg.ID, arg.UserID)
+	_, err := q.db.ExecContext(ctx, updateCredential, arg.Data, arg.ID, arg.UserID)
 	return err
 }

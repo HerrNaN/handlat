@@ -4,7 +4,7 @@ VALUES (@token_hash, @user_id, @name, @ceremony, @expires_at);
 
 -- name: PopRegistrationAttempt :one
 DELETE FROM registration_attempts
-WHERE token_hash = @token_hash AND expires_at > now()
+WHERE token_hash = @token_hash AND expires_at > unixepoch()
 RETURNING user_id, name, ceremony;
 
 -- name: InsertUser :exec
@@ -23,7 +23,7 @@ VALUES (@token_hash, @user_id, @expires_at);
 SELECT users.id, users.name
 FROM sessions
 JOIN users ON users.id = sessions.user_id
-WHERE sessions.token_hash = @token_hash AND sessions.expires_at > now();
+WHERE sessions.token_hash = @token_hash AND sessions.expires_at > unixepoch();
 
 -- name: InsertLoginAttempt :exec
 INSERT INTO login_attempts (token_hash, ceremony, expires_at)
@@ -31,7 +31,7 @@ VALUES (@token_hash, @ceremony, @expires_at);
 
 -- name: PopLoginAttempt :one
 DELETE FROM login_attempts
-WHERE token_hash = @token_hash AND expires_at > now()
+WHERE token_hash = @token_hash AND expires_at > unixepoch()
 RETURNING ceremony;
 
 -- name: GetUserByCredential :one

@@ -4,38 +4,34 @@
 
 package db
 
-import (
-	"github.com/jackc/pgx/v5/pgtype"
-)
-
 type Credential struct {
 	ID     []byte
 	UserID []byte
-	Data   []byte
+	Data   string
 }
 
 type LoginAttempt struct {
 	TokenHash []byte
-	Ceremony  []byte
-	ExpiresAt pgtype.Timestamptz
+	Ceremony  string
+	ExpiresAt int64
 }
 
 type RegistrationAttempt struct {
 	TokenHash []byte
 	UserID    []byte
 	Name      string
-	Ceremony  []byte
-	ExpiresAt pgtype.Timestamptz
+	Ceremony  string
+	ExpiresAt int64
 }
 
 type Session struct {
 	TokenHash []byte
 	UserID    []byte
-	ExpiresAt pgtype.Timestamptz
+	ExpiresAt int64
 }
 
 type User struct {
 	ID        []byte
 	Name      string
-	CreatedAt pgtype.Timestamptz
+	CreatedAt int64
 }

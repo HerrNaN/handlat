@@ -38,19 +38,15 @@ run = "pnpm dev"
 hide = true
 
 [tasks.dev-be]
-depends = ["generate", "dev-db"]
+depends = ["generate"]
 dir = "backend"
 run = "go run ./cmd/laga"
 env.EXTERNAL_WEB_SERVER_ADDRESS = "http://localhost:5173"
 env.PORT = 8080
-env.DATABASE_URL = "postgres://laga:laga@localhost:5432/laga?sslmode=disable"
+env.DATABASE_PATH = "../_data/laga.sqlite"
 env.WEBAUTHN_RP_ID = "localhost"
 env.WEBAUTHN_ORIGIN = "http://localhost:8080"
 hide = true
-
-[tasks.dev-db]
-description = "Start the development database and wait until it is healthy"
-run = "docker compose up -d --wait db"
 
 # === Building ===
 
@@ -72,6 +68,9 @@ depends = ["build-fe", "generate"]
 dir = "backend/cmd/laga"
 run = "go run ."
 env.PORT = 9090
+env.DATABASE_PATH = "../../../_data/laga.sqlite"
+env.WEBAUTHN_RP_ID = "localhost"
+env.WEBAUTHN_ORIGIN = "http://localhost:9090"
 
 [tasks.generate]
 description = "Regenerate sqlc queries"

@@ -42,9 +42,5 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Deploy
-        uses: ./.github/actions/deploy
-        with:
-          access-key: ${{ secrets.SCW_ACCESS_KEY }}
-          secret-key: ${{ secrets.SCW_SECRET_KEY }}
-          pulumi-config-passphrase: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
+      # Deployment is paused: the legacy infrastructure requires PostgreSQL.
+      # Kubernetes deployment will be configured separately.
