@@ -1,6 +1,6 @@
 apiVersion: v2
 name: laga
-description: Laga with persistent SQLite storage
+description: Laga
 type: application
 version: 0.1.0
 kubeVersion: ">=1.26.0-0"
