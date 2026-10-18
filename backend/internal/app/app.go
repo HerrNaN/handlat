@@ -37,7 +37,11 @@ func Run(ctx context.Context, log *slog.Logger, cfg Config) error {
 	}
 
 	mux := http.NewServeMux()
-	authHandler.Register(mux)
+
+	apiMux := http.NewServeMux()
+	authHandler.Register(apiMux)
+
+	mux.Handle("/api/", loggingMiddleware(http.StripPrefix("/api", apiMux)))
 
 	if cfg.ExternalWebServerAddress != "" {
 		serveWeb, err := web.ServeProxy(cfg.ExternalWebServerAddress)
@@ -79,4 +83,47 @@ func Run(ctx context.Context, log *slog.Logger, cfg Config) error {
 	})
 
 	return eg.Wait()
+}
+
+func loggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		recorder := &statusRecorder{ResponseWriter: w, statusCode: http.StatusOK}
+
+		next.ServeHTTP(recorder, r)
+
+		if recorder.statusCode >= 300 {
+			slog.Warn(
+				"Non-2xx status code",
+				"code",
+				recorder.statusCode,
+				"method",
+				r.Method,
+				"path",
+				r.URL.Path,
+			)
+		}
+	})
+}
+
+type statusRecorder struct {
+	http.ResponseWriter
+	statusCode      int
+	wroteStatusCode bool
+}
+
+func (sr *statusRecorder) WriteHeader(code int) {
+	if sr.wroteStatusCode {
+		return
+	}
+	sr.wroteStatusCode = true
+	sr.statusCode = code
+	sr.ResponseWriter.WriteHeader(code)
+}
+
+func (sr *statusRecorder) Write(b []byte) (int, error) {
+	if !sr.wroteStatusCode {
+		sr.WriteHeader(http.StatusOK)
+	}
+	return sr.ResponseWriter.Write(b)
 }

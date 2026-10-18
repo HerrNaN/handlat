@@ -84,12 +84,12 @@ func New(pool *pgxpool.Pool, rpID, origin string, log *slog.Logger) (*Handler, e
 }
 
 func (h *Handler) Register(mux *http.ServeMux) {
-	mux.HandleFunc("POST /api/auth/register/begin", h.beginRegistration)
-	mux.HandleFunc("POST /api/auth/register/finish", h.finishRegistration)
-	mux.HandleFunc("POST /api/auth/login/begin", h.beginLogin)
-	mux.HandleFunc("POST /api/auth/login/finish", h.finishLogin)
-	mux.HandleFunc("POST /api/auth/logout", h.logout)
-	mux.HandleFunc("GET /api/auth/me", h.me)
+	mux.HandleFunc("POST /auth/register/begin", h.beginRegistration)
+	mux.HandleFunc("POST /auth/register/finish", h.finishRegistration)
+	mux.HandleFunc("POST /auth/login/begin", h.beginLogin)
+	mux.HandleFunc("POST /auth/login/finish", h.finishLogin)
+	mux.HandleFunc("POST /auth/logout", h.logout)
+	mux.HandleFunc("GET /auth/me", h.me)
 }
 
 func (h *Handler) cookie(w http.ResponseWriter, name, value, path string, ttl time.Duration) {
