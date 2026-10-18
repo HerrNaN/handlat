@@ -87,6 +87,38 @@ run = "backlog-bun browser"
 
 # === Deployment ===
 
+[tasks.package-chart]
+description = "Package a Helm chart pinned to an image digest"
+usage = '''
+flag "--version <version>" required=#true
+flag "--app-version <app_version>" required=#true
+flag "--image-repository <image_repository>" required=#true
+flag "--image-digest <image_digest>" required=#true
+flag "--output-dir <output_dir>" default="_data/charts"
+'''
+run = [
+  'mkdir -p "$usage_output_dir/source"',
+  'cp -R deploy/charts/laga/. "$usage_output_dir/source/"',
+  '''
+  yq -i '
+    .image.repository = strenv(usage_image_repository) |
+    .image.digest = strenv(usage_image_digest) |
+    .image.tag = ""
+  ' "$usage_output_dir/source/values.yaml"
+  ''',
+  'helm lint --strict "$usage_output_dir/source" --set webAuthn.rpID=laga.example.com --set webAuthn.origin=https://laga.example.com',
+  'helm template laga "$usage_output_dir/source" --set webAuthn.rpID=laga.example.com --set webAuthn.origin=https://laga.example.com > /dev/null',
+  'helm package "$usage_output_dir/source" --destination "$usage_output_dir" --version "$usage_version" --app-version "$usage_app_version"',
+]
+
+[tasks.publish-chart]
+description = "Publish a packaged Helm chart to an OCI registry"
+usage = '''
+arg "<archive>"
+arg "<registry>"
+'''
+run = 'helm push "$usage_archive" "$usage_registry"'
+
 [tasks.deploy]
 description = "Deploy application IaC"
 dir = "deploy/infra"

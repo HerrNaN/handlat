@@ -54,34 +54,14 @@ jobs:
         env:
           IMAGE_DIGEST: ${{ steps.image.outputs.digest }}
         run: |
-          : "${IMAGE_DIGEST:?missing published image digest}"
-          export IMAGE_REPOSITORY="${REGISTRY}/${GITHUB_REPOSITORY,,}"
-
-          chart_dir="$RUNNER_TEMP/laga-devel"
+          base_version=$(yq -r '.version' deploy/charts/laga/Chart.yaml)
+          version="${base_version}-$(date -u +%Y%m%d%H%M%S)"
           package_dir="$RUNNER_TEMP/charts"
-          mkdir -p "$chart_dir" "$package_dir"
-          cp -R deploy/charts/laga/. "$chart_dir/"
 
-          yq -i '
-            .image.repository = strenv(IMAGE_REPOSITORY) |
-            .image.digest = strenv(IMAGE_DIGEST) |
-            .image.tag = ""
-          ' "$chart_dir/values.yaml"
-
-          # Render the actual image defaults, supplying only environment settings.
-          helm lint --strict "$chart_dir" \
-            --set webAuthn.rpID=laga.example.com \
-            --set webAuthn.origin=https://laga.example.com
-
-          helm template laga "$chart_dir" \
-            --set webAuthn.rpID=laga.example.com \
-            --set webAuthn.origin=https://laga.example.com > /dev/null
-
-          base_version=$(yq -r '.version' "$chart_dir/Chart.yaml")
-          version="${base_version}-devel.${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}"
-
-          helm package "$chart_dir" --destination "$package_dir" \
-            --version "$version" --app-version "$GITHUB_SHA"
+          mise package-chart \
+            --version "$version" --app-version "$GITHUB_SHA" \
+            --image-repository "${REGISTRY}/${GITHUB_REPOSITORY,,}" \
+            --image-digest "$IMAGE_DIGEST" --output-dir "$package_dir"
 
           echo "archive=$package_dir/laga-$version.tgz" >> "$GITHUB_OUTPUT"
           echo "version=$version" >> "$GITHUB_OUTPUT"
@@ -99,7 +79,7 @@ jobs:
           printf '%s' "$GH_TOKEN" | helm registry login "$REGISTRY" \
             --username "$GITHUB_ACTOR" --password-stdin
 
-          helm push "$CHART_ARCHIVE" "$CHART_REGISTRY"
+          mise publish-chart "$CHART_ARCHIVE" "$CHART_REGISTRY"
 
           cat >> "$GITHUB_STEP_SUMMARY" <<EOF
           ## Devel published

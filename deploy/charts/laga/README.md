@@ -59,12 +59,28 @@ in-progress runs are cancelled. Successful runs publish:
 - Image: `ghcr.io/herrnan/laga:<commit-sha>` and the moving `devel` tag
   (replacing the previous `latest` tag).
 - Chart: `oci://ghcr.io/herrnan/charts/devel/laga`, versioned as
-  `<chart-version>-devel.<run-number>.<run-attempt>` (for example
-  `0.1.0-devel.42.1`). Each package pins the published image digest in its default
+  `<chart-version>-<UTC timestamp YYYYMMDDHHMMSS>` (for example
+  `0.1.0-20261018163000`). Each package pins the published image digest in its default
   values and records the commit SHA as `appVersion`.
 
 The workflow summary lists the exact chart version and image digest. Source
 `Chart.yaml` and `values.yaml` are not modified by publishing.
+
+The packaging task can also run locally without GitHub environment variables:
+
+```sh
+mise package-chart \
+  --version "0.1.0-$(date -u +%Y%m%d%H%M%S)" --app-version "$(git rev-parse HEAD)" \
+  --image-repository ghcr.io/herrnan/laga --image-digest "sha256:<actual-image-digest>"
+```
+
+Packages are written to `_data/charts` by default (override with `--output-dir`).
+After authenticating to your registry with `helm registry login`, publish with:
+
+```sh
+mise publish-chart _data/charts/laga-0.1.0-20261018163000.tgz \
+  oci://ghcr.io/herrnan/charts/devel
+```
 
 To install or update to the newest development chart, create environment values
 like the example above **without the `image` section**, then run:
@@ -75,8 +91,11 @@ helm upgrade --install laga-devel oci://ghcr.io/herrnan/charts/devel/laga \
   --values laga-devel-values.yaml --wait
 ```
 
+The registry path selects the channel. Helm's `--devel` flag only allows
+prerelease versions, including these timestamp-suffixed versions.
+
 For a reproducible install, replace `--devel` with
-`--version 0.1.0-devel.42.1`, using a version from a successful run. Do not use
+`--version 0.1.0-20261018163000`, using a version from a successful run. Do not use
 `--reuse-values` when following this channel: it can preserve the old image
 digest instead of the new chart default. Updating the `devel` image tag does not
 restart existing pods; upgrade the chart to deploy a new build.
