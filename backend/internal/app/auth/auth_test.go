@@ -1,15 +1,44 @@
 package auth
 
 import (
+	"encoding/json"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/herrnan/laga/internal/app/database"
+	"github.com/herrnan/laga/internal/app/migrations"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestBeginRegistrationRequestsCredProps(t *testing.T) {
+	t.Parallel()
+
+	conn, err := database.Open(t.Context(), filepath.Join(t.TempDir(), "laga.sqlite"))
+	require.NoError(t, err)
+	t.Cleanup(func() { assert.NoError(t, conn.Close()) })
+	require.NoError(t, migrations.Up(conn))
+
+	handler, err := New(conn, "localhost", "http://localhost:8080", slog.Default())
+	require.NoError(t, err)
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPost, "/auth/register/begin", nil)
+	handler.beginRegistration(recorder, request)
+
+	require.Equal(t, http.StatusOK, recorder.Code)
+	var options struct {
+		Extensions struct {
+			CredProps bool `json:"credProps"`
+		} `json:"extensions"`
+	}
+	require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &options))
+	assert.True(t, options.Extensions.CredProps)
+}
 
 func TestAuthHandler(t *testing.T) {
 	t.Parallel()

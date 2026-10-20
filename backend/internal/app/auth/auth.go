@@ -109,7 +109,10 @@ func (h *Handler) beginRegistration(w http.ResponseWriter, r *http.Request) {
 
 	u := user{id: id, name: "Laga " + base64.RawURLEncoding.EncodeToString(id[:6])}
 
-	options, ceremony, err := h.wa.BeginRegistration(u)
+	options, ceremony, err := h.wa.BeginRegistration(u,
+		webauthn.WithExtensions(webauthn.WithExtensionCredProps()),
+		webauthn.WithResidentKeyRequirement(protocol.ResidentKeyRequirementRequired),
+	)
 	if err != nil {
 		h.fail(w, "begin registration", err)
 		return
