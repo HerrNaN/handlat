@@ -107,7 +107,13 @@ func (h *Handler) beginRegistration(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u := user{id: id, name: "Laga " + base64.RawURLEncoding.EncodeToString(id[:6])}
+	name, err := generateUsername()
+	if err != nil {
+		h.fail(w, "generate username", err)
+		return
+	}
+
+	u := user{id: id, name: name}
 
 	options, ceremony, err := h.wa.BeginRegistration(u,
 		webauthn.WithExtensions(webauthn.WithExtensionCredProps()),

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -32,12 +33,18 @@ func TestBeginRegistrationRequestsCredProps(t *testing.T) {
 
 	require.Equal(t, http.StatusOK, recorder.Code)
 	var options struct {
+		User struct {
+			Name        string `json:"name"`
+			DisplayName string `json:"displayName"`
+		} `json:"user"`
 		Extensions struct {
 			CredProps bool `json:"credProps"`
 		} `json:"extensions"`
 	}
 	require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &options))
 	assert.True(t, options.Extensions.CredProps)
+	assert.Len(t, strings.Split(options.User.Name, "-"), 2)
+	assert.Equal(t, options.User.Name, options.User.DisplayName)
 }
 
 func TestAuthHandler(t *testing.T) {
