@@ -1,23 +1,29 @@
-{{- define "laga.fullname" -}}
-{{- if contains .Chart.Name .Release.Name -}}
+{{- define "handlat.fullname" -}}
+{{- if .Release.IsUpgrade -}}
+{{- if contains "laga" .Release.Name -}}
+{{- .Release.Name | trunc 63 | trimSuffix "-" -}}
+{{- else -}}
+{{- printf "%s-laga" .Release.Name | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+{{- else if contains .Chart.Name .Release.Name -}}
 {{- .Release.Name | trunc 63 | trimSuffix "-" -}}
 {{- else -}}
 {{- printf "%s-%s" .Release.Name .Chart.Name | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 {{- end -}}
 
-{{- define "laga.selectorLabels" -}}
-app.kubernetes.io/name: {{ .Chart.Name }}
+{{- define "handlat.selectorLabels" -}}
+app.kubernetes.io/name: {{ if .Release.IsUpgrade }}laga{{ else }}{{ .Chart.Name }}{{ end }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end -}}
 
-{{- define "laga.labels" -}}
-{{ include "laga.selectorLabels" . }}
+{{- define "handlat.labels" -}}
+{{ include "handlat.selectorLabels" . }}
 helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end -}}
 
-{{- define "laga.image" -}}
+{{- define "handlat.image" -}}
 {{- $repository := required "image.repository is required" .Values.image.repository -}}
 {{- if .Values.image.digest -}}
 {{- if not (regexMatch "^sha256:[a-f0-9]{64}$" .Values.image.digest) -}}
@@ -33,6 +39,6 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end -}}
 {{- end -}}
 
-{{- define "laga.claimName" -}}
-{{- default (include "laga.fullname" .) .Values.persistence.existingClaim -}}
+{{- define "handlat.claimName" -}}
+{{- default (include "handlat.fullname" .) .Values.persistence.existingClaim -}}
 {{- end -}}

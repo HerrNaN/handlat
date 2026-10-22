@@ -1,4 +1,4 @@
-# Laga Helm chart
+# Handlat Helm chart
 
 Runs one application replica with SQLite at `/data/laga.sqlite` on a persistent
 volume. Upgrades use `Recreate`, so brief downtime is expected. No deployment
@@ -33,11 +33,11 @@ ingress:
 ```
 
 ```sh
-helm upgrade --install laga ./deploy/charts/laga \
-  --namespace laga --create-namespace --values laga-values.yaml --wait
+helm upgrade --install handlat ./deploy/charts/handlat \
+  --namespace handlat --create-namespace --values handlat-values.yaml --wait
 ```
 
-Image repository defaults to `ghcr.io/herrnan/laga`. Set `image.tag` to a commit
+Image repository defaults to `ghcr.io/herrnan/handlat`. Set `image.tag` to a commit
 SHA if not using a digest; a digest takes precedence. The source chart has no
 default image version, and `latest` is rejected. For private images, configure
 `imagePullSecrets: [{name: ghcr}]` using an existing secret in the release namespace.
@@ -56,9 +56,9 @@ already be writable by that identity.
 Every push to `main` triggers verification, tests, and publishing. Superseded
 in-progress runs are cancelled. Successful runs publish:
 
-- Image: `ghcr.io/herrnan/laga:<commit-sha>` and the moving `devel` tag
+- Image: `ghcr.io/herrnan/handlat:<commit-sha>` and the moving `devel` tag
   (replacing the previous `latest` tag).
-- Chart: `oci://ghcr.io/herrnan/charts/devel/laga`, versioned as
+- Chart: `oci://ghcr.io/herrnan/charts/devel/handlat`, versioned as
   `<chart-version>-<UTC timestamp YYYYMMDDHHMMSS>` (for example
   `0.1.0-20261018163000`). Each package pins the published image digest in its default
   values and records the commit SHA as `appVersion`.
@@ -71,14 +71,14 @@ The packaging task can also run locally without GitHub environment variables:
 ```sh
 mise package-chart \
   --version "0.1.0-$(date -u +%Y%m%d%H%M%S)" --app-version "$(git rev-parse HEAD)" \
-  --image-repository ghcr.io/herrnan/laga --image-digest "sha256:<actual-image-digest>"
+  --image-repository ghcr.io/herrnan/handlat --image-digest "sha256:<actual-image-digest>"
 ```
 
 Packages are written to `_data/charts` by default (override with `--output-dir`).
 After authenticating to your registry with `helm registry login`, publish with:
 
 ```sh
-mise publish-chart _data/charts/laga-0.1.0-20261018163000.tgz \
+mise publish-chart _data/charts/handlat-0.1.0-20261018163000.tgz \
   oci://ghcr.io/herrnan/charts/devel
 ```
 
@@ -86,9 +86,9 @@ To install or update to the newest development chart, create environment values
 like the example above **without the `image` section**, then run:
 
 ```sh
-helm upgrade --install laga-devel oci://ghcr.io/herrnan/charts/devel/laga \
-  --devel --namespace laga-devel --create-namespace \
-  --values laga-devel-values.yaml --wait
+helm upgrade --install handlat-devel oci://ghcr.io/herrnan/charts/devel/handlat \
+  --devel --namespace handlat-devel --create-namespace \
+  --values handlat-devel-values.yaml --wait
 ```
 
 The registry path selects the channel. Helm's `--devel` flag only allows
@@ -125,9 +125,11 @@ triggered by this workflow.
   consistent database/volume backups separately; do not copy just a live SQLite
   file while ignoring its WAL.
 - After uninstall, reinstall with `persistence.existingClaim` set to the retained
-  claim's name (normally the release name if it contains `laga`, otherwise
-  `<release>-laga`). Helm will not create or manage that claim. Do not change claim
-  names on a running installation without an explicit data migration.
+  claim's name (normally the release name if it contains `handlat`, otherwise
+  `<release>-handlat` for new installs). Existing Laga releases retain their prior
+  resource and claim names when upgraded with the same Helm release name. Helm will
+  not create or manage an existing claim. Do not change claim names on a running
+  installation without an explicit data migration.
 - Separate labs and production releases should use separate namespaces and PVCs.
   Helm rollback rolls back manifests, not database contents or schema migrations.
 
@@ -140,8 +142,8 @@ HTTP shutdown, with 30 seconds allowed before forced termination.
 From the repository root:
 
 ```sh
-helm lint --strict ./deploy/charts/laga --values ./deploy/charts/laga/ci/values.yaml
-helm template laga ./deploy/charts/laga --values ./deploy/charts/laga/ci/values.yaml
+helm lint --strict ./deploy/charts/handlat --values ./deploy/charts/handlat/ci/values.yaml
+helm template handlat ./deploy/charts/handlat --values ./deploy/charts/handlat/ci/values.yaml
 ```
 
 The CI values contain a placeholder digest for rendering only, not installation.

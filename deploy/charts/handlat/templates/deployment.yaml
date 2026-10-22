@@ -1,9 +1,9 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "laga.fullname" . }}
+  name: {{ include "handlat.fullname" . }}
   labels:
-    {{- include "laga.labels" . | nindent 4 }}
+    {{- include "handlat.labels" . | nindent 4 }}
 spec:
   # SQLite uses one persistent database file. Do not scale this deployment out.
   replicas: 1
@@ -11,11 +11,11 @@ spec:
     type: Recreate
   selector:
     matchLabels:
-      {{- include "laga.selectorLabels" . | nindent 6 }}
+      {{- include "handlat.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "laga.selectorLabels" . | nindent 8 }}
+        {{- include "handlat.selectorLabels" . | nindent 8 }}
     spec:
       automountServiceAccountToken: false
       terminationGracePeriodSeconds: 30
@@ -32,8 +32,8 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       containers:
-        - name: laga
-          image: {{ include "laga.image" . | quote }}
+        - name: handlat
+          image: {{ include "handlat.image" . | quote }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           securityContext:
             allowPrivilegeEscalation: false
@@ -78,4 +78,4 @@ spec:
       volumes:
         - name: data
           persistentVolumeClaim:
-            claimName: {{ include "laga.claimName" . }}
+            claimName: {{ include "handlat.claimName" . }}
