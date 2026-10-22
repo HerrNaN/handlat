@@ -87,6 +87,3 @@ jobs:
           - Version: \`$CHART_VERSION\`
           - Image: \`${REGISTRY}/${GITHUB_REPOSITORY,,}@$IMAGE_DIGEST\`
           EOF
-
-      # Deployment is paused: the legacy infrastructure requires PostgreSQL.
-      # Kubernetes deployment will be configured separately.

@@ -1,7 +1,0 @@
-# Render/lint fixture only; this digest is not a published image.
-image:
-  digest: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-
-webAuthn:
-  rpID: laga.example.com
-  origin: https://laga.example.com

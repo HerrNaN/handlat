@@ -1,3 +1,0 @@
-name: laga-bootstrap
-description: Bootstrap Scaleway project, IAM, and state bucket for laga
-runtime: go
