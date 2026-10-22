@@ -32,12 +32,13 @@ backlog = "backlog-bun"
 
 [tasks.dev]
 description = "Run in development mode"
-depends = ["dev-fe", "dev-be"]
+run = [{ tasks = ["dev-fe", "dev-be"] }]
 
 [tasks.dev-fe]
 dir = "frontend"
 run = "pnpm dev"
 hide = true
+silent = "stdout"
 
 [tasks.dev-be]
 depends = ["generate"]
