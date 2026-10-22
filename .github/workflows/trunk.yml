@@ -54,7 +54,7 @@ jobs:
         env:
           IMAGE_DIGEST: ${{ steps.image.outputs.digest }}
         run: |
-          base_version=$(yq -r '.version' deploy/charts/laga/Chart.yaml)
+          base_version=$(yq -r '.version' deploy/charts/handlat/Chart.yaml)
           version="${base_version}-$(date -u +%Y%m%d%H%M%S)"
           package_dir="$RUNNER_TEMP/charts"
 
@@ -63,7 +63,7 @@ jobs:
             --image-repository "${REGISTRY}/${GITHUB_REPOSITORY,,}" \
             --image-digest "$IMAGE_DIGEST" --output-dir "$package_dir"
 
-          echo "archive=$package_dir/laga-$version.tgz" >> "$GITHUB_OUTPUT"
+          echo "archive=$package_dir/handlat-$version.tgz" >> "$GITHUB_OUTPUT"
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "registry=oci://${REGISTRY}/${GITHUB_REPOSITORY_OWNER,,}/charts/devel" >> "$GITHUB_OUTPUT"
 
@@ -83,7 +83,7 @@ jobs:
 
           cat >> "$GITHUB_STEP_SUMMARY" <<EOF
           ## Devel published
-          - Chart: \`$CHART_REGISTRY/laga\`
+          - Chart: \`$CHART_REGISTRY/handlat\`
           - Version: \`$CHART_VERSION\`
           - Image: \`${REGISTRY}/${GITHUB_REPOSITORY,,}@$IMAGE_DIGEST\`
           EOF

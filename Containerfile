@@ -6,6 +6,6 @@ FROM scratch
 
 COPY --from=certificates /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
-COPY ./backend/cmd/laga/laga /laga
+COPY ./backend/cmd/handlat/handlat /handlat
 
-ENTRYPOINT [ "/laga" ]
+ENTRYPOINT [ "/handlat" ]

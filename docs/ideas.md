@@ -1,7 +1,7 @@
 ## Ideas
 ### Recipe/Shopping list
 - Name ideas
-  - `laga`
+  - `handlat`
 - Mobile first
 - Offline first
 - Backend with persistent storage

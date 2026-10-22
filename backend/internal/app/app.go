@@ -8,11 +8,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/herrnan/laga/internal/app/auth"
-	"github.com/herrnan/laga/internal/app/database"
-	"github.com/herrnan/laga/internal/app/migrations"
-	"github.com/herrnan/laga/internal/app/web"
-	"github.com/herrnan/laga/internal/util"
+	"github.com/herrnan/handlat/internal/app/auth"
+	"github.com/herrnan/handlat/internal/app/database"
+	"github.com/herrnan/handlat/internal/app/migrations"
+	"github.com/herrnan/handlat/internal/app/web"
+	"github.com/herrnan/handlat/internal/util"
 	"golang.org/x/sync/errgroup"
 )
 

@@ -1,4 +1,4 @@
-module github.com/herrnan/laga
+module github.com/herrnan/handlat
 
 go 1.26.0
 

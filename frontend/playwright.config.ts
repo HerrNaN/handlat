@@ -15,7 +15,7 @@ export default defineConfig({
       reuseExistingServer: false,
     },
     {
-      command: "go run ./cmd/laga",
+      command: "go run ./cmd/handlat",
       cwd: fileURLToPath(new URL("../backend/", import.meta.url)),
       env: {
         PORT: "8080",

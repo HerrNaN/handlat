@@ -12,7 +12,7 @@ func TestOpen(t *testing.T) {
 	t.Parallel()
 
 	ctx := t.Context()
-	path := filepath.Join(t.TempDir(), "data", "laga.sqlite")
+	path := filepath.Join(t.TempDir(), "data", "handlat.sqlite")
 
 	db, err := Open(ctx, path)
 

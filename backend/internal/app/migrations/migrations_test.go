@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/herrnan/laga/internal/app/database"
+	"github.com/herrnan/handlat/internal/app/database"
 	"github.com/pressly/goose/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -13,7 +13,7 @@ import (
 func TestUpAndDown(t *testing.T) {
 	ctx := t.Context()
 
-	db, err := database.Open(ctx, filepath.Join(t.TempDir(), "laga.sqlite"))
+	db, err := database.Open(ctx, filepath.Join(t.TempDir(), "handlat.sqlite"))
 
 	require.NoError(t, err)
 

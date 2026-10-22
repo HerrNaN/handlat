@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/herrnan/laga/internal/app/auth/db"
-	"github.com/herrnan/laga/internal/app/database"
-	"github.com/herrnan/laga/internal/app/migrations"
+	"github.com/herrnan/handlat/internal/app/auth/db"
+	"github.com/herrnan/handlat/internal/app/database"
+	"github.com/herrnan/handlat/internal/app/migrations"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -19,7 +19,7 @@ import (
 func TestSQLiteQueries(t *testing.T) {
 	ctx := t.Context()
 
-	conn, err := database.Open(ctx, filepath.Join(t.TempDir(), "laga.sqlite"))
+	conn, err := database.Open(ctx, filepath.Join(t.TempDir(), "handlat.sqlite"))
 
 	require.NoError(t, err)
 

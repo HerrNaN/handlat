@@ -14,7 +14,7 @@ import (
 
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
-	"github.com/herrnan/laga/internal/app/auth/db"
+	"github.com/herrnan/handlat/internal/app/auth/db"
 )
 
 const (
@@ -66,7 +66,7 @@ func New(conn *sql.DB, rpID, origin string, log *slog.Logger) (*Handler, error) 
 	wa, err := webauthn.New(&webauthn.Config{
 		RPID:          rpID,
 		RPOrigins:     []string{origin},
-		RPDisplayName: "Laga",
+		RPDisplayName: "Handlat",
 		AuthenticatorSelection: protocol.AuthenticatorSelection{
 			ResidentKey:      protocol.ResidentKeyRequirementRequired,
 			UserVerification: protocol.VerificationRequired,

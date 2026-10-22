@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/herrnan/laga/internal/app/database"
-	"github.com/herrnan/laga/internal/app/migrations"
+	"github.com/herrnan/handlat/internal/app/database"
+	"github.com/herrnan/handlat/internal/app/migrations"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -19,7 +19,7 @@ import (
 func TestBeginRegistrationRequestsCredProps(t *testing.T) {
 	t.Parallel()
 
-	conn, err := database.Open(t.Context(), filepath.Join(t.TempDir(), "laga.sqlite"))
+	conn, err := database.Open(t.Context(), filepath.Join(t.TempDir(), "handlat.sqlite"))
 	require.NoError(t, err)
 	t.Cleanup(func() { assert.NoError(t, conn.Close()) })
 	require.NoError(t, migrations.Up(conn))

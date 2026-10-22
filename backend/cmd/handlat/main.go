@@ -7,11 +7,11 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/herrnan/laga/internal/app"
+	"github.com/herrnan/handlat/internal/app"
 	"github.com/kelseyhightower/envconfig"
 )
 
-const appName = "LAGA"
+const appName = "HANDLAT"
 
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{

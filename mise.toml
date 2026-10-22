@@ -43,7 +43,7 @@ silent = "stdout"
 [tasks.dev-be]
 depends = ["generate"]
 dir = "backend"
-run = "go run ./cmd/laga"
+run = "go run ./cmd/handlat"
 env.EXTERNAL_WEB_SERVER_ADDRESS = "http://localhost:5173"
 env.PORT = 8080
 env.DATABASE_PATH = "../_data/laga.sqlite"
@@ -55,7 +55,7 @@ hide = true
 
 [tasks.build]
 depends = ["build-fe", "generate"]
-dir = "backend/cmd/laga"
+dir = "backend/cmd/handlat"
 run = "go build ."
 env.CGO_ENABLED = 0
 hide = true
@@ -68,7 +68,7 @@ hide = true
 [tasks.preview]
 description = "Preview build for production"
 depends = ["build-fe", "generate"]
-dir = "backend/cmd/laga"
+dir = "backend/cmd/handlat"
 run = "go run ."
 env.PORT = 9090
 env.DATABASE_PATH = "../../../_data/laga.sqlite"
@@ -99,7 +99,7 @@ flag "--output-dir <output_dir>" default="_data/charts"
 '''
 run = [
   'mkdir -p "$usage_output_dir/source"',
-  'cp -R deploy/charts/laga/. "$usage_output_dir/source/"',
+  'cp -R deploy/charts/handlat/. "$usage_output_dir/source/"',
   '''
   yq -i '
     .image.repository = strenv(usage_image_repository) |
@@ -108,7 +108,7 @@ run = [
   ' "$usage_output_dir/source/values.yaml"
   ''',
   'helm lint --strict "$usage_output_dir/source" --set webAuthn.rpID=laga.example.com --set webAuthn.origin=https://laga.example.com',
-  'helm template laga "$usage_output_dir/source" --set webAuthn.rpID=laga.example.com --set webAuthn.origin=https://laga.example.com > /dev/null',
+  'helm template handlat "$usage_output_dir/source" --set webAuthn.rpID=laga.example.com --set webAuthn.origin=https://laga.example.com > /dev/null',
   'helm package "$usage_output_dir/source" --destination "$usage_output_dir" --version "$usage_version" --app-version "$usage_app_version"',
 ]
 
