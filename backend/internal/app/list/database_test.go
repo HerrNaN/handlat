@@ -1,6 +1,7 @@
 package list
 
 import (
+	"database/sql"
 	"path/filepath"
 	"testing"
 
@@ -31,6 +32,20 @@ func TestListQueries(t *testing.T) {
 	}
 
 	require.NoError(t, q.CreateList(ctx, params))
+
+	t.Run("only the owner can access a list", func(t *testing.T) {
+		_, err := accessibleList(ctx, q, "list", []byte("owner"))
+
+		require.NoError(t, err)
+
+		_, err = accessibleList(ctx, q, "list", []byte("other"))
+
+		require.ErrorIs(t, err, sql.ErrNoRows)
+
+		_, err = accessibleList(ctx, q, "missing", []byte("owner"))
+
+		require.ErrorIs(t, err, sql.ErrNoRows)
+	})
 
 	t.Run("summaries count items and filter by owner", func(t *testing.T) {
 		err := q.AddItem(ctx, db.AddItemParams{
