@@ -1,14 +1,26 @@
 <script lang="ts">
     import { p } from "../../router";
-    import { session } from "./session";
+    import { session, clearSession } from "./session";
+    import "@awesome.me/webawesome/dist/components/button/button.js";
+    import "@awesome.me/webawesome/dist/components/icon/icon.js";
 
-    const logout = () =>
-      fetch("/api/auth/logout", { method: "POST" }).then(() => location.reload())
+    let error = $state("");
+    const logout = async () => {
+        try {
+            const response = await fetch("/api/auth/logout", { method: "POST" });
+            if (!response.ok) throw new Error("Logout failed");
+            clearSession();
+            location.assign("/sign-in");
+        } catch {
+            error = "Could not sign out. Check your connection and try again.";
+        }
+    };
 
 </script>
 
 <section>
     <h1>Profile</h1>
+    {#if error}<p role="alert">{error}</p>{/if}
     {#if $session}
         <p>You are signed in as: <span class="username">{$session.name}</span>.</p>
         <wa-button appearance="outlined" onclick={logout}>

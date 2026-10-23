@@ -1,25 +1,27 @@
 <script lang="ts">
     import WaInput from "@awesome.me/webawesome/dist/components/input/input.js";
     import "@awesome.me/webawesome/dist/components/drawer/drawer.js";
+    import "@awesome.me/webawesome/dist/components/button/button.js";
+    import "@awesome.me/webawesome/dist/components/icon/icon.js";
     import { listStore } from "./store";
 
     let input = $state<WaInput>();
+    const { status } = listStore;
 
-    function handleAdd() {
+    const handleAdd = async () => {
         if (!input) return;
 
         const text = input.value?.trim();
         if (text) {
-            listStore.addItem(text);
-            input.value = "";
+            if (await listStore.addItem(text)) input.value = "";
         }
-    }
+    };
 
-    function handleKeydown(e: KeyboardEvent) {
+    const handleKeydown = (e: KeyboardEvent) => {
         if (e.key === "Enter") {
             handleAdd();
         }
-    }
+    };
 
     const id = $props.id();
 </script>
@@ -36,9 +38,12 @@
             bind:this={input}
             enterkeyhint="go"
             placeholder="t.ex. 2 kg potatis"
-            bind:this={input}
+            disabled={$status.loading || $status.saving}
             onkeydown={handleKeydown}
         ></wa-input>
+        {#if $status.error}
+            <p role="alert">{$status.error}</p>
+        {/if}
     </wa-drawer>
     <wa-button size="l" variant="brand" data-drawer="open {id}">
         <wa-icon name="plus"></wa-icon>

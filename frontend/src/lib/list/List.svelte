@@ -10,23 +10,27 @@
     import EditItem from "./EditItem.svelte";
     import { route, navigate } from "../../router";
     import Input from "../components/Input.svelte";
+    import ListStatus from "./ListStatus.svelte";
 
-    const { activeList, lists, changeListName, setActiveList } = listStore;
+    const { activeList, status, changeListName, setActiveList } = listStore;
 
     let editItemDialog = $state<WaDialog>();
-    let itemToEdit = $state<Item>();
+    let itemToEditID = $state("");
+    const itemToEdit = $derived($activeList.items.find((item) => item.id === itemToEditID));
     const onClickEditItem = (item: Item) => {
         if (editItemDialog) editItemDialog.open = true;
-        itemToEdit = item;
+        itemToEditID = item.id;
     };
 
-    onMount(() => {
+    $effect(() => {
         const id = route.params.id;
-        if (id && $lists.some((list) => list.id === id)) {
-            setActiveList(id);
-        } else {
-            navigate("/lists", { replace: true });
-        }
+        if (id) void setActiveList(id);
+    });
+
+    onMount(() => {
+        const refresh = () => { void listStore.refresh(); };
+        window.addEventListener("focus", refresh);
+        return () => window.removeEventListener("focus", refresh);
     });
 </script>
 
@@ -40,16 +44,22 @@
             <wa-icon name="arrow-left"></wa-icon>
         </wa-button>
         <h2>
-            <Input value={$activeList.name} onsave={changeListName} />
+            {#if $activeList.id}
+                <Input value={$activeList.name} onsave={changeListName} disabled={$status.loading || $status.saving} />
+            {/if}
         </h2>
     </header>
+    <ListStatus />
+    {#if $activeList.id}
     <div class="list-area">
         <ItemList items={$activeList.items} {onClickEditItem} />
         <AddItem />
     </div>
+    {/if}
 </article>
 
 <wa-dialog bind:this={editItemDialog} label="Edit Item" light-dismiss>
+    <ListStatus />
     {#if itemToEdit}
         <EditItem item={itemToEdit} />
     {/if}

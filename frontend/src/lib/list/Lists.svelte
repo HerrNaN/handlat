@@ -1,15 +1,35 @@
 <script lang="ts">
+    import { onMount } from "svelte";
+    import { get } from "svelte/store";
     import { listStore } from "./store";
-    import { p } from "../../router";
+    import { p, navigate } from "../../router";
+    import ListStatus from "./ListStatus.svelte";
     import "@awesome.me/webawesome/dist/components/icon/icon.js";
+    import "@awesome.me/webawesome/dist/components/button/button.js";
 
-    const { lists } = listStore;
+    const { lists, status } = listStore;
+    const createList = async () => {
+        if (await listStore.createList()) {
+            navigate("/lists/:id", { params: { id: get(listStore.activeList).id } });
+        }
+    };
+    onMount(() => {
+        void listStore.refreshLists();
+        const refresh = () => { void listStore.refresh(); };
+        window.addEventListener("focus", refresh);
+        return () => window.removeEventListener("focus", refresh);
+    });
 </script>
 
 <article>
     <header>
         <h2>Lists</h2>
     </header>
+    <ListStatus />
+    <wa-button onclick={createList} disabled={$status.loading || $status.saving}>New list</wa-button>
+    {#if !$status.loading && !$status.error && $lists.length === 0}
+        <p>No lists yet. Create your first private list.</p>
+    {/if}
     <ul>
         {#each $lists as list (list.id)}
             <li>
