@@ -28,6 +28,7 @@
     <header>
         <h2>Lists</h2>
     </header>
+    <p>Lists are private and saved to your account. Previous browser-only lists are not imported.</p>
     {#if query.isFetching && !query.data}
         <p role="status">Loading…</p>
     {/if}

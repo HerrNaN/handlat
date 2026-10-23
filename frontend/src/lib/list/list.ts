@@ -1,10 +1,5 @@
 import z from "zod";
 
-export type List = {
-  name: string;
-  items: Item[];
-};
-
 const isoDatetimeToDate = z.codec(z.iso.datetime(), z.date(), {
   decode: (isoString: string) => new Date(isoString),
   encode: (date: Date) => date.toISOString(),
