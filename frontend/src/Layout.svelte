@@ -6,10 +6,17 @@
     import "@awesome.me/webawesome/dist/components/tab-group/tab-group.js";
     import "@awesome.me/webawesome/dist/components/tab-panel/tab-panel.js";
     import "@awesome.me/webawesome/dist/components/tab/tab.js";
+    import "@awesome.me/webawesome/dist/components/button/button.js";
     import { navigateToDefaultList } from "./lib/list/navigation";
-    import { hasActiveSession, session } from "./lib/user/session";
+    import { session } from "./lib/user/session";
 
     let { children }: { children?: Snippet } = $props();
+
+    $effect(() => {
+        if ($session === null && route.pathname !== "/sign-in" && route.pathname !== "/sign-up") {
+            void navigate("/sign-in", { replace: true });
+        }
+    });
 </script>
 
 <main>

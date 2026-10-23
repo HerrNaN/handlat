@@ -1,116 +1,77 @@
 <script lang="ts">
-    import { listStore } from "./store";
     import type { Item } from "./list";
     import SwipeAction from "./SwipeAction.svelte";
     import "@awesome.me/webawesome/dist/components/checkbox/checkbox.js";
     import "@awesome.me/webawesome/dist/components/icon/icon.js";
+    import "@awesome.me/webawesome/dist/components/button/button.js";
 
     type Props = {
         item: Item;
+        busy: boolean;
         onEditItem: () => void;
+        onCheck: (itemID: string, checked: boolean) => void;
+        onDelete: (itemID: string) => Promise<unknown>;
     };
-
-    let { item, onEditItem }: Props = $props();
-
+    let { item, busy, onEditItem, onCheck, onDelete }: Props = $props();
     const checked = $derived(item.checkedAt !== undefined);
-
-    let isRemoving = $state(false);
-
-    const handleToggle = () => {
-        listStore.toggleItem(item.id);
+    let swipe = $state<SwipeAction>();
+    const remove = async () => {
+        await onDelete(item.id).catch(() => undefined);
+        swipe?.reset();
     };
-
-    const handleTransitionEnd = (e: TransitionEvent) => {
-        if (e.propertyName === "opacity" && isRemoving) {
-            listStore.deleteItem(item.id);
-        }
-    };
-
-    const handleEditClick = (e: Event) => {
-        e.stopPropagation();
-        onEditItem();
-    };
-
-    const id = $props.id();
 </script>
 
-<div
-    class="container"
-    class:removing={isRemoving}
-    ontransitionend={handleTransitionEnd}
->
-    <SwipeAction ontrigger={() => (isRemoving = true)} disabled={isRemoving}>
-        {#snippet underlay()}
-            <div class="underlay">
-                <wa-icon name="trash"></wa-icon>
-            </div>
-        {/snippet}
-
-        <div
-            class="content"
-            onclick={handleToggle}
+<SwipeAction bind:this={swipe} ontrigger={remove} disabled={busy}>
+    {#snippet underlay()}
+        <div class="underlay"><wa-icon name="trash"></wa-icon></div>
+    {/snippet}
+    <div class="content">
+        <button
+            type="button"
             role="checkbox"
             aria-checked={checked}
-            tabindex="0"
+            disabled={busy}
+            onclick={() => onCheck(item.id, !checked)}
         >
-            <wa-checkbox {id} defaultChecked={checked}></wa-checkbox>
-            <label for={id}>{item.text}</label>
-            <wa-button appearance="plain" onclick={handleEditClick}>
-                <wa-icon name="pen"></wa-icon>
-            </wa-button>
-        </div>
-    </SwipeAction>
-</div>
+            <!-- The button owns interaction; the checkbox only displays saved state. -->
+            <wa-checkbox {checked} defaultChecked={checked} inert aria-hidden="true"></wa-checkbox>
+            <span class:checked>{item.text}</span>
+        </button>
+        <wa-button appearance="plain" onclick={onEditItem} disabled={busy} aria-label="Edit {item.text}">
+            <wa-icon name="pen"></wa-icon>
+        </wa-button>
+    </div>
+</SwipeAction>
 
 <style>
-    .container {
-        height: 100%;
-        transition: opacity var(--wa-transition-normal) ease;
-
-        &.removing {
-            opacity: 0;
-            pointer-events: none;
-        }
-    }
-
     .content {
         position: relative;
         width: 100%;
         height: 100%;
         display: flex;
-        gap: var(--wa-space-s);
         align-items: center;
         padding-inline: var(--wa-space-2xs);
         background-color: var(--wa-color-surface-default);
         border-radius: var(--wa-border-width-l);
-
-        label {
-            flex: 1;
-        }
-
-        &:has(wa-checkbox:state(checked)) {
-            label {
-                text-decoration: line-through;
-                color: var(--wa-color-neutral-on-quiet);
-            }
-        }
     }
-
-    .underlay {
-        position: absolute;
-        inset: 0;
+    button {
+        flex: 1;
+        min-width: 0;
+        height: 100%;
         display: flex;
         align-items: center;
-        padding: var(--wa-space-s) var(--wa-space-m);
-        justify-content: end;
-        background-color: var(--wa-color-danger-fill-loud);
-        color: var(--wa-color-brand-on-loud);
-        border-radius: var(--wa-border-width-l);
-        border-style: var(--wa-border-style);
-        border-width: var(--wa-border-width-s);
+        gap: var(--wa-space-s);
+        border: 0;
+        padding: 0;
+        background: none;
+        color: inherit;
+        font: inherit;
+        text-align: start;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
     }
-
     wa-checkbox {
+        pointer-events: none;
         -webkit-tap-highlight-color: transparent;
         padding: 0.675rem;
         border-radius: var(--wa-border-width-l);
@@ -118,6 +79,7 @@
 
         &:state(checked) {
             background-color: var(--wa-color-success-fill-quiet);
+
             &::part(control) {
                 color: var(--wa-color-success-on-loud);
                 background-color: var(--wa-color-success-fill-loud);
@@ -128,5 +90,22 @@
         &::part(control) {
             margin-inline-end: 0;
         }
+    }
+    .checked {
+        text-decoration: line-through;
+        color: var(--wa-color-neutral-on-quiet);
+    }
+    .underlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: end;
+        padding: var(--wa-space-s) var(--wa-space-m);
+        background-color: var(--wa-color-danger-fill-loud);
+        color: var(--wa-color-brand-on-loud);
+        border-radius: var(--wa-border-width-l);
+        border-style: var(--wa-border-style);
+        border-width: var(--wa-border-width-s);
     }
 </style>
