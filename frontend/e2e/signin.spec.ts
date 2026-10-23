@@ -9,7 +9,7 @@ test("signs in to an existing account with a passkey and stays signed in after r
   const account = page.getByText(/^You are signed in as: /);
   const name = await account.textContent();
 
-  await page.getByRole("button", {name: "Log out"}).click()
+  await page.getByRole("button", { name: "Log out" }).click();
 
   await expect(page).toHaveURL(/\/sign-in$/);
   await page.getByRole("button", { name: "Sign in with passkey" }).click();

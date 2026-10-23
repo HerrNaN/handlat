@@ -78,6 +78,38 @@ func TestRequireSession(t *testing.T) {
 		})
 	}
 
+	logoutRequest := httptest.NewRequest(http.MethodPost, "/auth/logout", nil)
+	logoutRequest.AddCookie(&http.Cookie{Name: "laga_session", Value: token})
+
+	mux := http.NewServeMux()
+	h.Register(mux)
+
+	logoutResponse := httptest.NewRecorder()
+	mux.ServeHTTP(logoutResponse, logoutRequest)
+	require.Equal(t, 200, logoutResponse.Code)
+
+	revokedRequest := httptest.NewRequest(http.MethodGet, "/", nil)
+	revokedRequest.AddCookie(&http.Cookie{Name: "laga_session", Value: token})
+
+	revokedResponse := httptest.NewRecorder()
+	protected.ServeHTTP(revokedResponse, revokedRequest)
+	require.Equal(
+		t,
+		http.StatusUnauthorized,
+		revokedResponse.Code,
+		"logout must revoke the server session",
+	)
+	require.NoError(
+		t,
+		q.InsertSession(
+			t.Context(),
+			db.InsertSessionParams{
+				TokenHash: hash[:],
+				UserID:    []byte("user"),
+				ExpiresAt: time.Now().Add(time.Hour).Unix(),
+			},
+		),
+	)
 	_, err = conn.ExecContext(t.Context(), "UPDATE sessions SET expires_at = 0")
 	require.NoError(t, err)
 
