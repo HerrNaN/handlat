@@ -1,4 +1,6 @@
-// TODO: Remove at some point in the future or when moving to custom domain
+// Retire previously installed offline workers and their caches. Keep serving this
+// file so returning clients can update. No fetch handler: private APIs must never
+// be stored in a service-worker cache. This does not touch IndexedDB data.
 
 self.addEventListener("install", (event) => {
   event.waitUntil(self.skipWaiting());

@@ -18,19 +18,16 @@
     "@tsconfig/svelte": "^5.0.8",
     "@types/node": "^24.12.3",
     "@vitest/ui": "^4.1.9",
-    "fake-indexeddb": "^6.2.5",
     "svelte": "^5.55.5",
     "svelte-check": "^4.4.8",
     "typescript": "~6.0.2",
     "vite": "^8.0.12",
-    "vite-plugin-wasm": "^3.6.0",
     "vitest": "^4.1.9"
   },
   "dependencies": {
     "@awesome.me/webawesome": "^3.8.0",
     "@sentry/svelte": "^11.6.0",
     "@simplewebauthn/browser": "^13.3.0",
-    "loro-crdt": "^1.13.3",
     "sv-router": "^0.17.0",
     "zod": "^4.4.3"
   }

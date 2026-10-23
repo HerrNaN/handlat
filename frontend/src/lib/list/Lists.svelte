@@ -25,6 +25,7 @@
     <header>
         <h2>Lists</h2>
     </header>
+    <p>Lists are private and saved to your account. Previous browser-only lists are not imported.</p>
     <ListStatus />
     <wa-button onclick={createList} disabled={$status.loading || $status.saving}>New list</wa-button>
     {#if !$status.loading && !$status.error && $lists.length === 0}
