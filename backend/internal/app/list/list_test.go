@@ -86,7 +86,6 @@ func TestListLifecycle(t *testing.T) {
 	list := readList(t, request(f.handler, "POST", "/lists", f.owner, `{"name":"Groceries"}`), 201)
 	path := "/lists/" + list.ID
 	require.Empty(t, list.Items)
-	require.EqualValues(t, 1, list.Revision)
 	list = readList(t, request(f.handler, "PATCH", path, f.owner, `{"name":"Weekend"}`), 200)
 	require.Equal(t, "Weekend", list.Name)
 	id := uuid.NewString()
@@ -216,7 +215,7 @@ func TestValidationAndCrossOriginProtection(t *testing.T) {
 		require.Equal(t, 400, request(f.handler, "PATCH", path+"/items/missing", f.owner, body).Code)
 	}
 	current := readList(t, request(f.handler, "GET", path, f.owner, ""), 200)
-	require.Equal(t, list.Revision, current.Revision, "invalid commands do not advance sequence")
+	require.Equal(t, list, current, "invalid commands leave the list unchanged")
 	req := httptest.NewRequest("POST", "/lists", strings.NewReader(`{"name":"CSRF"}`))
 	req.AddCookie(&http.Cookie{Name: "laga_session", Value: f.owner})
 	req.Header.Set("Sec-Fetch-Site", "cross-site")

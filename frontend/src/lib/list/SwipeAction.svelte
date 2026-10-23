@@ -34,7 +34,6 @@
         if (disabled) return;
         startX = e.clientX;
         isDragging = true;
-        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     };
 
     const handlePointerMove = (e: PointerEvent) => {
@@ -44,6 +43,9 @@
             currentX = 0;
             return;
         }
+        // Capture only after a drag starts. Capturing on pointerdown retargets
+        // ordinary button clicks to this wrapper and prevents item toggles.
+        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
         const adjusted = delta > 0 ? delta - DEAD_ZONE : delta + DEAD_ZONE;
         currentX = -Math.max(0, Math.min(adjusted, contentEl.offsetWidth));
     };

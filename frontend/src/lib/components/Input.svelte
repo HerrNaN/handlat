@@ -40,7 +40,6 @@
         {value}
         <wa-button
             appearance="plain"
-            aria-label="Edit list name"
             disabled={waProps.disabled}
             onclick={() => {
                 editing = true;
@@ -49,7 +48,7 @@
                 });
             }}
         >
-            <wa-icon name="pen"></wa-icon>
+            <wa-icon name="pen" label="Edit list name"></wa-icon>
         </wa-button>
     {/if}
 </div>

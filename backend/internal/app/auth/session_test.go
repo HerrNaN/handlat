@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"database/sql"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -45,6 +46,14 @@ func TestRequireSession(t *testing.T) {
 			require.Equal(t, "no-store", res.Header().Get("Cache-Control"))
 		})
 	}
+	logoutRequest := httptest.NewRequest(http.MethodPost, "/auth/logout", nil)
+	logoutRequest.AddCookie(&http.Cookie{Name: sessionCookie, Value: token})
+	logoutResponse := httptest.NewRecorder()
+	h.logout(logoutResponse, logoutRequest)
+	require.Equal(t, 200, logoutResponse.Code)
+	_, err = q.GetUserBySession(t.Context(), hash)
+	require.ErrorIs(t, err, sql.ErrNoRows, "logout must revoke the server session")
+	require.NoError(t, q.InsertSession(t.Context(), db.InsertSessionParams{TokenHash: hash, UserID: []byte("user"), ExpiresAt: time.Now().Add(time.Hour).Unix()}))
 	_, err = conn.ExecContext(t.Context(), "UPDATE sessions SET expires_at = 0")
 	require.NoError(t, err)
 	req := httptest.NewRequest(http.MethodGet, "/", nil)

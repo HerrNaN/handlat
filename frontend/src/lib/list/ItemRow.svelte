@@ -34,8 +34,8 @@
             <wa-checkbox {checked} defaultChecked={checked} inert aria-hidden="true"></wa-checkbox>
             <span class:checked>{item.text}</span>
         </button>
-        <wa-button appearance="plain" onclick={onEditItem} disabled={busy} aria-label="Edit {item.text}">
-            <wa-icon name="pen"></wa-icon>
+        <wa-button appearance="plain" onclick={onEditItem} disabled={busy}>
+            <wa-icon name="pen" label="Edit {item.text}"></wa-icon>
         </wa-button>
     </div>
 </SwipeAction>

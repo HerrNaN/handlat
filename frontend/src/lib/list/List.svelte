@@ -38,10 +38,9 @@
     <header>
         <wa-button
             appearance="plain"
-            aria-label="Back"
             onclick={() => navigate("/lists")}
         >
-            <wa-icon name="arrow-left"></wa-icon>
+            <wa-icon name="arrow-left" label="Back"></wa-icon>
         </wa-button>
         <h2>
             {#if $activeList.id}

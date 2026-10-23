@@ -115,7 +115,8 @@ func (h *Handler) beginRegistration(w http.ResponseWriter, r *http.Request) {
 
 	u := user{id: id, name: name}
 
-	options, ceremony, err := h.wa.BeginRegistration(u,
+	options, ceremony, err := h.wa.BeginRegistration(
+		u,
 		webauthn.WithExtensions(webauthn.WithExtensionCredProps()),
 		webauthn.WithResidentKeyRequirement(protocol.ResidentKeyRequirementRequired),
 	)
@@ -389,6 +390,14 @@ func (h *Handler) finishLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) logout(w http.ResponseWriter, r *http.Request) {
+	if cookie, err := r.Cookie(sessionCookie); err == nil {
+		if hash, err := tokenHash(cookie.Value); err == nil {
+			if err := h.queries.DeleteSession(r.Context(), hash); err != nil {
+				h.fail(w, "revoke session", err)
+				return
+			}
+		}
+	}
 	h.cookie(w, sessionCookie, "", "/", -1)
 }
 

@@ -70,7 +70,7 @@ export const createItemsStore = (deps: {
     } catch (error) {
       if (version !== generation) return false;
       if (error instanceof ApiError && error.status === 401) deps.onUnauthorized?.();
-      status.set({ loading: false, saving: false, error: error instanceof ApiError ? error.message : "Unable to reach the server. Lists require an internet connection. Try again when connected." });
+      status.set({ loading: false, saving: false, error: error instanceof ApiError ? error.message : "Unable to reach the server. Lists require an internet connection. Refresh to check server state before retrying your change." });
       return false;
     } finally {
       if (version === generation) status.update((value) => ({ ...value, loading: false, saving: false }));

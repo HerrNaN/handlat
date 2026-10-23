@@ -46,7 +46,7 @@
         {/if}
     </wa-drawer>
     <wa-button size="l" variant="brand" data-drawer="open {id}">
-        <wa-icon name="plus"></wa-icon>
+        <wa-icon name="plus" label="Add item"></wa-icon>
     </wa-button>
 </div>
 
