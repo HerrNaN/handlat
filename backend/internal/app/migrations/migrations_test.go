@@ -36,7 +36,7 @@ func TestUpAndDown(t *testing.T) {
 
 	require.NoError(t, err)
 
-	for _, table := range []string{"users", "credentials", "registration_attempts", "login_attempts", "sessions"} {
+	for _, table := range []string{"users", "credentials", "registration_attempts", "login_attempts", "sessions", "lists", "items"} {
 		var exists bool
 
 		err := db.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM sqlite_schema WHERE type = 'table' AND name = ?)", table).
@@ -46,7 +46,7 @@ func TestUpAndDown(t *testing.T) {
 		assert.True(t, exists, "missing migrated table %s", table)
 	}
 
-	err = goose.Down(db, ".")
+	err = goose.DownTo(db, ".", 0)
 
 	require.NoError(t, err)
 
