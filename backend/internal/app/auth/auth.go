@@ -399,19 +399,9 @@ func (h *Handler) logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) me(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie(sessionCookie)
-	if err != nil {
-		http.Error(w, "Not signed in", http.StatusUnauthorized)
-		return
-	}
+	w.Header().Set("Cache-Control", "no-store")
 
-	hash, err := tokenHash(cookie.Value)
-	if err != nil {
-		http.Error(w, "Not signed in", http.StatusUnauthorized)
-		return
-	}
-
-	account, err := h.queries.GetUserBySession(r.Context(), hash)
+	account, err := h.sessionAccount(r)
 	if errors.Is(err, sql.ErrNoRows) {
 		http.Error(w, "Not signed in", http.StatusUnauthorized)
 		return
