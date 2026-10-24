@@ -58,6 +58,7 @@ func New(conn *sql.DB, rpID, origin string, log *slog.Logger) (*Handler, error) 
 			"origin must be an absolute URL without credentials, path, query, or fragment",
 		)
 	}
+
 	if originURL.Scheme != "https" &&
 		(originURL.Scheme != "http" || originURL.Hostname() != "localhost") {
 		return nil, errors.New("origin must use HTTPS except for localhost development")
@@ -188,6 +189,7 @@ func (h *Handler) finishRegistration(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.log.Error("Passkey verification failed", "err", err)
 		http.Error(w, "Passkey verification failed; try again", http.StatusBadRequest)
+
 		return
 	}
 
@@ -211,6 +213,7 @@ func (h *Handler) finishRegistration(w http.ResponseWriter, r *http.Request) {
 	defer h.rollback(tx)
 
 	queries := h.queries.WithTx(tx)
+
 	err = queries.InsertUser(r.Context(), db.InsertUserParams{ID: u.id, Name: u.name})
 	if err != nil {
 		h.fail(w, "create account", err)
@@ -305,6 +308,7 @@ func (h *Handler) finishLogin(w http.ResponseWriter, r *http.Request) {
 		h.fail(w, "consume login attempt", err)
 		return
 	}
+
 	h.cookie(w, loginCookie, "", "/api/auth/login", -time.Second)
 
 	var ceremony webauthn.SessionData
@@ -338,6 +342,7 @@ func (h *Handler) finishLogin(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.log.Error("Passkey verification failed", "err", err)
 		http.Error(w, "Passkey verification failed; try again", http.StatusBadRequest)
+
 		return
 	}
 
@@ -361,6 +366,7 @@ func (h *Handler) finishLogin(w http.ResponseWriter, r *http.Request) {
 	defer h.rollback(tx)
 
 	queries := h.queries.WithTx(tx)
+
 	err = queries.UpdateCredential(r.Context(), db.UpdateCredentialParams{
 		ID: credential.ID, UserID: u.WebAuthnID(), Data: string(credentialJSON),
 	})
@@ -434,6 +440,7 @@ func (h *Handler) writeAccount(w http.ResponseWriter, status int, id []byte, nam
 func (h *Handler) writeJSON(w http.ResponseWriter, status int, body any, operation string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
+
 	if err := json.NewEncoder(w).Encode(body); err != nil {
 		// Headers may already be sent, so log the failure rather than writing a second response.
 		h.log.Error(operation, "error", err)

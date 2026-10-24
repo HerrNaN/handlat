@@ -25,6 +25,7 @@ func Run(ctx context.Context, log *slog.Logger, cfg Config) error {
 	if err != nil {
 		return err
 	}
+
 	defer func() {
 		if err := db.Close(); err != nil {
 			log.Error("Close database", "error", err)
@@ -91,7 +92,6 @@ func Run(ctx context.Context, log *slog.Logger, cfg Config) error {
 
 func loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 		recorder := &statusRecorder{ResponseWriter: w, statusCode: http.StatusOK}
 
 		next.ServeHTTP(recorder, r)
@@ -120,6 +120,7 @@ func (sr *statusRecorder) WriteHeader(code int) {
 	if sr.wroteStatusCode {
 		return
 	}
+
 	sr.wroteStatusCode = true
 	sr.statusCode = code
 	sr.ResponseWriter.WriteHeader(code)
@@ -129,5 +130,6 @@ func (sr *statusRecorder) Write(b []byte) (int, error) {
 	if !sr.wroteStatusCode {
 		sr.WriteHeader(http.StatusOK)
 	}
+
 	return sr.ResponseWriter.Write(b)
 }

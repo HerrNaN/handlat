@@ -15,6 +15,7 @@ func ListenAndServe(ctx context.Context, server *http.Server, shutdownTimeout ti
 
 	eg.Go(func() error {
 		<-ctx.Done()
+
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 		defer cancel()
 
@@ -26,6 +27,7 @@ func ListenAndServe(ctx context.Context, server *http.Server, shutdownTimeout ti
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			return fmt.Errorf("failed to listen and serve: %w", err)
 		}
+
 		return nil
 	})
 

@@ -32,6 +32,7 @@ func TestBeginRegistrationRequestsCredProps(t *testing.T) {
 	handler.beginRegistration(recorder, request)
 
 	require.Equal(t, http.StatusOK, recorder.Code)
+
 	var options struct {
 		User struct {
 			Name        string `json:"name"`
@@ -170,6 +171,7 @@ func TestAuthHandler(t *testing.T) {
 				handler.cookie(recorder, sessionCookie, "token", "/", test.ttl)
 
 				response := recorder.Result()
+
 				t.Cleanup(func() {
 					assert.NoError(t, response.Body.Close())
 				})

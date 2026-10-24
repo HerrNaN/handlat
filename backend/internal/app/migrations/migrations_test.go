@@ -38,6 +38,7 @@ func TestUpAndDown(t *testing.T) {
 
 	for _, table := range []string{"users", "credentials", "registration_attempts", "login_attempts", "sessions"} {
 		var exists bool
+
 		err := db.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM sqlite_schema WHERE type = 'table' AND name = ?)", table).
 			Scan(&exists)
 
@@ -50,6 +51,7 @@ func TestUpAndDown(t *testing.T) {
 	require.NoError(t, err)
 
 	var tables int
+
 	err = db.QueryRowContext(
 		ctx,
 		"SELECT count(*) FROM sqlite_schema WHERE type = 'table' AND name NOT IN ('goose_db_version', 'sqlite_sequence')",

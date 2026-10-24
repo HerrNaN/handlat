@@ -36,7 +36,9 @@ func TestSQLiteQueries(t *testing.T) {
 	queries := db.New(conn)
 	userID := []byte{0, 255, 1}
 	credentialID := []byte{255, 0, 2}
+
 	const credential = `{"id":"credential","signCount":0}`
+
 	future := time.Now().Add(time.Hour).Unix()
 	past := time.Now().Add(-time.Hour).Unix()
 
@@ -132,6 +134,7 @@ func TestSQLiteQueries(t *testing.T) {
 		require.NoError(t, err)
 
 		handler := &Handler{log: slog.Default()}
+
 		t.Cleanup(func() { handler.rollback(tx) })
 
 		q := queries.WithTx(tx)
@@ -154,6 +157,7 @@ func TestSQLiteQueries(t *testing.T) {
 		handler.rollback(tx)
 
 		var count int
+
 		err = conn.QueryRowContext(ctx, "SELECT count(*) FROM users WHERE id = ?", []byte("rolled-back")).
 			Scan(&count)
 
@@ -227,6 +231,7 @@ func TestSQLiteQueries(t *testing.T) {
 		require.NoError(t, err)
 
 		var wg sync.WaitGroup
+
 		results := make(chan error, 8)
 
 		for range 8 {

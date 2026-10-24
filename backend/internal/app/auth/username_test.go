@@ -14,6 +14,7 @@ func TestGenerateUsername(t *testing.T) {
 	username, err := generateUsername()
 
 	require.NoError(t, err)
+
 	parts := strings.Split(username, "-")
 	require.Len(t, parts, 2)
 	assert.Contains(t, usernameAdjectives[:], parts[0])

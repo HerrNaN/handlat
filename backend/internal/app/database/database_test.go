@@ -25,6 +25,7 @@ func TestOpen(t *testing.T) {
 	})
 
 	var journalMode string
+
 	err = db.QueryRowContext(ctx, "PRAGMA journal_mode").Scan(&journalMode)
 
 	require.NoError(t, err)
@@ -42,6 +43,7 @@ func TestOpen(t *testing.T) {
 		{"busy_timeout", 5000},
 	} {
 		var value int
+
 		err := db.QueryRowContext(ctx, "PRAGMA "+pragma.name).Scan(&value)
 
 		require.NoError(t, err)
@@ -73,6 +75,7 @@ func TestOpen(t *testing.T) {
 	})
 
 	var value string
+
 	err = reopened.QueryRowContext(ctx, "SELECT value FROM persistence_test").Scan(&value)
 
 	require.NoError(t, err)

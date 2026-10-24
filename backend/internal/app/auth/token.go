@@ -14,6 +14,7 @@ func newToken() (string, []byte, error) {
 	}
 
 	hash := sha256.Sum256(value)
+
 	return base64.RawURLEncoding.EncodeToString(value), hash[:], nil
 }
 
