@@ -10,6 +10,24 @@ type Credential struct {
 	Data   string
 }
 
+type Item struct {
+	ID         string
+	ListID     string
+	Text       string
+	Department string
+	CreatedAt  int64
+	CheckedAt  *int64
+	DeletedAt  *int64
+}
+
+type List struct {
+	ID        string
+	OwnerID   []byte
+	Name      string
+	CreatedAt int64
+	UpdatedAt int64
+}
+
 type LoginAttempt struct {
 	TokenHash []byte
 	Ceremony  string

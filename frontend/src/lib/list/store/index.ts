@@ -1,8 +1,9 @@
 import { createItemsStore } from "./store";
-import { LoroPersistence } from "../../loro/persistence";
+import { session, clearSession } from "../../user/session";
 
-const persistence = new LoroPersistence();
-export const listStore = await createItemsStore({
-  persistence,
-  randomUUID: () => crypto.randomUUID(),
+export const listStore = createItemsStore({
+  fetch: (...args) => fetch(...args),
+  onUnauthorized: clearSession,
 });
+
+session.subscribe((account) => listStore.setAccount(account?.id));

@@ -10,6 +10,7 @@ import (
 
 	"github.com/herrnan/handlat/internal/app/auth"
 	"github.com/herrnan/handlat/internal/app/database"
+	"github.com/herrnan/handlat/internal/app/list"
 	"github.com/herrnan/handlat/internal/app/migrations"
 	"github.com/herrnan/handlat/internal/app/web"
 	"github.com/herrnan/handlat/internal/util"
@@ -44,8 +45,9 @@ func Run(ctx context.Context, log *slog.Logger, cfg Config) error {
 
 	apiMux := http.NewServeMux()
 	authHandler.Register(apiMux)
+	list.New(db, log).Register(apiMux, authHandler.RequireSession)
 
-	mux.Handle("/api/", loggingMiddleware(http.StripPrefix("/api", apiMux)))
+	mux.Handle("/api/", loggingMiddleware(http.NewCrossOriginProtection().Handler(http.StripPrefix("/api", apiMux))))
 
 	if cfg.ExternalWebServerAddress != "" {
 		serveWeb, err := web.ServeProxy(cfg.ExternalWebServerAddress)
@@ -91,7 +93,6 @@ func Run(ctx context.Context, log *slog.Logger, cfg Config) error {
 
 func loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 		recorder := &statusRecorder{ResponseWriter: w, statusCode: http.StatusOK}
 
 		next.ServeHTTP(recorder, r)

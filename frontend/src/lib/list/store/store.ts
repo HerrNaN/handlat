@@ -1,249 +1,157 @@
-import { writable } from "svelte/store";
-import { LoroDoc, LoroMap } from "loro-crdt";
+import { get, writable } from "svelte/store";
 import { ItemSchema, type Item } from "../list";
 import { classify, departments } from "../classifier";
-import type z from "zod";
-import { WrapMap } from "./loro";
+import z from "zod";
 
-// ── Data model ──────────────────────────────────────────
+export type ListSummary = { id: string; name: string; itemCount: number };
+export type ActiveList = { id: string; name: string; items: Item[] };
+export type ListStatus = { loading: boolean; saving: boolean; error: string };
 
-type Registry = {
-  lists: LoroMap<{ [listId: string]: 0 }>;
-};
+const ListSchema = z.object({
+  id: z.string(), name: z.string(),
+  items: z.array(ItemSchema),
+});
+const SummariesSchema = z.array(z.object({
+  id: z.string(), name: z.string(), itemCount: z.number().int(),
+}));
+const emptyList = (): ActiveList => ({ id: "", name: "", items: [] });
 
-type Items = {
-  [itemId: string]: LoroMap<EncodedItem>;
-};
+class ApiError extends Error {
+  constructor(public status: number, message: string) { super(message); }
+}
 
-type List = {
-  meta: LoroMap<{ name: string }>;
-  items: LoroMap<Items>;
-};
-
-type EncodedItem = z.input<typeof ItemSchema>;
-
-export type ListSummary = {
-  id: string;
-  name: string;
-  itemCount: number;
-};
-
-export type ActiveList = {
-  id: string;
-  name: string;
-  items: Item[];
-};
-
-// ── Factory ─────────────────────────────────────────────
-
-export const createItemsStore = async (deps: {
-  persistence: {
-    load: (doc: LoroDoc, key: string) => Promise<boolean>;
-    save: (doc: LoroDoc, key: string) => Promise<void>;
-  };
-  randomUUID: () => string;
+export const createItemsStore = (deps: {
+  fetch: typeof fetch;
+  onUnauthorized?: () => void;
+  randomUUID?: () => string;
 }) => {
-  const { persistence, randomUUID } = deps;
+  const lists = writable<ListSummary[]>([]);
+  const activeList = writable<ActiveList>(emptyList());
+  const status = writable<ListStatus>({ loading: false, saving: false, error: "" });
+  let generation = 0;
+  let accountID: string | undefined;
+  let selectedID = "";
+  // A failed response may hide a committed addition. Keep its identity in memory
+  // for explicit retries; never queue or replay it automatically.
+  const pendingAdditions = new Map<string, string>();
 
-  // ── Stores ─────────────────────────────────────────────
+  const reset = (id?: string) => {
+    generation++;
+    accountID = id;
+    selectedID = "";
+    pendingAdditions.clear();
+    lists.set([]);
+    activeList.set(emptyList());
+    status.set({ loading: false, saving: false, error: "" });
+  };
+  const setAccount = (id?: string) => {
+    if (id !== accountID) reset(id);
+  };
 
-  const listsWritable = writable<ListSummary[]>([]);
-  const activeListWritable = writable<ActiveList>({
-    id: "",
-    name: "",
-    items: [],
-  });
-
-  // ── Registry doc ────────────────────────────────────────
-
-  const registryDoc = new LoroDoc<Registry>();
-  await persistence.load(registryDoc, "registry");
-  registryDoc.subscribe(() => {
-    persistence.save(registryDoc, "registry");
-    rebuildLists();
-  });
-  const registryLists = registryDoc.getMap("lists");
-
-  // ── Per-list docs ───────────────────────────────────────
-
-  const listDocs = new Map<string, LoroDoc<List>>();
-
-  const setupAutoSave = (doc: LoroDoc<List>, id: string) =>
-    doc.subscribe(() => persistence.save(doc, `list-${id}`));
-
-  const loadListDoc = async (id: string): Promise<LoroDoc<List>> => {
-    let doc = listDocs.get(id);
-    if (doc) return doc;
-
-    doc = new LoroDoc<List>();
-    await persistence.load(doc, `list-${id}`);
-    listDocs.set(id, doc);
-    setupAutoSave(doc, id);
-    doc.subscribe(rebuildLists);
-
-    if (!doc.getMap("meta").get("name")) {
-      doc.getMap("meta").set("name", "Shopping List");
-      doc.commit();
+  const request = async (path: string, init?: RequestInit) => {
+    const response = await deps.fetch(`/api/lists${path}`, { cache: "no-store", ...init });
+    if (!response.ok) {
+      throw new ApiError(response.status,
+        response.status === 401 ? "Your session expired. Please sign in again."
+        : response.status === 404 ? "This list or item is no longer available."
+        : response.status >= 500 ? "The server could not save or load your list. Try again."
+        : (await response.text()) || "The request failed.");
     }
-
-    return doc;
+    return response.json();
   };
 
-  const createListDoc = () => {
-    const id = randomUUID();
-    const doc = new LoroDoc<List>();
-    setupAutoSave(doc, id);
-    doc.subscribe(rebuildLists);
-    doc.getMap("meta").set("name", "Shopping List");
-    doc.getMap("items");
-    listDocs.set(id, doc);
-
-    registryLists.set(id, 0);
-    registryDoc.commit();
-
-    return id;
+  const run = async (saving: boolean, work: (version: number) => Promise<void>) => {
+    if (!accountID || get(status).loading || get(status).saving) return false;
+    const version = generation;
+    status.set({ loading: !saving, saving, error: "" });
+    try {
+      await work(version);
+      return version === generation;
+    } catch (error) {
+      if (version !== generation) return false;
+      if (error instanceof ApiError && error.status === 401) deps.onUnauthorized?.();
+      status.set({ loading: false, saving: false, error: error instanceof ApiError ? error.message : "Unable to reach the server. Lists require an internet connection. Refresh to check server state before retrying your change." });
+      return false;
+    } finally {
+      if (version === generation) status.update((value) => ({ ...value, loading: false, saving: false }));
+    }
   };
 
-  // ── Active doc accessors ────────────────────────────────
-
-  let activeListId = "";
-
-  const getActiveDoc = (): LoroDoc<List> => {
-    const doc = listDocs.get(activeListId);
-    if (!doc) throw new Error(`List doc ${activeListId} not loaded`);
-    return doc;
-  };
-
-  const getActiveItems = (): LoroMap<Items> => getActiveDoc().getMap("items");
-
-  // ── Rebuilds ────────────────────────────────────────────
-
-  const readActiveName = (): string =>
-    (getActiveDoc().getMap("meta").get("name") as string | undefined) ?? "";
-
-  const rebuildActiveList = () => {
-    // Registry subscriptions can run before the initial active list is selected.
-    if (!activeListId) return;
-
-    const itemsMap = getActiveItems();
-    activeListWritable.set({
-      id: activeListId,
-      name: readActiveName(),
-      items: itemsMap
-        .keys()
-        .map((id) => ItemSchema.parse(itemsMap.get(id).toJSON())),
+  const apply = (list: ActiveList) => {
+    activeList.set(list);
+    lists.update((values) => {
+      const summary = { id: list.id, name: list.name, itemCount: list.items.length };
+      return values.some((value) => value.id === list.id)
+        ? values.map((value) => value.id === list.id ? summary : value)
+        : [...values, summary];
     });
   };
 
-  const rebuildLists = () => {
-    listsWritable.set(
-      registryLists.keys().map((id) => {
-        const doc = listDocs.get(id);
-        const meta = doc?.getMap("meta");
-        const itemsMap = doc?.getMap("items");
-        return {
-          id,
-          name: meta?.get("name") ?? "",
-          itemCount: itemsMap ? itemsMap.size : 0,
-        };
-      }),
-    );
-    rebuildActiveList();
+  const refreshLists = () => {
+    generation++;
+    selectedID = "";
+    activeList.set(emptyList());
+    status.set({ loading: false, saving: false, error: "" });
+    return run(false, async (version) => {
+      const values = SummariesSchema.parse(await request(""));
+      if (version === generation) lists.set(values);
+    });
   };
 
-  // ── Active list ─────────────────────────────────────────
+  const setActiveList = (id: string) => {
+    generation++;
+    selectedID = id;
+    activeList.set(emptyList());
+    status.set({ loading: false, saving: false, error: "" });
+    return run(false, async (version) => {
+      const value = ListSchema.parse(await request(`/${encodeURIComponent(id)}`));
+      if (version === generation) apply(value);
+    });
+  };
 
-  const ensureDefaultList = (): string =>
-    registryLists.entries()[0]?.[0] ?? createListDoc();
+  const refresh = () => {
+    if (get(status).saving || get(status).loading) return Promise.resolve(false);
+    return selectedID ? setActiveList(selectedID) : refreshLists();
+  };
 
-  activeListId = ensureDefaultList();
-  await loadListDoc(activeListId);
+  const mutate = (method: string, suffix: string, body?: unknown) => run(true, async (version) => {
+    const list = get(activeList);
+    if (!list.id) throw new ApiError(404, "Open a list before editing.");
+    const value = ListSchema.parse(await request(`/${encodeURIComponent(list.id)}${suffix}`, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    }));
+    if (version === generation) apply(value);
+  });
 
-  // Load remaining list docs in background
-  Promise.all(
-    registryLists
-      .keys()
-      .filter((id) => id !== activeListId)
-      .map((id) =>
-        loadListDoc(id).catch((reason) =>
-          console.warn("failed to load list doc:", reason),
-        ),
-      ),
-  );
+  const updateItem = (id: string, updates: Partial<Pick<Item, "text" | "department">>) =>
+    mutate("PATCH", `/items/${encodeURIComponent(id)}`, updates);
 
-  // ── Store ───────────────────────────────────────────────
-
-  let activeUnsub: (() => void) | undefined;
-
-  rebuildActiveList();
-  activeUnsub = getActiveDoc().subscribe(rebuildActiveList);
-  rebuildLists();
-
-  const setActiveList = async (id: string) => {
-    await loadListDoc(id);
-    activeListId = id;
-    activeUnsub?.();
-    rebuildActiveList();
-    activeUnsub = getActiveDoc().subscribe(rebuildActiveList);
+  const addItem = async (text: string) => {
+    if (!accountID || get(status).loading || get(status).saving) return false;
+    const key = JSON.stringify([get(activeList).id, text]);
+    const id = pendingAdditions.get(key) ?? (deps.randomUUID ?? (() => crypto.randomUUID()))();
+    pendingAdditions.set(key, id);
+    const saved = await mutate("POST", "/items", { id, text, department: classify(text, departments).id });
+    if (saved) pendingAdditions.delete(key);
+    return saved;
   };
 
   return {
-    lists: { subscribe: listsWritable.subscribe },
-    activeList: { subscribe: activeListWritable.subscribe },
-    setActiveList,
-    changeListName: (name: string) => {
-      const listDoc = getActiveDoc();
-      listDoc.getMap("meta").set("name", name);
-      listDoc.commit();
-    },
-    addItem: (text: string) => {
-      const { id: department } = classify(text, departments);
-      const id = randomUUID();
-      const itemMap = new LoroMap();
-      new WrapMap(ItemSchema.shape, itemMap).assign({
-        id,
-        text,
-        createdAt: new Date(),
-        department,
-      });
-      getActiveItems().setContainer(id, itemMap);
-      getActiveDoc().commit();
-    },
-    toggleItem: (id: string) => {
-      const child = getActiveItems().get(id);
-      if (child instanceof LoroMap) {
-        const item = new WrapMap(ItemSchema.shape, child);
-        if (item.get("checkedAt") !== undefined) {
-          item.delete("checkedAt");
-        } else {
-          item.set("checkedAt", new Date());
-        }
-        getActiveDoc().commit();
-      }
-    },
-    updateItem: (id: string, updates: Partial<Item>) => {
-      const child = getActiveItems().get(id);
-      const item = new WrapMap(ItemSchema.shape, child);
-      item.update(updates);
-      getActiveDoc().commit();
-    },
-    deleteItem: (id: string) => {
-      getActiveItems().delete(id);
-      getActiveDoc().commit();
-    },
-    deleteCheckedItems: () => {
-      const items = getActiveItems();
-      const checked: string[] = [];
-      for (const key of items.keys()) {
-        const child = items.get(key);
-        if (child instanceof LoroMap && child.get("checkedAt") !== undefined) {
-          checked.push(key);
-        }
-      }
-      for (const id of checked) {
-        items.delete(id);
-      }
-      getActiveDoc().commit();
-    },
+    lists: { subscribe: lists.subscribe },
+    activeList: { subscribe: activeList.subscribe },
+    status: { subscribe: status.subscribe },
+    setAccount, reset, refreshLists, setActiveList, refresh,
+    createList: (name = "Shopping List") => run(true, async (version) => {
+      const list = ListSchema.parse(await request("", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name }) }));
+      if (version === generation) apply(list);
+    }),
+    changeListName: (name: string) => mutate("PATCH", "", { name }),
+    addItem,
+    updateItem,
+    setItemChecked: (id: string, checked: boolean) => mutate("PATCH", `/items/${encodeURIComponent(id)}`, { checked }),
+    deleteItem: (id: string) => mutate("DELETE", `/items/${encodeURIComponent(id)}`),
+    deleteCheckedItems: () => mutate("DELETE", "/checked-items"),
   };
 };

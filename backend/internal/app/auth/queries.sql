@@ -25,6 +25,9 @@ FROM sessions
 JOIN users ON users.id = sessions.user_id
 WHERE sessions.token_hash = @token_hash AND sessions.expires_at > unixepoch();
 
+-- name: DeleteSession :exec
+DELETE FROM sessions WHERE token_hash = @token_hash;
+
 -- name: InsertLoginAttempt :exec
 INSERT INTO login_attempts (token_hash, ceremony, expires_at)
 VALUES (@token_hash, @ceremony, @expires_at);

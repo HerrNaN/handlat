@@ -115,7 +115,8 @@ func (h *Handler) beginRegistration(w http.ResponseWriter, r *http.Request) {
 
 	u := user{id: id, name: name}
 
-	options, ceremony, err := h.wa.BeginRegistration(u,
+	options, ceremony, err := h.wa.BeginRegistration(
+		u,
 		webauthn.WithExtensions(webauthn.WithExtensionCredProps()),
 		webauthn.WithResidentKeyRequirement(protocol.ResidentKeyRequirementRequired),
 	)
@@ -389,23 +390,20 @@ func (h *Handler) finishLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) logout(w http.ResponseWriter, r *http.Request) {
+	if cookie, err := r.Cookie(sessionCookie); err == nil {
+		if hash, err := tokenHash(cookie.Value); err == nil {
+			if err := h.queries.DeleteSession(r.Context(), hash); err != nil {
+				h.fail(w, "revoke session", err)
+				return
+			}
+		}
+	}
 	h.cookie(w, sessionCookie, "", "/", -1)
 }
 
 func (h *Handler) me(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie(sessionCookie)
-	if err != nil {
-		http.Error(w, "Not signed in", http.StatusUnauthorized)
-		return
-	}
-
-	hash, err := tokenHash(cookie.Value)
-	if err != nil {
-		http.Error(w, "Not signed in", http.StatusUnauthorized)
-		return
-	}
-
-	account, err := h.queries.GetUserBySession(r.Context(), hash)
+	w.Header().Set("Cache-Control", "no-store")
+	account, err := h.sessionAccount(r)
 	if errors.Is(err, sql.ErrNoRows) {
 		http.Error(w, "Not signed in", http.StatusUnauthorized)
 		return

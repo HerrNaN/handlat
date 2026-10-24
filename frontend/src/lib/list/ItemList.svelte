@@ -11,6 +11,7 @@
     }
 
     let { items: itemList, onClickEditItem }: Props = $props();
+    const { status } = listStore;
 
     const checkedItems = $derived(
         itemList
@@ -49,6 +50,7 @@
                 variant="brand"
                 appearance="plain"
                 onclick={() => listStore.deleteCheckedItems()}
+                disabled={$status.saving || $status.loading}
             >
                 Clear
             </wa-button>
