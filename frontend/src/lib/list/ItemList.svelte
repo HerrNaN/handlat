@@ -3,14 +3,18 @@
     import ItemRow from "./ItemRow.svelte";
     import { departmentOrder, getDepartment } from "./classifier";
     import type { Item } from "./list";
-    import { listStore } from "./store";
 
     interface Props {
         items: Item[];
         onClickEditItem: (item: Item) => void;
+        pendingItems: Set<string>;
+        clearing: boolean;
+        onCheck: (itemID: string, checked: boolean) => void;
+        onDelete: (itemID: string) => Promise<unknown>;
+        onClear: () => void;
     }
 
-    let { items: itemList, onClickEditItem }: Props = $props();
+    let { items: itemList, onClickEditItem, pendingItems, clearing, onCheck, onDelete, onClear }: Props = $props();
 
     const checkedItems = $derived(
         itemList
@@ -33,7 +37,7 @@
         <ul>
             {#each deptItems as item (item.id)}
                 <li>
-                    <ItemRow {item} onEditItem={() => onClickEditItem(item)} />
+                    <ItemRow {item} busy={pendingItems.has(item.id)} {onCheck} {onDelete} onEditItem={() => onClickEditItem(item)} />
                 </li>
             {/each}
         </ul>
@@ -48,7 +52,8 @@
                 size="s"
                 variant="brand"
                 appearance="plain"
-                onclick={() => listStore.deleteCheckedItems()}
+                onclick={onClear}
+                disabled={clearing}
             >
                 Clear
             </wa-button>
@@ -56,7 +61,7 @@
         <ul>
             {#each checkedItems as item (item.id)}
                 <li>
-                    <ItemRow {item} onEditItem={() => onClickEditItem(item)} />
+                    <ItemRow {item} busy={pendingItems.has(item.id)} {onCheck} {onDelete} onEditItem={() => onClickEditItem(item)} />
                 </li>
             {/each}
         </ul>

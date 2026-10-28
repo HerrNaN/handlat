@@ -1,46 +1,36 @@
 <script lang="ts">
     import { browserSupportsWebAuthn, startRegistration } from "@simplewebauthn/browser";
+    import { createMutation } from "@tanstack/svelte-query";
     import { navigate } from "../../router";
-    import { refreshSession } from "./session";
+    import { clearSession, refreshSession } from "./session";
+    import { post } from "../api";
     import Link from "../components/Link.svelte";
     import "@awesome.me/webawesome/dist/components/button/button.js";
     import "@awesome.me/webawesome/dist/components/callout/callout.js";
+    import "@awesome.me/webawesome/dist/components/icon/icon.js";
 
-    let pending = $state(false);
-    let error = $state("");
-
-    const signUp = async () => {
-        pending = true;
-        error = "";
-        try {
-            const begin = await fetch("/api/auth/register/begin", { method: "POST" });
-            if (!begin.ok) throw new Error("Could not start registration");
+    const signUp = createMutation(() => ({
+        mutationKey: ["auth", "sign-up"],
+        mutationFn: async () => {
+            const begin = await post("/api/auth/register/begin");
 
             const credential = await startRegistration({ optionsJSON: await begin.json() });
-            const finish = await fetch("/api/auth/register/finish", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(credential),
-            });
-            if (!finish.ok) throw new Error(await finish.text());
-
+            await post("/api/auth/register/finish", credential);
+        },
+        onSuccess: async () => {
+            clearSession();
             await refreshSession();
             await navigate("/user");
-        } catch (cause) {
-            error = cause instanceof Error ? cause.message : "Registration failed";
-            console.error("Registration failed:", cause)
-        } finally {
-            pending = false;
-        }
-    };
+        },
+    }));
 </script>
 
 <section>
     <h1>Sign up</h1>
     <p>Create an account using a passkey on this device.</p>
     {#if browserSupportsWebAuthn()}
-        <wa-button onclick={signUp} disabled={pending} variant="brand">
-            {pending ? "Creating account…" : "Create account with passkey"}
+        <wa-button onclick={() => signUp.mutate()} disabled={signUp.isPending} variant="brand">
+            {signUp.isPending ? "Creating account…" : "Create account with passkey"}
         </wa-button>
         <p class="signin">
             Already have an account?
@@ -49,10 +39,10 @@
     {:else}
         <p>This browser does not support passkeys.</p>
     {/if}
-    {#if error}
+    {#if signUp.isError}
     <wa-callout variant="danger">
         <wa-icon slot="icon" name="circle-exclamation"></wa-icon>
-        {error}
+        {signUp.error instanceof Error ? signUp.error.message : "Registration failed"}
     </wa-callout>
     {/if}
 </section>

@@ -9,6 +9,15 @@ import (
 	"context"
 )
 
+const deleteSession = `-- name: DeleteSession :exec
+DELETE FROM sessions WHERE token_hash = ?1
+`
+
+func (q *Queries) DeleteSession(ctx context.Context, tokenHash []byte) error {
+	_, err := q.db.ExecContext(ctx, deleteSession, tokenHash)
+	return err
+}
+
 const getUserByCredential = `-- name: GetUserByCredential :one
 SELECT users.id, users.name, credentials.data
 FROM credentials
@@ -99,7 +108,8 @@ type InsertRegistrationAttemptParams struct {
 }
 
 func (q *Queries) InsertRegistrationAttempt(ctx context.Context, arg InsertRegistrationAttemptParams) error {
-	_, err := q.db.ExecContext(ctx, insertRegistrationAttempt,
+	_, err := q.db.ExecContext(
+		ctx, insertRegistrationAttempt,
 		arg.TokenHash,
 		arg.UserID,
 		arg.Name,

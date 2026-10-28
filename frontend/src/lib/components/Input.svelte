@@ -1,21 +1,27 @@
 <script lang="ts">
     import WaInput from "@awesome.me/webawesome/dist/components/input/input.js";
     import type { WaInputProps } from "@awesome.me/webawesome/dist/custom-elements-jsx.d.ts";
+    import "@awesome.me/webawesome/dist/components/button/button.js";
+    import "@awesome.me/webawesome/dist/components/icon/icon.js";
 
     type Props = {
         value: string;
-        onsave: (value: string) => void;
+        onsave: (value: string) => Promise<boolean>;
     } & WaInputProps;
 
     const { value, onsave, ...waProps }: Props = $props();
 
     let editing = $state(false);
     let input = $state<WaInput>();
+    let saving = $state(false);
 
-    const commitChange = () => {
-        editing = false;
+    const commitChange = async () => {
+        if (!editing || saving) return;
         if (input && input.value !== null) {
-            onsave(input.value);
+            if (input.value === value) { editing = false; return; }
+            saving = true;
+            if (await onsave(input.value)) editing = false;
+            saving = false;
         }
     };
 </script>
@@ -28,12 +34,13 @@
             onchange={() => commitChange()}
             onblur={() => commitChange()}
             {value}
+            disabled={saving || waProps.disabled}
         ></wa-input>
     {:else}
         {value}
         <wa-button
             appearance="plain"
-            aria-label="Back"
+            disabled={waProps.disabled}
             onclick={() => {
                 editing = true;
                 setTimeout(() => {
@@ -41,7 +48,7 @@
                 });
             }}
         >
-            <wa-icon name="pen"></wa-icon>
+            <wa-icon name="pen" label="Edit list name"></wa-icon>
         </wa-button>
     {/if}
 </div>

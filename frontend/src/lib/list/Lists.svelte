@@ -1,17 +1,49 @@
 <script lang="ts">
-    import { listStore } from "./store";
-    import { p } from "../../router";
+    import { createMutation, createQuery } from "@tanstack/svelte-query";
+    import { session } from "../user/session";
+    import { createListMutation, summariesQuery } from "./queries";
+    import { p, navigate } from "../../router";
+    import { errorMessage } from "./api";
     import "@awesome.me/webawesome/dist/components/icon/icon.js";
+    import "@awesome.me/webawesome/dist/components/button/button.js";
 
-    const { lists } = listStore;
+    const createList = createMutation(() => createListMutation());
+    const query = createQuery(() => summariesQuery($session?.id));
+    const handleCreateList = () => {
+        if (!$session) return;
+        createList.mutate({ account: $session.id, name: "Shopping List" }, {
+            onSuccess: (list, { account }) => {
+                if (account === $session?.id) void navigate("/lists/:id", { params: { id: list.id } });
+            },
+        });
+    };
+    const refresh = async () => {
+        if (query.isFetching || createList.isPending) return;
+        createList.reset();
+        await query.refetch();
+    };
 </script>
 
 <article>
     <header>
         <h2>Lists</h2>
     </header>
+    <p>Lists are private and saved to your account. Previous browser-only lists are not imported.</p>
+    {#if query.isFetching && !query.data}
+        <p role="status">Loading…</p>
+    {/if}
+    {#if createList.error ?? query.error}
+        <aside role="alert">
+            <p>{errorMessage(createList.error ?? query.error)}</p>
+            <wa-button onclick={refresh}>Refresh</wa-button>
+        </aside>
+    {/if}
+    <wa-button onclick={handleCreateList} disabled={!$session || query.isFetching || createList.isPending}>New list</wa-button>
+    {#if !query.isFetching && !query.error && !createList.error && query.data?.length === 0}
+        <p>No lists yet. Create your first private list.</p>
+    {/if}
     <ul>
-        {#each $lists as list (list.id)}
+        {#each query.data ?? [] as list (list.id)}
             <li>
                 <a href={p("/lists/:id", { params: { id: list.id } })}>
                     <wa-icon name="list-check"></wa-icon>
@@ -25,6 +57,8 @@
 </article>
 
 <style>
+    aside, p[role="status"], aside p { margin: var(--wa-space-s) var(--wa-space-m); }
+
     article {
         height: 100%;
         display: flex;
