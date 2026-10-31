@@ -15,7 +15,7 @@ export class ApiError extends Error {
 }
 
 export const errorMessage = (error: unknown) => error instanceof ApiError ? error.message
-  : "Unable to reach the server. Lists require an internet connection. Refresh to check server state before retrying your change.";
+  : "Unable to reach the server.";
 
 const request = async (url: string, init?: RequestInit) => {
   const response = await fetch(url, { cache: "no-store", ...init });

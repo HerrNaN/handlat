@@ -6,6 +6,7 @@
     import { errorMessage } from "./api";
     import "@awesome.me/webawesome/dist/components/icon/icon.js";
     import "@awesome.me/webawesome/dist/components/button/button.js";
+    import "@awesome.me/webawesome/dist/components/callout/callout.js";
 
     const createList = createMutation(() => createListMutation());
     const query = createQuery(() => summariesQuery($session?.id));
@@ -16,11 +17,6 @@
                 if (account === $session?.id) void navigate("/lists/:id", { params: { id: list.id } });
             },
         });
-    };
-    const refresh = async () => {
-        if (query.isFetching || createList.isPending) return;
-        createList.reset();
-        await query.refetch();
     };
 </script>
 
@@ -36,8 +32,10 @@
     {/if}
     {#if createList.error ?? query.error}
         <aside role="alert">
-            <p>{errorMessage(createList.error ?? query.error)}</p>
-            <wa-button onclick={refresh}>Refresh</wa-button>
+            <wa-callout variant="danger">
+                <wa-icon slot="icon"name="circle-exclamation"></wa-icon>
+                {errorMessage(createList.error ?? query.error)}
+            </wa-callout>
         </aside>
     {/if}
     {#if !query.isFetching && !query.error && !createList.error && query.data?.length === 0}
