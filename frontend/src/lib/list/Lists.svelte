@@ -27,8 +27,10 @@
 <article>
     <header>
         <h2>Lists</h2>
+        <wa-button onclick={handleCreateList} appearance="plain" disabled={!$session || query.isFetching || createList.isPending}>
+            <wa-icon name="plus"></wa-icon>
+        </wa-button>
     </header>
-    <p>Lists are private and saved to your account. Previous browser-only lists are not imported.</p>
     {#if query.isFetching && !query.data}
         <p role="status">Loading…</p>
     {/if}
@@ -38,7 +40,6 @@
             <wa-button onclick={refresh}>Refresh</wa-button>
         </aside>
     {/if}
-    <wa-button onclick={handleCreateList} disabled={!$session || query.isFetching || createList.isPending}>New list</wa-button>
     {#if !query.isFetching && !query.error && !createList.error && query.data?.length === 0}
         <p>No lists yet. Create your first private list.</p>
     {/if}
@@ -76,9 +77,12 @@
         background-color: var(--wa-color-surface-raised);
         box-shadow: 0 var(--wa-shadow-offset-x-m) var(--wa-shadow-offset-y-m)
             var(--wa-color-shadow);
+        display: flex;
+        align-items: center;
     }
 
     h2 {
+        flex: 1;
         margin: 0;
         font-size: var(--wa-font-size-xl);
         font-weight: var(--wa-font-weight-normal);
