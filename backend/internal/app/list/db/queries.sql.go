@@ -24,8 +24,7 @@ type AddItemParams struct {
 }
 
 func (q *Queries) AddItem(ctx context.Context, arg AddItemParams) error {
-	_, err := q.db.ExecContext(
-		ctx, addItem,
+	_, err := q.db.ExecContext(ctx, addItem,
 		arg.ID,
 		arg.ListID,
 		arg.Text,
@@ -48,8 +47,7 @@ type CreateListParams struct {
 }
 
 func (q *Queries) CreateList(ctx context.Context, arg CreateListParams) error {
-	_, err := q.db.ExecContext(
-		ctx, createList,
+	_, err := q.db.ExecContext(ctx, createList,
 		arg.ID,
 		arg.OwnerID,
 		arg.Name,
@@ -229,8 +227,7 @@ type UpdateItemParams struct {
 // narg makes omitted PATCH fields nullable parameters despite NOT NULL columns.
 // COALESCE preserves the current value; explicit JSON null is rejected by the API.
 func (q *Queries) UpdateItem(ctx context.Context, arg UpdateItemParams) error {
-	_, err := q.db.ExecContext(
-		ctx, updateItem,
+	_, err := q.db.ExecContext(ctx, updateItem,
 		arg.Text,
 		arg.Department,
 		arg.SetChecked,

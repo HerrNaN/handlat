@@ -1,6 +1,9 @@
 amends "package://github.com/jdx/hk/releases/download/v1.45.0/hk@1.45.0#/Config.pkl"
 import "package://github.com/jdx/hk/releases/download/v1.45.0/hk@1.45.0#/Builtins.pkl"
 
+// sqlc owns all Go files in these output directories, including their formatting.
+local generatedGoFiles = List("backend/internal/app/*/db/*.go")
+
 local linters = new Mapping<String, Step> {
   // General
   ["check-added-large-files"] = Builtins.check_added_large_files
@@ -10,9 +13,15 @@ local linters = new Mapping<String, Step> {
   ["check-symlinks"] = Builtins.check_symlinks
 
   // Golang
-  ["go-fumpt"] = Builtins.go_fumpt
-  ["go-imports"] = Builtins.go_imports
-  ["go-lines"] = Builtins.go_lines
+  ["go-fumpt"] = (Builtins.go_fumpt) {
+    exclude = generatedGoFiles
+  }
+  ["go-imports"] = (Builtins.go_imports) {
+    exclude = generatedGoFiles
+  }
+  ["go-lines"] = (Builtins.go_lines) {
+    exclude = generatedGoFiles
+  }
   ["go-sec"] = (Builtins.go_sec) {
     // sqlc's generated query names trigger the hardcoded-credentials heuristic.
     check = "cd {{workspace}} && gosec -exclude-generated -quiet ./..."

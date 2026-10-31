@@ -108,8 +108,7 @@ type InsertRegistrationAttemptParams struct {
 }
 
 func (q *Queries) InsertRegistrationAttempt(ctx context.Context, arg InsertRegistrationAttemptParams) error {
-	_, err := q.db.ExecContext(
-		ctx, insertRegistrationAttempt,
+	_, err := q.db.ExecContext(ctx, insertRegistrationAttempt,
 		arg.TokenHash,
 		arg.UserID,
 		arg.Name,
