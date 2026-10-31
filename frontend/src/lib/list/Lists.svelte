@@ -24,7 +24,7 @@
     <header>
         <h2>Lists</h2>
         <wa-button onclick={handleCreateList} appearance="plain" disabled={!$session || query.isFetching || createList.isPending}>
-            <wa-icon name="plus"></wa-icon>
+            <wa-icon name="plus" label="New list"></wa-icon>
         </wa-button>
     </header>
     {#if query.isFetching && !query.data}
