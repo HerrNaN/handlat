@@ -7,6 +7,7 @@
     import "@awesome.me/webawesome/dist/components/tab-panel/tab-panel.js";
     import "@awesome.me/webawesome/dist/components/tab/tab.js";
     import "@awesome.me/webawesome/dist/components/button/button.js";
+    import "@awesome.me/webawesome/dist/components/tooltip/tooltip.js";
     import { navigateToDefaultList } from "./lib/list/navigation";
     import { session } from "./lib/user/session";
 
@@ -29,14 +30,18 @@
     <nav>
         <ul>
             <li>
-                <wa-button
-                    href="/recipes"
-                    aria-label="Recipes (soon!)"
-                    appearance="plain"
-                    disabled
-                >
-                    <wa-icon name="kitchen-set"></wa-icon>
-                </wa-button>
+                <span id="recipes-nav">
+                    <wa-button
+                        label="Recipes (coming soon!)"
+                        appearance="plain"
+                        disabled
+                    >
+                        <wa-icon name="kitchen-set"></wa-icon>
+                    </wa-button>
+                </span>
+                <wa-tooltip for="recipes-nav" trigger="click">
+                    Recipes (coming soon!)
+                </wa-tooltip>
             </li>
             <li class:active={route.pathname.startsWith("/lists")}>
                 <wa-button
@@ -81,6 +86,14 @@
 
     nav {
         height: 4rem;
+
+        #recipes-nav {
+            display: inline-flex;
+
+            wa-button {
+                pointer-events: none;
+            }
+        }
 
         ul {
             width: 100%;
