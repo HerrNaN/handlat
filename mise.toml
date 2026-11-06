@@ -11,7 +11,7 @@ yq = "4"
 java = "24"
 
 # Golang
-go = "1.26"
+go = "1.27.3"
 gofumpt = "latest"
 "go:golang.org/x/tools/cmd/goimports" = "latest"
 "go:golang.org/x/vuln/cmd/govulncheck" = "latest"
