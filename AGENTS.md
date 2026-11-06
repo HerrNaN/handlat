@@ -1,3 +1,7 @@
+# Project vision
+
+Read [vision.md](vision.md) before proposing or implementing changes. Use its goals and non-goals to guide decisions, and flag any conflicts explicitly.
+
 # Frontend
 - **Use `pnpm`, NEVER `npm`**
 - **Prefer arrow syntx functions:**
