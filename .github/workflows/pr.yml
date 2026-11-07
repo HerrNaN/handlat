@@ -42,18 +42,6 @@ jobs:
       - name: Test
         run: hk run test --all
 
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.4.4
-
-      - name: Install workflow dependencies
-        run: bun install --frozen-lockfile
-        working-directory: .github/scripts
-
-      - name: Validate preview cleanup
-        run: bun test --check ./cleanup-preview-packages.test.ts
-        working-directory: .github/scripts
-
       - name: Validate chart packages
         run: mise test-chart-packages
 
@@ -64,7 +52,7 @@ jobs:
         id: container
         uses: redhat-actions/buildah-build@v2
         with:
-          image: ${{ github.repository }}/preview/pr-${{ github.event.pull_request.number }}
+          image: ${{ github.repository }}/preview
           containerfiles: Containerfile
           tags: preview-${{ github.event.pull_request.head.sha }}
 
@@ -101,7 +89,7 @@ jobs:
 
           mise package-chart \
             --version "$version" --app-version "$HEAD_SHA" \
-            --image-repository "ghcr.io/${GITHUB_REPOSITORY,,}/preview/pr-${PR_NUMBER}" \
+            --image-repository "ghcr.io/${GITHUB_REPOSITORY,,}/preview" \
             --image-digest "$IMAGE_DIGEST" --output-dir "$package_dir"
 
           printf '%s' "$GH_TOKEN" | helm registry login ghcr.io \
@@ -113,5 +101,5 @@ jobs:
           - Chart: \`$registry/handlat\`
           - Version: \`$version\`
           - Commit: \`$HEAD_SHA\`
-          - Image: \`ghcr.io/${GITHUB_REPOSITORY,,}/preview/pr-${PR_NUMBER}@$IMAGE_DIGEST\`
+          - Image: \`ghcr.io/${GITHUB_REPOSITORY,,}/preview@$IMAGE_DIGEST\`
           EOF

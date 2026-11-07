@@ -116,7 +116,7 @@ Each package pins the image digest produced by that run.
 
 For PR #42, the artifacts are:
 
-- Image: `ghcr.io/herrnan/handlat/preview/pr-42:preview-<head-sha>`.
+- Image: `ghcr.io/herrnan/handlat/preview:preview-<head-sha>`.
 - Chart: `oci://ghcr.io/herrnan/charts/preview/handlat`.
 - Version: `<chart-version>-pr.42.<UTC timestamp YYYYMMDDHHMMSS>`.
 
@@ -128,35 +128,9 @@ changes, or pin an exact version from the workflow summary. `appVersion` records
 the head commit; it does not select a chart version. Publishing does not deploy
 an environment.
 
-The cleanup workflow removes chart versions tagged exclusively for the closed or
-merged PR, along with every version of its dedicated preview image package. Other
-PRs, devel/release packages, and untagged or mixed-tag chart versions are preserved.
-Earlier per-PR chart packages are also cleaned up. Cleanup shares the publishing
-concurrency group to cancel an in-progress build before removing its artifacts.
-Reopened PRs publish fresh versions.
-
-Cleanup runs trusted default-branch code and checks that the PR is still closed
-and belongs to this repository. Missing packages/versions are safe to retry; other
-API failures fail the workflow. To retry manually, run **Clean up preview packages**
-from Actions with the closed PR number. The workflow must be merged into the
-default branch before automatic cleanup is available.
-
-Workflow scripts run under Bun with `--check`, using the official `@actions/github`
-and `@actions/core` packages and their types. Their dependencies and lockfile live
-in `.github/scripts`, separately from the frontend. To validate locally:
-
-```sh
-cd .github/scripts
-bun install --frozen-lockfile
-bun test --check ./cleanup-preview-packages.test.ts
-```
-
-GHCR deletion uses `GITHUB_TOKEN` with `packages: write` and requires the repository
-to have admin access to each preview package. Packages published by a workflow
-receive this access by default. Existing packages may need this configured in their
-package settings. Cleanup deletes package versions rather than the package itself,
-so a reopened PR can reuse the same registry paths. Older preview images in the
-shared `ghcr.io/herrnan/handlat` package are left untouched.
+Preview chart and image versions remain in GHCR after PR closure or merge. All PRs
+use the same preview chart channel and image package; each build has its own
+chart version and image digest.
 
 All channels package the same chart, with `persistence.retain: true` by default.
 The channel does not change storage retention. Version each environment's retention
