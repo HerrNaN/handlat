@@ -1,6 +1,9 @@
 import { expect, test } from "@playwright/test";
 
-test("creates a list, adds an item, and keeps its checked state after reload", async ({ page, context }) => {
+test("creates a list, adds an item, and keeps its checked state after reload", async ({
+  page,
+  context,
+}) => {
   await context.credentials.install();
   await page.goto("/sign-up");
   await page.getByRole("button", { name: "Create account with passkey" }).click();
@@ -50,7 +53,9 @@ test("deletes a list using its trash button only after confirmation", async ({ p
 
   await deleteButton.click();
   let releaseRefresh!: () => void;
-  const refreshGate = new Promise<void>((resolve) => { releaseRefresh = resolve; });
+  const refreshGate = new Promise<void>((resolve) => {
+    releaseRefresh = resolve;
+  });
   await page.route("**/api/lists", async (route) => {
     await refreshGate;
     await route.continue();
@@ -92,14 +97,19 @@ test("keeps a list after a failed deletion and allows retrying", async ({ page, 
   await expect(page.getByRole("link", { name: /Shopping List/ })).toBeVisible();
 
   await deleteButton.click();
-  await page.route("**/api/lists/*", (route) => route.request().method() === "DELETE"
-    ? route.fulfill({ status: 500, body: "Server error" }) : route.continue());
+  await page.route("**/api/lists/*", (route) =>
+    route.request().method() === "DELETE"
+      ? route.fulfill({ status: 500, body: "Server error" })
+      : route.continue(),
+  );
   await dialog.getByRole("button", { name: "Delete list", exact: true }).click();
   await expect(dialog.getByRole("alert")).toBeVisible();
   await expect(page.getByRole("link", { name: /Shopping List/ })).toBeVisible();
   await page.unroute("**/api/lists/*");
   let releaseRefresh!: () => void;
-  const refreshGate = new Promise<void>((resolve) => { releaseRefresh = resolve; });
+  const refreshGate = new Promise<void>((resolve) => {
+    releaseRefresh = resolve;
+  });
   await page.route("**/api/lists", async (route) => {
     await refreshGate;
     await route.continue();

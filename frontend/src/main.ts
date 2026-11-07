@@ -13,15 +13,15 @@ export const observer = Sentry.init({
     cookies: false,
     databaseQueryData: false,
     frameContextLines: 5,
-    genAI: {inputs: false, outputs: false},
-    graphQL: {document: false, variables: false},
+    genAI: { inputs: false, outputs: false },
+    graphQL: { document: false, variables: false },
     httpBodies: [],
     httpHeaders: false,
     queues: false,
     stackFrameVariables: false,
     urlQueryParams: false,
     userInfo: false,
-  }
+  },
 });
 
 const app = mount(App, {
