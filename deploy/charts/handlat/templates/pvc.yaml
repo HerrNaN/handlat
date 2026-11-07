@@ -8,8 +8,10 @@ metadata:
   name: {{ include "handlat.claimName" . }}
   labels:
     {{- include "handlat.labels" . | nindent 4 }}
+  {{- if .Values.persistence.retain }}
   annotations:
     helm.sh/resource-policy: keep
+  {{- end }}
 spec:
   accessModes:
     - {{ .Values.persistence.accessMode }}

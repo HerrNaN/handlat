@@ -2,7 +2,7 @@
 
 Runs one application replica with SQLite at `/data/laga.sqlite` on a persistent
 volume. Upgrades use `Recreate`, so brief downtime is expected. No deployment
-automation or cluster infrastructure is included.
+automation or cluster infrastructure is included in the chart.
 
 ## Install
 
@@ -107,6 +107,66 @@ the cluster. OCI publishing uses the workflow's existing `packages: write`
 permission. No stable artifacts are published, and no cluster deployment is
 triggered by this workflow.
 
+## Preview channel
+
+Successful checks on non-draft, same-repository PRs publish a preview package.
+Fork and draft PRs still build and test, but do not publish. Verification and
+publishing use the PR head commit, which is recorded as the chart's `appVersion`.
+Each package pins the image digest produced by that run.
+
+For PR #42, the artifacts are:
+
+- Image: `ghcr.io/herrnan/handlat:pr-42` and `ghcr.io/herrnan/handlat:pr-42-<head-sha>`.
+- Chart: `oci://ghcr.io/herrnan/charts/preview/handlat`.
+- Version: `<chart-version>-pr.42.<UTC timestamp YYYYMMDDHHMMSS>`.
+
+The `pr-42` image tag follows the latest successful build of PR #42. The
+commit-specific tag identifies that commit, while published charts pin the exact
+image digest. Moving the tag does not automatically restart running pods.
+
+All PRs share the preview chart channel. Deployments must select the intended PR's
+chart version, rather than the newest preview overall. For example, with chart
+base version `0.1.0`, PR #42 can use the Argo CD constraint
+`>=0.1.0-pr.42.0 <0.1.0-pr.43.0`. Update this constraint if the chart base version
+changes, or pin an exact version from the workflow summary. `appVersion` records
+the head commit; it does not select a chart version. Publishing does not deploy
+an environment.
+
+Preview chart and image versions remain in GHCR after PR closure or merge. All PRs
+use the preview chart channel and the existing Handlat image package; each build has its own
+chart version and image digest.
+
+All channels package the same chart, with `persistence.retain: true` by default.
+The channel does not change storage retention. Version each environment's retention
+choice alongside its other deployment values. For disposable PR data, set:
+
+```yaml
+persistence:
+  retain: false
+  storageClass: handlat-preview-local
+```
+
+Keep `retain: true` for labs and production. There is no namespace restriction on
+this setting. With `retain: false`, deleting the release allows deletion of its
+PVC; actual volume deletion depends on the StorageClass's reclaim policy.
+
+Deployment configuration must provide the remaining environment lifecycle:
+
+- A separate `handlat-preview-local` StorageClass with reclaim policy `Delete`.
+  Do not change the existing labs/prod StorageClass.
+- An ApplicationSet and restricted AppProject targeting one namespace and the
+  shared preview chart with a PR-specific version constraint. Set the values above,
+  configure cascading application deletion, and explicitly manage namespace
+  cleanup on PR closure.
+- DNS, HTTPS, and per-PR ingress and WebAuthn values. Use the preview hostname as
+  the RP ID and its exact HTTPS URL as the origin; each preview has separate users
+  and passkeys.
+
+Each PR starts with its own empty database and keeps it across updates. Removing
+its PVC allows the `Delete` provisioner to remove the underlying volume. Verify
+this lifecycle in the cluster before relying on automatic cleanup. Preview
+databases need no backup jobs, and must never share labs or production data.
+
 ## Storage and upgrades
 
 - Keep exactly one replica; do not attach an HPA or share a claim between releases.
@@ -120,8 +180,11 @@ triggered by this workflow.
 - Empty `persistence.storageClass` uses the cluster default; `"-"` selects no
   storage class. Storage class and access mode are generally immutable after
   claim creation; size increases require storage-driver support.
-- Helm retains the PVC on uninstall. It does not protect against deleting the
-  namespace, manually deleting the PVC, or losing the underlying storage. Arrange
+- `persistence.retain` defaults to `true`, adding `helm.sh/resource-policy: keep`
+  so Helm retains the PVC on uninstall. Set it to `false` for disposable data.
+  When changing an existing release, apply an upgrade/sync before removing it so
+  the live PVC annotation is updated. Retention does not protect against deleting
+  the namespace, manually deleting the PVC, or losing the underlying storage. Arrange
   consistent database/volume backups separately; do not copy just a live SQLite
   file while ignoring its WAL.
 - After uninstall, reinstall with `persistence.existingClaim` set to the retained
@@ -144,6 +207,9 @@ From the repository root:
 ```sh
 helm lint --strict ./deploy/charts/handlat --values ./deploy/charts/handlat/ci/values.yaml
 helm template handlat ./deploy/charts/handlat --values ./deploy/charts/handlat/ci/values.yaml
+mise test-chart-packages
 ```
 
 The CI values contain a placeholder digest for rendering only, not installation.
+The package checks verify default and explicit retention, disposable PVCs, image
+pinning, and reuse of existing claims. PR and trunk workflows run these checks.
