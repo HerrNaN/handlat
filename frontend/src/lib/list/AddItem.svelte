@@ -61,7 +61,8 @@
 
 <style>
     .input-wrapper {
-        height: 100%;
+        align-self: flex-end;
+        flex-shrink: 0;
         position: sticky;
         bottom: 0;
         display: flex;
