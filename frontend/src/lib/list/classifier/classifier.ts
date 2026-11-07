@@ -55,10 +55,7 @@ const buildIndexes = (
   };
 };
 
-const deptIndexCache = new WeakMap<
-  Department[],
-  ReturnType<typeof buildIndexes>
->();
+const deptIndexCache = new WeakMap<Department[], ReturnType<typeof buildIndexes>>();
 
 const getIndex = (departments: Department[]) => {
   if (!deptIndexCache.has(departments)) {
@@ -116,8 +113,7 @@ export const score = (
       const tf = 1;
       internalScore +=
         idf *
-        ((tf * (params.k1 + 1)) /
-          (tf + params.k1 * (1 - params.b + params.b * (idx.dl / avgdl))));
+        ((tf * (params.k1 + 1)) / (tf + params.k1 * (1 - params.b + params.b * (idx.dl / avgdl))));
     }
 
     for (const mw of idx.multiWordKw) {
@@ -151,15 +147,10 @@ type ClassificationResult = {
 
 const THRESHOLD = 0.3;
 
-export const classify = (
-  rawInput: string,
-  departments: Department[],
-): ClassificationResult => {
+export const classify = (rawInput: string, departments: Department[]): ClassificationResult => {
   const results = score(rawInput, departments);
   if (results.length === 0 || results[0].score < THRESHOLD) {
-    const other =
-      departments.find((d) => d.id === "other") ??
-      departments[departments.length - 1];
+    const other = departments.find((d) => d.id === "other") ?? departments[departments.length - 1];
     return { id: other.id, name: other.name, score: 0 };
   }
   return results[0];

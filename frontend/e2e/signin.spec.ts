@@ -1,6 +1,9 @@
 import { expect, test } from "@playwright/test";
 
-test("signs in to an existing account with a passkey and stays signed in after reload", async ({ page, context }) => {
+test("signs in to an existing account with a passkey and stays signed in after reload", async ({
+  page,
+  context,
+}) => {
   await context.credentials.install();
 
   await page.goto("/sign-up");

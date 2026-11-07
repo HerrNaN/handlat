@@ -1,4 +1,5 @@
 import { get, writable } from "svelte/store";
+
 import { queryClient } from "../query";
 
 export type Account = {
@@ -32,7 +33,7 @@ export const refreshSession = async () => {
         const response = await fetch("/api/auth/me", { cache: "no-store", signal });
         if (response.status === 401) return null;
         if (!response.ok) throw new Error("Could not load session");
-        return await response.json() as Account;
+        return (await response.json()) as Account;
       },
     });
     if (account) current.set(account);

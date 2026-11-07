@@ -1,7 +1,7 @@
 {
   "name": "frontend",
-  "private": true,
   "version": "0.0.0",
+  "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,18 +12,6 @@
     "test:e2e": "playwright test",
     "test:ui": "vitest --ui"
   },
-  "devDependencies": {
-    "@playwright/test": "^1.63.0",
-    "@sveltejs/vite-plugin-svelte": "^7.1.2",
-    "@tsconfig/svelte": "^5.0.8",
-    "@types/node": "^24.12.3",
-    "@vitest/ui": "^4.1.9",
-    "svelte": "^5.55.5",
-    "svelte-check": "^4.4.8",
-    "typescript": "~6.0.2",
-    "vite": "^8.0.12",
-    "vitest": "^4.1.9"
-  },
   "dependencies": {
     "@awesome.me/webawesome": "^3.8.0",
     "@sentry/svelte": "^11.6.0",
@@ -32,5 +20,18 @@
     "@tanstack/svelte-query": "^6.3.5",
     "sv-router": "^0.17.0",
     "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@sveltejs/vite-plugin-svelte": "^7.1.2",
+    "@tsconfig/svelte": "^5.0.8",
+    "@types/node": "^24.12.3",
+    "@vitest/ui": "^4.1.9",
+    "oxfmt": "^0.77.0",
+    "svelte": "^5.55.5",
+    "svelte-check": "^4.4.8",
+    "typescript": "~6.0.2",
+    "vite": "^8.0.12",
+    "vitest": "^4.1.9"
   }
 }

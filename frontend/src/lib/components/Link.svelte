@@ -1,49 +1,48 @@
 <script lang="ts">
-    import "@awesome.me/webawesome/dist/components/button/button.js";
-    import type { Snippet } from "svelte";
-    import { navigate, type p } from "../../router";
-    import type { PathParams } from "sv-router";
+  import "@awesome.me/webawesome/dist/components/button/button.js";
+  import type { PathParams } from "sv-router";
+  import type { Snippet } from "svelte";
 
-    type RouterPath = Parameters<typeof p>[0];
+  import { navigate, type p } from "../../router";
 
-    type Props = {
-        [Path in RouterPath]: {
-            children?: Snippet;
-            to: Path;
-        } & (PathParams<Path> extends never
-            ? { params?: never }
-            : { params: PathParams<Path> });
-    }[RouterPath];
+  type RouterPath = Parameters<typeof p>[0];
 
-    const {children, to, params}: Props = $props();
+  type Props = {
+    [Path in RouterPath]: {
+      children?: Snippet;
+      to: Path;
+    } & (PathParams<Path> extends never ? { params?: never } : { params: PathParams<Path> });
+  }[RouterPath];
 
-    const onclick = () => {
-        if (params) {
-            return navigate(to, { params });
-        }
+  const { children, to, params }: Props = $props();
 
-        return navigate(to);
-    };
+  const onclick = () => {
+    if (params) {
+      return navigate(to, { params });
+    }
+
+    return navigate(to);
+  };
 </script>
 
 <wa-button {onclick}>
-    {@render children?.()}
+  {@render children?.()}
 </wa-button>
 
 <style>
-    wa-button {
-        &::part(base) {
-            background-color: transparent;
-            color: var(--wa-color-text-link);
-        }
-
-        &::part(label) {
-            text-decoration: underline dotted;
-            text-underline-offset: 3px;
-        }
-
-        &:hover::part(label) {
-            text-decoration-style: solid;
-        }
+  wa-button {
+    &::part(base) {
+      background-color: transparent;
+      color: var(--wa-color-text-link);
     }
+
+    &::part(label) {
+      text-decoration: underline dotted;
+      text-underline-offset: 3px;
+    }
+
+    &:hover::part(label) {
+      text-decoration-style: solid;
+    }
+  }
 </style>

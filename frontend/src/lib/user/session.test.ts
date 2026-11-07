@@ -1,5 +1,6 @@
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { get } from "svelte/store";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
+
 import { queryClient } from "../query";
 import { clearSession, refreshSession, session } from "./session";
 
@@ -28,7 +29,12 @@ it("loads the account through the session query", async () => {
 
 it("does not restore a session cleared while its query was pending", async () => {
   let resolve!: (response: Response) => void;
-  fetch.mockImplementationOnce(() => new Promise((done) => { resolve = done; }));
+  fetch.mockImplementationOnce(
+    () =>
+      new Promise((done) => {
+        resolve = done;
+      }),
+  );
   const pending = refreshSession();
   clearSession();
   resolve(new Response(JSON.stringify({ id: "owner", name: "Owner" })));
@@ -38,7 +44,10 @@ it("does not restore a session cleared while its query was pending", async () =>
 });
 
 it("clears all queries and mutations when the session is cleared", () => {
-  queryClient.setQueryData(["private-lists", "owner", "summaries"], [{ id: "list-1", name: "Private" }]);
+  queryClient.setQueryData(
+    ["private-lists", "owner", "summaries"],
+    [{ id: "list-1", name: "Private" }],
+  );
   queryClient.setQueryData(["session"], { id: "owner", name: "Owner" });
   queryClient.getMutationCache().build(queryClient, { mutationKey: ["private-lists", "write"] });
   queryClient.getMutationCache().build(queryClient, { mutationKey: ["auth", "sign-in"] });
@@ -52,7 +61,10 @@ it("clears all queries and mutations when the session is cleared", () => {
 it("clears private data when a session refresh is unauthorized", async () => {
   fetch.mockResolvedValueOnce(new Response(JSON.stringify({ id: "owner", name: "Owner" })));
   await refreshSession();
-  queryClient.setQueryData(["private-lists", "owner", "summaries"], [{ id: "list-1", name: "Private" }]);
+  queryClient.setQueryData(
+    ["private-lists", "owner", "summaries"],
+    [{ id: "list-1", name: "Private" }],
+  );
 
   fetch.mockResolvedValueOnce(new Response("Unauthorized", { status: 401 }));
   await refreshSession();

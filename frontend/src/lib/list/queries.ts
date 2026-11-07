@@ -1,8 +1,24 @@
 import type { MutationOptions, QueryFunctionContext } from "@tanstack/query-core";
 import { get } from "svelte/store";
+
 import { queryClient } from "../query";
 import { session } from "../user/session";
-import { addItem, clearCheckedItems, createList, deleteItem, deleteList, getList, getLists, renameList, setItemChecked, updateItem, type ItemChanges, type ListSummary, type NewItem, type ShoppingList } from "./api";
+import {
+  addItem,
+  clearCheckedItems,
+  createList,
+  deleteItem,
+  deleteList,
+  getList,
+  getLists,
+  renameList,
+  setItemChecked,
+  updateItem,
+  type ItemChanges,
+  type ListSummary,
+  type NewItem,
+  type ShoppingList,
+} from "./api";
 
 type Owner = { account: string };
 type ListTarget = Owner & { listID: string };
@@ -11,7 +27,8 @@ type CheckItem = ItemTarget & { checked: boolean };
 type OptimisticCheck = { previous: Date | undefined; optimistic: Date | undefined };
 
 export const summariesKey = (account?: string) => ["private-lists", account, "summaries"] as const;
-export const listKey = (account: string | undefined, id: string) => ["private-lists", account, "detail", id] as const;
+export const listKey = (account: string | undefined, id: string) =>
+  ["private-lists", account, "detail", id] as const;
 
 const refetchOnWindowFocus = () => queryClient.isMutating({ mutationKey: ["private-lists"] }) === 0;
 
@@ -33,7 +50,9 @@ export const listQuery = (account: string | undefined, id: string) => ({
 
 export const dismissListErrors = () => {
   const cache = queryClient.getMutationCache();
-  cache.findAll({ mutationKey: ["private-lists"], status: "error" }).forEach((mutation) => cache.remove(mutation));
+  cache
+    .findAll({ mutationKey: ["private-lists"], status: "error" })
+    .forEach((mutation) => cache.remove(mutation));
 };
 
 const listMutationOptions = {
@@ -72,7 +91,9 @@ export const deleteListMutation = () => ({
   onSuccess: (_data: void, { account, listID }: ListTarget) => {
     if (account !== get(session)?.id) return;
     queryClient.removeQueries({ queryKey: listKey(account, listID), exact: true });
-    queryClient.setQueryData<ListSummary[]>(summariesKey(account), (lists) => lists?.filter((list) => list.id !== listID));
+    queryClient.setQueryData<ListSummary[]>(summariesKey(account), (lists) =>
+      lists?.filter((list) => list.id !== listID),
+    );
   },
 });
 
@@ -83,7 +104,8 @@ export const addItemMutation = () => ({
 
 export const updateItemMutation = () => ({
   ...listMutationOptions,
-  mutationFn: ({ listID, itemID, changes }: ItemTarget & { changes: ItemChanges }) => updateItem(listID, itemID, changes),
+  mutationFn: ({ listID, itemID, changes }: ItemTarget & { changes: ItemChanges }) =>
+    updateItem(listID, itemID, changes),
 });
 
 export const deleteItemMutation = () => ({
@@ -96,29 +118,48 @@ export const clearCheckedMutation = () => ({
   mutationFn: ({ listID }: ListTarget) => clearCheckedItems(listID),
 });
 
-export const checkItemMutation = (): MutationOptions<ShoppingList, Error, CheckItem, OptimisticCheck | undefined> => ({
+export const checkItemMutation = (): MutationOptions<
+  ShoppingList,
+  Error,
+  CheckItem,
+  OptimisticCheck | undefined
+> => ({
   ...listMutationOptions,
   mutationFn: ({ listID, itemID, checked }) => setItemChecked(listID, itemID, checked),
   onMutate: async (target) => {
     await listMutationOptions.onMutate(target);
     const key = listKey(target.account, target.listID);
-    const previous = queryClient.getQueryData<ShoppingList>(key)?.items.find((item) => item.id === target.itemID);
+    const previous = queryClient
+      .getQueryData<ShoppingList>(key)
+      ?.items.find((item) => item.id === target.itemID);
     if (!previous) return;
     const optimistic = target.checked ? new Date() : undefined;
-    queryClient.setQueryData<ShoppingList>(key, (list) => list && ({
-      ...list,
-      items: list.items.map((item) => item.id === target.itemID ? { ...item, checkedAt: optimistic } : item),
-    }));
+    queryClient.setQueryData<ShoppingList>(
+      key,
+      (list) =>
+        list && {
+          ...list,
+          items: list.items.map((item) =>
+            item.id === target.itemID ? { ...item, checkedAt: optimistic } : item,
+          ),
+        },
+    );
     return { previous: previous.checkedAt, optimistic };
   },
   onError: (_error, target, snapshot) => {
     if (target.account !== get(session)?.id || !snapshot) return;
     const key = listKey(target.account, target.listID);
-    queryClient.setQueryData<ShoppingList>(key, (list) => list && ({
-      ...list,
-      items: list.items.map((item) => item.id === target.itemID && item.checkedAt === snapshot.optimistic
-        ? { ...item, checkedAt: snapshot.previous }
-        : item),
-    }));
+    queryClient.setQueryData<ShoppingList>(
+      key,
+      (list) =>
+        list && {
+          ...list,
+          items: list.items.map((item) =>
+            item.id === target.itemID && item.checkedAt === snapshot.optimistic
+              ? { ...item, checkedAt: snapshot.previous }
+              : item,
+          ),
+        },
+    );
   },
 });

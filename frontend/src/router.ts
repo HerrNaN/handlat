@@ -1,4 +1,5 @@
 import { createRouter, Navigation } from "sv-router";
+
 import { hasActiveSession } from "./lib/user/session";
 
 // Use sv-router's supported code splitting to load pages without eager
