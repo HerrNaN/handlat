@@ -1,11 +1,22 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cleanup } from './cleanup-preview-packages.mjs';
+import { cleanup, type CleanupOptions, type ApiParameters } from './cleanup-preview-packages.mts';
 
-const fixture = (options = {}) => {
-  const requests = [];
-  const lists = [];
-  const args = {
+type FixtureOptions = {
+  ownerType?: string;
+  state?: string;
+  deletedFork?: boolean;
+  headRepo?: string;
+  listStatus?: number;
+  deleteStatus?: number;
+};
+
+type ApiCall = { route: string; parameters: ApiParameters };
+
+const fixture = (options: FixtureOptions = {}) => {
+  const requests: ApiCall[] = [];
+  const lists: ApiCall[] = [];
+  const args: CleanupOptions = {
     prNumber: 42,
     context: {
       repo: { owner: 'HerrNaN', repo: 'handlat' },
@@ -68,6 +79,6 @@ for (const options of [{ listStatus: 403 }, { deleteStatus: 403 }, { deleteStatu
 
 test('rejects invalid PR numbers before making API calls', async () => {
   for (const prNumber of [0, -1, NaN, 1.5, '42']) {
-    await assert.rejects(cleanup({ ...fixture().args, prNumber }), /positive PR number/);
+    await assert.rejects(cleanup({ ...fixture().args, prNumber: prNumber as number }), /positive PR number/);
   }
 });

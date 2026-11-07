@@ -1,4 +1,26 @@
-export const cleanup = async ({ github, context, core, prNumber }) => {
+export type ApiParameters = Record<string, string | number>;
+
+export type CleanupOptions = {
+  github: {
+    rest: { pulls: { get: (parameters: ApiParameters) => Promise<{ data: {
+      state: string;
+      head: { repo: { full_name: string } | null };
+    } }> } };
+    paginate: (route: string, parameters: ApiParameters) => Promise<{ id: number }[]>;
+    request: (route: string, parameters: ApiParameters) => Promise<unknown>;
+  };
+  context: {
+    repo: { owner: string; repo: string };
+    payload: { repository: { full_name: string; owner: { type: string } } };
+  };
+  core: { info: (message: string) => void };
+  prNumber: number;
+};
+
+const isNotFound = (error: unknown): boolean =>
+  typeof error === 'object' && error !== null && 'status' in error && error.status === 404;
+
+export const cleanup = async ({ github, context, core, prNumber }: CleanupOptions) => {
   if (!Number.isSafeInteger(prNumber) || prNumber < 1) {
     throw new Error('Expected a positive PR number');
   }
@@ -12,7 +34,7 @@ export const cleanup = async ({ github, context, core, prNumber }) => {
 
   const organization = context.payload.repository.owner.type === 'Organization';
   const scope = organization ? 'orgs/{org}' : 'users/{username}';
-  const ownerParameter = organization ? { org: owner } : { username: owner };
+  const ownerParameter: ApiParameters = organization ? { org: owner } : { username: owner };
   const route = `/${scope}/packages/{package_type}/{package_name}/versions`;
   const packages = [
     `charts/preview/pr-${prNumber}/handlat`,
@@ -25,7 +47,7 @@ export const cleanup = async ({ github, context, core, prNumber }) => {
     try {
       versions = await github.paginate(`GET ${route}`, { ...parameters, per_page: 100 });
     } catch (error) {
-      if (error.status !== 404) throw error;
+      if (!isNotFound(error)) throw error;
       core.info(`No package found: ${packageName}`);
       continue;
     }
@@ -36,7 +58,7 @@ export const cleanup = async ({ github, context, core, prNumber }) => {
           ...parameters, package_version_id: version.id,
         });
       } catch (error) {
-        if (error.status !== 404) throw error;
+        if (!isNotFound(error)) throw error;
       }
     }
     core.info(`Cleaned up ${versions.length} versions of ${packageName}`);

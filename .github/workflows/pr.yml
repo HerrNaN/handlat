@@ -43,7 +43,9 @@ jobs:
         run: hk run test --all
 
       - name: Validate preview cleanup
-        run: node --test .github/scripts/cleanup-preview-packages.test.mjs
+        run: |
+          pnpm --dir frontend exec tsc --project ../.github/scripts/tsconfig.json
+          node --test .github/scripts/cleanup-preview-packages.test.mts
 
       - name: Validate chart packages
         run: mise test-chart-packages
