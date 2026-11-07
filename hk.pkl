@@ -1,5 +1,5 @@
-amends "package://github.com/jdx/hk/releases/download/v1.45.0/hk@1.45.0#/Config.pkl"
-import "package://github.com/jdx/hk/releases/download/v1.45.0/hk@1.45.0#/Builtins.pkl"
+amends "package://github.com/jdx/hk/releases/download/v2.11.1/hk@2.11.1#/Config.pkl"
+import "package://github.com/jdx/hk/releases/download/v2.11.1/hk@2.11.1#/Builtins.pkl"
 
 // sqlc owns all Go files in these output directories, including their formatting.
 local generatedGoFiles = List("backend/internal/app/*/db/*.go")
@@ -24,15 +24,11 @@ local linters = new Mapping<String, Step> {
   }
   ["go-sec"] = (Builtins.go_sec) {
     // sqlc's generated query names trigger the hardcoded-credentials heuristic.
-    check = "cd {{workspace}} && gosec -exclude-generated -quiet ./..."
+    check = "gosec -exclude-generated -quiet ./..."
   }
   ["go-vet"] = Builtins.go_vet
   ["go-golangci-lint"] = Builtins.golangci_lint
-  ["go-mod-tidy"] = (Builtins.gomod_tidy) {
-    workspace_indicator = "go.mod"
-    check_diff = "cd {{workspace}} && go mod tidy -diff"
-    fix = "cd {{workspace}} && go mod tidy"
-  }
+  ["go-mod-tidy"] = Builtins.gomod_tidy
 
   // Mise
   ["mise"] = Builtins.mise
