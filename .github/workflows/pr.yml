@@ -42,10 +42,17 @@ jobs:
       - name: Test
         run: hk run test --all
 
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+
+      - name: Install workflow dependencies
+        run: bun install --frozen-lockfile
+        working-directory: .github/scripts
+
       - name: Validate preview cleanup
-        run: |
-          pnpm --dir frontend exec tsc --project ../.github/scripts/tsconfig.json
-          node --test .github/scripts/cleanup-preview-packages.test.mts
+        run: bun test --check ./cleanup-preview-packages.test.ts
+        working-directory: .github/scripts
 
       - name: Validate chart packages
         run: mise test-chart-packages
@@ -90,7 +97,7 @@ jobs:
           base_version=$(yq -r '.version' deploy/charts/handlat/Chart.yaml)
           version="${base_version}-pr.${PR_NUMBER}.$(date -u +%Y%m%d%H%M%S)"
           package_dir="$RUNNER_TEMP/preview-charts"
-          registry="oci://ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/charts/preview/pr-${PR_NUMBER}"
+          registry="oci://ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/charts/preview"
 
           mise package-chart \
             --version "$version" --app-version "$HEAD_SHA" \

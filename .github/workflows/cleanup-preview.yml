@@ -30,10 +30,17 @@ jobs:
           ref: ${{ github.event.repository.default_branch }}
           persist-credentials: false
 
-      - uses: actions/github-script@v8
-        env:
-          PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
+      - uses: oven-sh/setup-bun@v2
         with:
-          script: |
-            const { cleanup } = await import(`${process.env.GITHUB_WORKSPACE}/.github/scripts/cleanup-preview-packages.mts`);
-            await cleanup({ github, context, core, prNumber: Number(process.env.PR_NUMBER) });
+          bun-version: 1.4.4
+
+      - name: Install workflow dependencies
+        run: bun install --frozen-lockfile
+        working-directory: .github/scripts
+
+      - name: Remove closed PR artifacts
+        run: bun --check ./cleanup-preview-packages.ts
+        working-directory: .github/scripts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}

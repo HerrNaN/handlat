@@ -42,10 +42,17 @@ jobs:
         shell: bash
         run: hk run test --all
 
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+
+      - name: Install workflow dependencies
+        run: bun install --frozen-lockfile
+        working-directory: .github/scripts
+
       - name: Validate preview cleanup
-        run: |
-          pnpm --dir frontend exec tsc --project ../.github/scripts/tsconfig.json
-          node --test .github/scripts/cleanup-preview-packages.test.mts
+        run: bun test --check ./cleanup-preview-packages.test.ts
+        working-directory: .github/scripts
 
       - name: Validate chart packages
         run: mise test-chart-packages
