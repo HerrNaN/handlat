@@ -1,0 +1,38 @@
+name: PR title
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-title-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  title:
+    name: Conventional PR title
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    steps:
+      - name: Check Conventional Commits format
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const title = context.payload.pull_request.title;
+            const pattern = /^(feat|fix|build|chore|ci|docs|style|refactor|perf|test|revert)(\([^()\r\n]+\))?!?: \S[^\r\n]*$/;
+
+            if (!pattern.test(title)) {
+              core.setFailed(
+                'PR titles must follow Conventional Commits: type(scope)!: description. ' +
+                'Scope and ! are optional. Types: feat, fix, build, chore, ci, docs, ' +
+                'style, refactor, perf, test, revert. Examples: ' +
+                '"feat: add recipes", "fix(lists): handle empty names", ' +
+                '"feat!: change sign-in flow".'
+              );
+            }
