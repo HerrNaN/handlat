@@ -34,6 +34,11 @@ steps {
   ["mise"] = Builtins.mise
 
   // Web
+  ["web-oxfmt"] = (Builtins.oxfmt) {
+    dir = "frontend"
+    prefix = List("pnpm", "exec")
+    glob = Builtins.oxfmt.glob + List("**/*.svelte")
+  }
   ["web-oxlint"] = Builtins.ox_lint
   ["web-unit-tests"] {
     check = "pnpm test --run"
