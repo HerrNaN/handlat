@@ -35,3 +35,13 @@ jobs:
 
       - name: Test
         run: hk run test --all
+
+      - name: Build application
+        run: mise build
+
+      - name: Build container
+        uses: redhat-actions/buildah-build@v2
+        with:
+          image: handlat
+          containerfiles: Containerfile
+          tags: pr-${{ github.event.pull_request.number }}
