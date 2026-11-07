@@ -116,14 +116,32 @@ Each package pins the image digest produced by that run.
 
 For PR #42, the artifacts are:
 
-- Image: `ghcr.io/herrnan/handlat:preview-<head-sha>`.
+- Image: `ghcr.io/herrnan/handlat/preview/pr-42:preview-<head-sha>`.
 - Chart: `oci://ghcr.io/herrnan/charts/preview/pr-42/handlat`.
 - Version: `<chart-version>-pr.42.<UTC timestamp YYYYMMDDHHMMSS>`.
 
 Each PR has its own chart registry path so an Argo CD Application can follow
 `targetRevision: "*-0"` without selecting another PR's build. The workflow summary
 records the exact chart version, commit, and image digest. Publishing does not
-deploy an environment or remove registry artifacts when a PR closes.
+deploy an environment.
+
+The cleanup workflow removes all chart and image versions in that PR's dedicated
+packages when it closes or merges. It leaves devel/release packages and other PRs
+alone. Cleanup shares the publishing concurrency group to cancel an in-progress
+build before removing its artifacts. Reopened PRs publish fresh versions.
+
+Cleanup runs trusted default-branch code and checks that the PR is still closed
+and belongs to this repository. Missing packages/versions are safe to retry; other
+API failures fail the workflow. To retry manually, run **Clean up preview packages**
+from Actions with the closed PR number. The workflow must be merged into the
+default branch before automatic cleanup is available.
+
+GHCR deletion uses `GITHUB_TOKEN` with `packages: write` and requires the repository
+to have admin access to each preview package. Packages published by a workflow
+receive this access by default. Existing packages may need this configured in their
+package settings. Cleanup deletes package versions rather than the package itself,
+so a reopened PR can reuse the same registry paths. Older preview images in the
+shared `ghcr.io/herrnan/handlat` package are left untouched.
 
 All channels package the same chart, with `persistence.retain: true` by default.
 The channel does not change storage retention. Version each environment's retention

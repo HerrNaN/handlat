@@ -42,6 +42,9 @@ jobs:
       - name: Test
         run: hk run test --all
 
+      - name: Validate preview cleanup
+        run: node --test .github/scripts/cleanup-preview-packages.test.cjs
+
       - name: Validate chart packages
         run: mise test-chart-packages
 
@@ -52,7 +55,7 @@ jobs:
         id: container
         uses: redhat-actions/buildah-build@v2
         with:
-          image: ${{ github.repository }}
+          image: ${{ github.repository }}/preview/pr-${{ github.event.pull_request.number }}
           containerfiles: Containerfile
           tags: preview-${{ github.event.pull_request.head.sha }}
 
@@ -89,7 +92,7 @@ jobs:
 
           mise package-chart \
             --version "$version" --app-version "$HEAD_SHA" \
-            --image-repository "ghcr.io/${GITHUB_REPOSITORY,,}" \
+            --image-repository "ghcr.io/${GITHUB_REPOSITORY,,}/preview/pr-${PR_NUMBER}" \
             --image-digest "$IMAGE_DIGEST" --output-dir "$package_dir"
 
           printf '%s' "$GH_TOKEN" | helm registry login ghcr.io \
@@ -101,5 +104,5 @@ jobs:
           - Chart: \`$registry/handlat\`
           - Version: \`$version\`
           - Commit: \`$HEAD_SHA\`
-          - Image: \`ghcr.io/${GITHUB_REPOSITORY,,}@$IMAGE_DIGEST\`
+          - Image: \`ghcr.io/${GITHUB_REPOSITORY,,}/preview/pr-${PR_NUMBER}@$IMAGE_DIGEST\`
           EOF
