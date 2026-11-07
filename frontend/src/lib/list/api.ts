@@ -27,7 +27,7 @@ const request = async (url: string, init?: RequestInit) => {
       : response.status >= 500 ? "The server could not save or load your list. Try again."
       : (await response.text()) || "The request failed.");
   }
-  return response.json();
+  return response.status === 204 ? undefined : response.json();
 };
 
 const listURL = (id: string) => `/api/lists/${encodeURIComponent(id)}`;
@@ -39,6 +39,7 @@ export const getLists = async (signal?: AbortSignal) => SummariesSchema.parse(aw
 export const getList = (id: string, signal?: AbortSignal) => requestList(listURL(id), { signal });
 export const createList = (name: string) => requestList("/api/lists", { method: "POST", ...jsonBody({ name }) });
 export const renameList = (id: string, name: string) => requestList(listURL(id), { method: "PATCH", ...jsonBody({ name }) });
+export const deleteList = async (id: string): Promise<void> => { await request(listURL(id), { method: "DELETE" }); };
 export const addItem = (listID: string, item: NewItem) => requestList(`${listURL(listID)}/items`, { method: "POST", ...jsonBody(item) });
 export const updateItem = (listID: string, itemID: string, changes: ItemChanges) => requestList(itemURL(listID, itemID), { method: "PATCH", ...jsonBody(changes) });
 export const setItemChecked = (listID: string, itemID: string, checked: boolean) => requestList(itemURL(listID, itemID), { method: "PATCH", ...jsonBody({ checked }) });

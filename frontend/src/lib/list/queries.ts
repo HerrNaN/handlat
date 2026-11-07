@@ -2,7 +2,7 @@ import type { MutationOptions, QueryFunctionContext } from "@tanstack/query-core
 import { get } from "svelte/store";
 import { queryClient } from "../query";
 import { session } from "../user/session";
-import { addItem, clearCheckedItems, createList, deleteItem, getList, getLists, renameList, setItemChecked, updateItem, type ItemChanges, type NewItem, type ShoppingList } from "./api";
+import { addItem, clearCheckedItems, createList, deleteItem, deleteList, getList, getLists, renameList, setItemChecked, updateItem, type ItemChanges, type ListSummary, type NewItem, type ShoppingList } from "./api";
 
 type Owner = { account: string };
 type ListTarget = Owner & { listID: string };
@@ -43,7 +43,7 @@ const listMutationOptions = {
     await queryClient.cancelQueries({ queryKey: ["private-lists"] });
     if (account !== get(session)?.id) throw new Error("The active account changed.");
   },
-  onSettled: (_data: ShoppingList | undefined, _error: Error | null, { account }: Owner) => {
+  onSettled: (_data: ShoppingList | void, _error: Error | null, { account }: Owner) => {
     if (account !== get(session)?.id) return;
     // This mutation still counts as pending until onSettled completes.
     if (queryClient.isMutating({ mutationKey: ["private-lists"] }) === 1) {
@@ -60,6 +60,20 @@ export const createListMutation = () => ({
 export const renameListMutation = () => ({
   ...listMutationOptions,
   mutationFn: ({ listID, name }: ListTarget & { name: string }) => renameList(listID, name),
+});
+
+export const deleteListMutation = () => ({
+  ...listMutationOptions,
+  mutationFn: ({ listID }: ListTarget) => deleteList(listID),
+  onSettled: (data: void, error: Error | null, target: ListTarget) => {
+    // Deletion is complete when the server confirms it, not when refetching finishes.
+    void listMutationOptions.onSettled(data, error, target);
+  },
+  onSuccess: (_data: void, { account, listID }: ListTarget) => {
+    if (account !== get(session)?.id) return;
+    queryClient.removeQueries({ queryKey: listKey(account, listID), exact: true });
+    queryClient.setQueryData<ListSummary[]>(summariesKey(account), (lists) => lists?.filter((list) => list.id !== listID));
+  },
 });
 
 export const addItemMutation = () => ({

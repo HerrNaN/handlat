@@ -18,6 +18,9 @@ WHERE id = @id;
 -- name: RenameList :exec
 UPDATE lists SET name = @name WHERE id = @id;
 
+-- name: DeleteList :exec
+DELETE FROM lists WHERE id = @id;
+
 -- name: ListItems :many
 SELECT * FROM items WHERE list_id = @list_id AND deleted_at IS NULL ORDER BY created_at, id;
 
