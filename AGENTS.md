@@ -1,6 +1,6 @@
 # Project vision
 
-Read [vision.md](vision.md) before proposing or implementing changes. Use its goals and non-goals to guide decisions, and flag any conflicts explicitly.
+Read [VISION.md](VISION.md) before proposing or implementing changes. Use its goals and non-goals to guide decisions, and flag any conflicts explicitly.
 
 # Frontend
 - **Use `pnpm`, NEVER `npm`**
