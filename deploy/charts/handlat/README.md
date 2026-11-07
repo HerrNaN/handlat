@@ -116,9 +116,13 @@ Each package pins the image digest produced by that run.
 
 For PR #42, the artifacts are:
 
-- Image: `ghcr.io/herrnan/handlat/preview:preview-<head-sha>`.
+- Image: `ghcr.io/herrnan/handlat:pr-42` and `ghcr.io/herrnan/handlat:pr-42-<head-sha>`.
 - Chart: `oci://ghcr.io/herrnan/charts/preview/handlat`.
 - Version: `<chart-version>-pr.42.<UTC timestamp YYYYMMDDHHMMSS>`.
+
+The `pr-42` image tag follows the latest successful build of PR #42. The
+commit-specific tag identifies that commit, while published charts pin the exact
+image digest. Moving the tag does not automatically restart running pods.
 
 All PRs share the preview chart channel. Deployments must select the intended PR's
 chart version, rather than the newest preview overall. For example, with chart
@@ -129,7 +133,7 @@ the head commit; it does not select a chart version. Publishing does not deploy
 an environment.
 
 Preview chart and image versions remain in GHCR after PR closure or merge. All PRs
-use the same preview chart channel and image package; each build has its own
+use the preview chart channel and the existing Handlat image package; each build has its own
 chart version and image digest.
 
 All channels package the same chart, with `persistence.retain: true` by default.
