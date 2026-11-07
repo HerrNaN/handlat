@@ -61,6 +61,7 @@
 
 <style>
     .input-wrapper {
+        margin-block-start: auto;
         align-self: flex-end;
         flex-shrink: 0;
         position: sticky;
