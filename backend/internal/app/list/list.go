@@ -54,6 +54,7 @@ func (h *Handler) Register(mux *http.ServeMux, requireSession func(http.Handler)
 	routes.HandleFunc("POST /lists", h.create)
 	routes.HandleFunc("GET /lists/{id}", h.get)
 	routes.HandleFunc("PATCH /lists/{id}", h.rename)
+	routes.HandleFunc("DELETE /lists/{id}", h.deleteList)
 	routes.HandleFunc("POST /lists/{id}/items", h.addItem)
 	routes.HandleFunc("PATCH /lists/{id}/items/{itemID}", h.updateItem)
 	routes.HandleFunc("DELETE /lists/{id}/items/{itemID}", h.deleteItem)
@@ -216,6 +217,36 @@ func (h *Handler) mutate(w http.ResponseWriter, r *http.Request, change func(*db
 	}
 
 	h.respond(w, http.StatusOK, result)
+}
+
+func (h *Handler) deleteList(w http.ResponseWriter, r *http.Request) {
+	tx, err := h.conn.BeginTx(r.Context(), nil)
+	if err != nil {
+		h.fail(w, err)
+		return
+	}
+	defer h.rollback(tx)
+
+	q := h.queries.WithTx(tx)
+
+	value, err := accessibleList(r.Context(), q, r.PathValue("id"), auth.UserID(r.Context()))
+	if err != nil {
+		h.fail(w, err)
+		return
+	}
+
+	if err := q.DeleteList(r.Context(), value.ID); err != nil {
+		h.fail(w, err)
+		return
+	}
+
+	if err := tx.Commit(); err != nil {
+		h.fail(w, err)
+		return
+	}
+
+	w.Header().Set("Cache-Control", "no-store")
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *Handler) rename(w http.ResponseWriter, r *http.Request) {

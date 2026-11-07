@@ -146,6 +146,78 @@ func TestRenameList(t *testing.T) {
 	require.Equal(t, "Milk", list.Items[0].Text)
 }
 
+func TestDeleteList(t *testing.T) {
+	for _, tc := range []struct {
+		name          string
+		owner         string
+		id            string
+		authenticated bool
+		status        int
+	}{
+		{"owner", "owner", "list", true, http.StatusNoContent},
+		{"other owner", "other", "list", true, http.StatusNotFound},
+		{"missing", "owner", "missing", true, http.StatusNotFound},
+		{"unauthenticated", "owner", "list", false, http.StatusUnauthorized},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f := newFixture(t)
+			_, err := f.conn.ExecContext(
+				t.Context(),
+				"INSERT INTO users (id, name) VALUES (?, ?)",
+				[]byte("other"),
+				"Other",
+			)
+			require.NoError(t, err)
+
+			q := listdb.New(f.conn)
+			require.NoError(t, q.CreateList(t.Context(), listdb.CreateListParams{
+				ID: "list", OwnerID: []byte(tc.owner), Name: "Groceries", Now: time.Now().Unix(),
+			}))
+			require.NoError(t, q.AddItem(t.Context(), listdb.AddItemParams{
+				ID:         "milk",
+				ListID:     "list",
+				Text:       "Milk",
+				Department: "other",
+				CreatedAt:  time.Now().Unix(),
+			}))
+
+			req := httptest.NewRequest(http.MethodDelete, "/lists/"+tc.id, nil)
+			if tc.authenticated {
+				req.AddCookie(&http.Cookie{Name: "laga_session", Value: f.owner})
+			}
+
+			response := httptest.NewRecorder()
+			f.handler.ServeHTTP(response, req)
+			require.Equal(t, tc.status, response.Code)
+
+			var count int
+			require.NoError(
+				t,
+				f.conn.QueryRowContext(t.Context(), "SELECT count(*) FROM items WHERE list_id = ?", "list").
+					Scan(&count),
+			)
+
+			if tc.status == http.StatusNoContent {
+				require.Empty(t, response.Body.String())
+				require.Zero(t, count)
+				_, err := q.GetList(t.Context(), "list")
+				require.ErrorIs(t, err, sql.ErrNoRows)
+				rows, err := q.ListLists(t.Context(), []byte("owner"))
+				require.NoError(t, err)
+				require.Empty(t, rows)
+
+				response = httptest.NewRecorder()
+				f.handler.ServeHTTP(response, req)
+				require.Equal(t, http.StatusNotFound, response.Code)
+			} else {
+				require.Equal(t, 1, count)
+				_, err := q.GetList(t.Context(), "list")
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestAddItem(t *testing.T) {
 	f := newFixture(t)
 	q := listdb.New(f.conn)

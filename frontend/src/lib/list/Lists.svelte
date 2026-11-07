@@ -1,14 +1,37 @@
 <script lang="ts">
     import { createMutation, createQuery } from "@tanstack/svelte-query";
     import { session } from "../user/session";
-    import { createListMutation, summariesQuery } from "./queries";
+    import { createListMutation, deleteListMutation, summariesQuery } from "./queries";
     import { p, navigate } from "../../router";
-    import { errorMessage } from "./api";
+    import { errorMessage, type ListSummary } from "./api";
+    import WaDialog from "@awesome.me/webawesome/dist/components/dialog/dialog.js";
     import "@awesome.me/webawesome/dist/components/icon/icon.js";
     import "@awesome.me/webawesome/dist/components/button/button.js";
     import "@awesome.me/webawesome/dist/components/callout/callout.js";
 
     const createList = createMutation(() => createListMutation());
+    const deletion = createMutation(() => deleteListMutation());
+    let deleteDialog = $state<WaDialog>();
+    let listToDelete = $state<ListSummary>();
+    let deleting = $state(false);
+    const confirmDelete = (list: ListSummary) => {
+        deletion.reset();
+        listToDelete = list;
+        if (deleteDialog) deleteDialog.open = true;
+    };
+    const handleDelete = async () => {
+        if (!$session || !listToDelete || deleting) return;
+        deleting = true;
+        try {
+            await deletion.mutateAsync({ account: $session.id, listID: listToDelete.id });
+        } catch {
+            // Keep the dialog open; the mutation error is displayed below.
+            return;
+        } finally {
+            deleting = false;
+        }
+        if (deleteDialog) deleteDialog.open = false;
+    };
     const query = createQuery(() => summariesQuery($session?.id));
     const handleCreateList = () => {
         if (!$session) return;
@@ -48,15 +71,26 @@
                     <wa-icon name="list-check"></wa-icon>
                     <span class="name">{list.name}</span>
                     <span class="count">{list.itemCount}</span>
-                    <wa-icon name="chevron-right"></wa-icon>
                 </a>
+                <wa-button appearance="plain" variant="danger" onclick={() => confirmDelete(list)} disabled={deleting}>
+                    <wa-icon name="trash-can" variant="regular" label={`Delete ${list.name}`}></wa-icon>
+                </wa-button>
             </li>
         {/each}
     </ul>
 </article>
 
+<wa-dialog bind:this={deleteDialog} label="Delete list?" onwa-hide={(event: Event) => { if (deleting) event.preventDefault(); }}>
+    <p>Delete “{listToDelete?.name}” and all its items? This cannot be undone.</p>
+    {#if deletion.error}
+        <p role="alert">{errorMessage(deletion.error)}</p>
+    {/if}
+    <wa-button slot="footer" data-dialog="close" disabled={deleting}>Cancel</wa-button>
+    <wa-button slot="footer" variant="danger" onclick={handleDelete} disabled={deleting} loading={deleting}>Delete list</wa-button>
+</wa-dialog>
+
 <style>
-    aside, p[role="status"], aside p { margin: var(--wa-space-s) var(--wa-space-m); }
+    aside, p[role="status"] { margin: var(--wa-space-s) var(--wa-space-m); }
 
     article {
         height: 100%;
@@ -98,7 +132,17 @@
         gap: var(--wa-space-2xs);
     }
 
+    li {
+        display: flex;
+        align-items: center;
+        padding-inline-end: var(--wa-space-xs);
+        background-color: var(--wa-color-surface-lowered);
+        border-radius: var(--wa-border-width-l);
+    }
+
     a {
+        flex: 1;
+        min-width: 0;
         display: flex;
         align-items: center;
         gap: var(--wa-space-s);

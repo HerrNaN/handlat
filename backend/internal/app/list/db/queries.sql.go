@@ -87,6 +87,15 @@ func (q *Queries) DeleteItem(ctx context.Context, arg DeleteItemParams) error {
 	return err
 }
 
+const deleteList = `-- name: DeleteList :exec
+DELETE FROM lists WHERE id = ?1
+`
+
+func (q *Queries) DeleteList(ctx context.Context, id string) error {
+	_, err := q.db.ExecContext(ctx, deleteList, id)
+	return err
+}
+
 const getList = `-- name: GetList :one
 SELECT id, owner_id, name, created_at, updated_at FROM lists WHERE id = ?1
 `
