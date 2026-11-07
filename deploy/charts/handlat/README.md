@@ -2,7 +2,7 @@
 
 Runs one application replica with SQLite at `/data/laga.sqlite` on a persistent
 volume. Upgrades use `Recreate`, so brief downtime is expected. No deployment
-automation or cluster infrastructure is included.
+automation or cluster infrastructure is included in the chart.
 
 ## Install
 
@@ -107,6 +107,73 @@ the cluster. OCI publishing uses the workflow's existing `packages: write`
 permission. No stable artifacts are published, and no cluster deployment is
 triggered by this workflow.
 
+## Preview channel
+
+Successful checks on non-draft, same-repository PRs publish a preview package.
+Fork and draft PRs still build and test, but do not publish. Verification and
+publishing use the PR head commit, which is recorded as the chart's `appVersion`.
+Each package pins the image digest produced by that run.
+
+For PR #42, the artifacts are:
+
+- Image: `ghcr.io/herrnan/handlat/preview/pr-42:preview-<head-sha>`.
+- Chart: `oci://ghcr.io/herrnan/charts/preview/pr-42/handlat`.
+- Version: `<chart-version>-pr.42.<UTC timestamp YYYYMMDDHHMMSS>`.
+
+Each PR has its own chart registry path so an Argo CD Application can follow
+`targetRevision: "*-0"` without selecting another PR's build. The workflow summary
+records the exact chart version, commit, and image digest. Publishing does not
+deploy an environment.
+
+The cleanup workflow removes all chart and image versions in that PR's dedicated
+packages when it closes or merges. It leaves devel/release packages and other PRs
+alone. Cleanup shares the publishing concurrency group to cancel an in-progress
+build before removing its artifacts. Reopened PRs publish fresh versions.
+
+Cleanup runs trusted default-branch code and checks that the PR is still closed
+and belongs to this repository. Missing packages/versions are safe to retry; other
+API failures fail the workflow. To retry manually, run **Clean up preview packages**
+from Actions with the closed PR number. The workflow must be merged into the
+default branch before automatic cleanup is available.
+
+GHCR deletion uses `GITHUB_TOKEN` with `packages: write` and requires the repository
+to have admin access to each preview package. Packages published by a workflow
+receive this access by default. Existing packages may need this configured in their
+package settings. Cleanup deletes package versions rather than the package itself,
+so a reopened PR can reuse the same registry paths. Older preview images in the
+shared `ghcr.io/herrnan/handlat` package are left untouched.
+
+All channels package the same chart, with `persistence.retain: true` by default.
+The channel does not change storage retention. Version each environment's retention
+choice alongside its other deployment values. For disposable PR data, set:
+
+```yaml
+persistence:
+  retain: false
+  storageClass: handlat-preview-local
+```
+
+Keep `retain: true` for labs and production. There is no namespace restriction on
+this setting. With `retain: false`, deleting the release allows deletion of its
+PVC; actual volume deletion depends on the StorageClass's reclaim policy.
+
+Deployment configuration must provide the remaining environment lifecycle:
+
+- A separate `handlat-preview-local` StorageClass with reclaim policy `Delete`.
+  Do not change the existing labs/prod StorageClass.
+- An ApplicationSet and restricted AppProject targeting one namespace and the
+  corresponding preview chart path per PR. Set the preview Helm values above,
+  configure cascading application deletion, and explicitly manage namespace
+  cleanup on PR closure.
+- DNS, HTTPS, and per-PR ingress and WebAuthn values. Use the preview hostname as
+  the RP ID and its exact HTTPS URL as the origin; each preview has separate users
+  and passkeys.
+
+Each PR starts with its own empty database and keeps it across updates. Removing
+its PVC allows the `Delete` provisioner to remove the underlying volume. Verify
+this lifecycle in the cluster before relying on automatic cleanup. Preview
+databases need no backup jobs, and must never share labs or production data.
+
 ## Storage and upgrades
 
 - Keep exactly one replica; do not attach an HPA or share a claim between releases.
@@ -120,8 +187,11 @@ triggered by this workflow.
 - Empty `persistence.storageClass` uses the cluster default; `"-"` selects no
   storage class. Storage class and access mode are generally immutable after
   claim creation; size increases require storage-driver support.
-- Helm retains the PVC on uninstall. It does not protect against deleting the
-  namespace, manually deleting the PVC, or losing the underlying storage. Arrange
+- `persistence.retain` defaults to `true`, adding `helm.sh/resource-policy: keep`
+  so Helm retains the PVC on uninstall. Set it to `false` for disposable data.
+  When changing an existing release, apply an upgrade/sync before removing it so
+  the live PVC annotation is updated. Retention does not protect against deleting
+  the namespace, manually deleting the PVC, or losing the underlying storage. Arrange
   consistent database/volume backups separately; do not copy just a live SQLite
   file while ignoring its WAL.
 - After uninstall, reinstall with `persistence.existingClaim` set to the retained
@@ -144,6 +214,9 @@ From the repository root:
 ```sh
 helm lint --strict ./deploy/charts/handlat --values ./deploy/charts/handlat/ci/values.yaml
 helm template handlat ./deploy/charts/handlat --values ./deploy/charts/handlat/ci/values.yaml
+mise test-chart-packages
 ```
 
 The CI values contain a placeholder digest for rendering only, not installation.
+The package checks verify default and explicit retention, disposable PVCs, image
+pinning, and reuse of existing claims. PR and trunk workflows run these checks.

@@ -42,6 +42,14 @@ jobs:
         shell: bash
         run: hk run test --all
 
+      - name: Validate preview cleanup
+        run: |
+          pnpm --dir frontend exec tsc --project ../.github/scripts/tsconfig.json
+          node --test .github/scripts/cleanup-preview-packages.test.mts
+
+      - name: Validate chart packages
+        run: mise test-chart-packages
+
       - name: Build
         id: image
         uses: ./.github/actions/build-image

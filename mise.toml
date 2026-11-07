@@ -97,20 +97,11 @@ flag "--image-repository <image_repository>" required=#true
 flag "--image-digest <image_digest>" required=#true
 flag "--output-dir <output_dir>" default="_data/charts"
 '''
-run = [
-  'mkdir -p "$usage_output_dir/source"',
-  'cp -R deploy/charts/handlat/. "$usage_output_dir/source/"',
-  '''
-  yq -i '
-    .image.repository = strenv(usage_image_repository) |
-    .image.digest = strenv(usage_image_digest) |
-    .image.tag = ""
-  ' "$usage_output_dir/source/values.yaml"
-  ''',
-  'helm lint --strict "$usage_output_dir/source" --set webAuthn.rpID=laga.example.com --set webAuthn.origin=https://laga.example.com',
-  'helm template handlat "$usage_output_dir/source" --set webAuthn.rpID=laga.example.com --set webAuthn.origin=https://laga.example.com > /dev/null',
-  'helm package "$usage_output_dir/source" --destination "$usage_output_dir" --version "$usage_version" --app-version "$usage_app_version"',
-]
+run = 'bash scripts/package-chart.sh'
+
+[tasks.test-chart-packages]
+description = "Check chart storage retention"
+run = 'bash scripts/test-chart-packages.sh'
 
 [tasks.publish-chart]
 description = "Publish a packaged Helm chart to an OCI registry"

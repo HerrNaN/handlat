@@ -2,6 +2,7 @@ name: Pull Request
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - main
 
@@ -15,11 +16,16 @@ concurrency:
 jobs:
   verify:
     name: Verify and test
+    permissions:
+      contents: read
+      packages: write
     runs-on: ubuntu-24.04
     timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
       - uses: jdx/mise-action@v4
 
       - name: Install frontend dependencies
@@ -36,12 +42,69 @@ jobs:
       - name: Test
         run: hk run test --all
 
+      - name: Validate preview cleanup
+        run: |
+          pnpm --dir frontend exec tsc --project ../.github/scripts/tsconfig.json
+          node --test .github/scripts/cleanup-preview-packages.test.mts
+
+      - name: Validate chart packages
+        run: mise test-chart-packages
+
       - name: Build application
         run: mise build
 
       - name: Build container
+        id: container
         uses: redhat-actions/buildah-build@v2
         with:
-          image: handlat
+          image: ${{ github.repository }}/preview/pr-${{ github.event.pull_request.number }}
           containerfiles: Containerfile
-          tags: pr-${{ github.event.pull_request.number }}
+          tags: preview-${{ github.event.pull_request.head.sha }}
+
+      - name: Log in to GHCR
+        if: github.event.pull_request.head.repo.full_name == github.repository && !github.event.pull_request.draft
+        uses: redhat-actions/podman-login@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish preview image
+        id: image
+        if: github.event.pull_request.head.repo.full_name == github.repository && !github.event.pull_request.draft
+        uses: redhat-actions/push-to-registry@v2
+        with:
+          registry: ghcr.io
+          image: ${{ steps.container.outputs.image }}
+          tags: ${{ steps.container.outputs.tags }}
+
+      - name: Package and publish preview chart
+        if: github.event.pull_request.head.repo.full_name == github.repository && !github.event.pull_request.draft
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE_DIGEST: ${{ steps.image.outputs.digest }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          base_version=$(yq -r '.version' deploy/charts/handlat/Chart.yaml)
+          version="${base_version}-pr.${PR_NUMBER}.$(date -u +%Y%m%d%H%M%S)"
+          package_dir="$RUNNER_TEMP/preview-charts"
+          registry="oci://ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/charts/preview/pr-${PR_NUMBER}"
+
+          mise package-chart \
+            --version "$version" --app-version "$HEAD_SHA" \
+            --image-repository "ghcr.io/${GITHUB_REPOSITORY,,}/preview/pr-${PR_NUMBER}" \
+            --image-digest "$IMAGE_DIGEST" --output-dir "$package_dir"
+
+          printf '%s' "$GH_TOKEN" | helm registry login ghcr.io \
+            --username "$GITHUB_ACTOR" --password-stdin
+          mise publish-chart "$package_dir/handlat-$version.tgz" "$registry"
+
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+          ## Preview published
+          - Chart: \`$registry/handlat\`
+          - Version: \`$version\`
+          - Commit: \`$HEAD_SHA\`
+          - Image: \`ghcr.io/${GITHUB_REPOSITORY,,}/preview/pr-${PR_NUMBER}@$IMAGE_DIGEST\`
+          EOF
