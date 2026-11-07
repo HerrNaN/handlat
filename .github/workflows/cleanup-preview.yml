@@ -35,5 +35,5 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
         with:
           script: |
-            const cleanup = require('./.github/scripts/cleanup-preview-packages.cjs');
+            const { cleanup } = await import(`${process.env.GITHUB_WORKSPACE}/.github/scripts/cleanup-preview-packages.mjs`);
             await cleanup({ github, context, core, prNumber: Number(process.env.PR_NUMBER) });

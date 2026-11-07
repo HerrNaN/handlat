@@ -1,4 +1,4 @@
-module.exports = async ({ github, context, core, prNumber }) => {
+export const cleanup = async ({ github, context, core, prNumber }) => {
   if (!Number.isSafeInteger(prNumber) || prNumber < 1) {
     throw new Error('Expected a positive PR number');
   }

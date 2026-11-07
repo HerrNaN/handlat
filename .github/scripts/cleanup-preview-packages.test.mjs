@@ -1,6 +1,6 @@
-const { test } = require('node:test');
-const assert = require('node:assert/strict');
-const cleanup = require('./cleanup-preview-packages.cjs');
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { cleanup } from './cleanup-preview-packages.mjs';
 
 const fixture = (options = {}) => {
   const requests = [];

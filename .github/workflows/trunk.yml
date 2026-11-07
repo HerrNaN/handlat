@@ -43,7 +43,7 @@ jobs:
         run: hk run test --all
 
       - name: Validate preview cleanup
-        run: node --test .github/scripts/cleanup-preview-packages.test.cjs
+        run: node --test .github/scripts/cleanup-preview-packages.test.mjs
 
       - name: Validate chart packages
         run: mise test-chart-packages
