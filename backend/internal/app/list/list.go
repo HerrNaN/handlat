@@ -228,6 +228,7 @@ func (h *Handler) deleteList(w http.ResponseWriter, r *http.Request) {
 	defer h.rollback(tx)
 
 	q := h.queries.WithTx(tx)
+
 	value, err := accessibleList(r.Context(), q, r.PathValue("id"), auth.UserID(r.Context()))
 	if err != nil {
 		h.fail(w, err)
