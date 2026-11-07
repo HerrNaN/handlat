@@ -118,7 +118,7 @@ For PR #42, the artifacts are:
 
 - Image: `ghcr.io/herrnan/handlat:preview-<head-sha>`.
 - Chart: `oci://ghcr.io/herrnan/charts/preview/pr-42/handlat`.
-- Version: `<chart-version>-pr.42.<run-number>.<run-attempt>`.
+- Version: `<chart-version>-pr.42.<UTC timestamp YYYYMMDDHHMMSS>`.
 
 Each PR has its own chart registry path so an Argo CD Application can follow
 `targetRevision: "*-0"` without selecting another PR's build. The workflow summary
@@ -126,8 +126,8 @@ records the exact chart version, commit, and image digest. Publishing does not
 deploy an environment or remove registry artifacts when a PR closes.
 
 All channels package the same chart, with `persistence.retain: true` by default.
-The channel does not change storage retention. Farin versions the environment's
-retention choice alongside its other Helm values. For disposable PR data, set:
+The channel does not change storage retention. Version each environment's retention
+choice alongside its other deployment values. For disposable PR data, set:
 
 ```yaml
 persistence:
@@ -139,7 +139,7 @@ Keep `retain: true` for labs and production. There is no namespace restriction o
 this setting. With `retain: false`, deleting the release allows deletion of its
 PVC; actual volume deletion depends on the StorageClass's reclaim policy.
 
-Farin must provide the remaining environment lifecycle:
+Deployment configuration must provide the remaining environment lifecycle:
 
 - A separate `handlat-preview-local` StorageClass with reclaim policy `Delete`.
   Do not change the existing labs/prod StorageClass.

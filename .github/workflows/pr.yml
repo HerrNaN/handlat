@@ -83,7 +83,7 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           base_version=$(yq -r '.version' deploy/charts/handlat/Chart.yaml)
-          version="${base_version}-pr.${PR_NUMBER}.${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}"
+          version="${base_version}-pr.${PR_NUMBER}.$(date -u +%Y%m%d%H%M%S)"
           package_dir="$RUNNER_TEMP/preview-charts"
           registry="oci://ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/charts/preview/pr-${PR_NUMBER}"
 

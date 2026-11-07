@@ -3,7 +3,7 @@ set -euo pipefail
 
 test_dir=$(mktemp -d)
 trap 'rm -rf "$test_dir"' EXIT
-export usage_version=0.1.0-pr.42.1.1
+export usage_version=0.1.0-pr.42.20261107093000
 export usage_app_version=0123456789abcdef0123456789abcdef01234567
 export usage_image_repository=ghcr.io/herrnan/handlat
 export usage_image_digest=sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
