@@ -1,10 +1,11 @@
 <script lang="ts">
-  import { createMutation, createQuery } from "@tanstack/svelte-query";
-  import { session } from "../user/session";
-  import { createListMutation, deleteListMutation, summariesQuery } from "./queries";
-  import { p, navigate } from "../../router";
-  import { errorMessage, type ListSummary } from "./api";
   import WaDialog from "@awesome.me/webawesome/dist/components/dialog/dialog.js";
+  import { createMutation, createQuery } from "@tanstack/svelte-query";
+
+  import { p, navigate } from "../../router";
+  import { session } from "../user/session";
+  import { errorMessage, type ListSummary } from "./api";
+  import { createListMutation, deleteListMutation, summariesQuery } from "./queries";
   import "@awesome.me/webawesome/dist/components/icon/icon.js";
   import "@awesome.me/webawesome/dist/components/button/button.js";
   import "@awesome.me/webawesome/dist/components/callout/callout.js";

@@ -2,9 +2,16 @@
   import WaDialog from "@awesome.me/webawesome/dist/components/dialog/dialog.js";
   import "@awesome.me/webawesome/dist/components/button/button.js";
   import "@awesome.me/webawesome/dist/components/icon/icon.js";
-  import AddItem from "./AddItem.svelte";
-  import ItemList from "./ItemList.svelte";
   import { createMutation, createQuery, useMutationState } from "@tanstack/svelte-query";
+
+  import { route, navigate } from "../../router";
+  import Input from "../components/Input.svelte";
+  import { session } from "../user/session";
+  import AddItem from "./AddItem.svelte";
+  import { errorMessage } from "./api";
+  import EditItem from "./EditItem.svelte";
+  import ItemList from "./ItemList.svelte";
+  import { type Item } from "./list";
   import {
     addItemMutation,
     checkItemMutation,
@@ -15,12 +22,6 @@
     renameListMutation,
     updateItemMutation,
   } from "./queries";
-  import { session } from "../user/session";
-  import { type Item } from "./list";
-  import EditItem from "./EditItem.svelte";
-  import { route, navigate } from "../../router";
-  import Input from "../components/Input.svelte";
-  import { errorMessage } from "./api";
 
   const target = $derived({ account: $session?.id ?? "", listID: route.params.id ?? "" });
   const query = createQuery(() => listQuery($session?.id, target.listID));

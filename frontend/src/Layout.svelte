@@ -1,6 +1,7 @@
 <script lang="ts">
   import { type Snippet } from "svelte";
-  import { navigate, route } from "./router";
+
+  import { navigateToDefaultList } from "./lib/list/navigation";
 
   import "@awesome.me/webawesome/dist/components/icon/icon.js";
   import "@awesome.me/webawesome/dist/components/tab-group/tab-group.js";
@@ -8,8 +9,9 @@
   import "@awesome.me/webawesome/dist/components/tab/tab.js";
   import "@awesome.me/webawesome/dist/components/button/button.js";
   import "@awesome.me/webawesome/dist/components/tooltip/tooltip.js";
-  import { navigateToDefaultList } from "./lib/list/navigation";
+
   import { session } from "./lib/user/session";
+  import { navigate, route } from "./router";
 
   let { children }: { children?: Snippet } = $props();
 

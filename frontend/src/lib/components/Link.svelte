@@ -1,8 +1,9 @@
 <script lang="ts">
   import "@awesome.me/webawesome/dist/components/button/button.js";
-  import type { Snippet } from "svelte";
-  import { navigate, type p } from "../../router";
   import type { PathParams } from "sv-router";
+  import type { Snippet } from "svelte";
+
+  import { navigate, type p } from "../../router";
 
   type RouterPath = Parameters<typeof p>[0];
 

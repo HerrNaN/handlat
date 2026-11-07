@@ -1,9 +1,9 @@
+import * as Sentry from "@sentry/svelte";
 import { mount } from "svelte";
-import App from "./App.svelte";
 
 import "@awesome.me/webawesome/dist/styles/themes/default.css";
 
-import * as Sentry from "@sentry/svelte";
+import App from "./App.svelte";
 
 export const observer = Sentry.init({
   dsn: "https://66db7a76007a4546ba6f1c5675959347@app.glitchtip.com/28832",

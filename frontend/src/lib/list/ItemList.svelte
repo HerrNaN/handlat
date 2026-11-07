@@ -1,7 +1,7 @@
 <script lang="ts">
   import "@awesome.me/webawesome/dist/components/button/button.js";
-  import ItemRow from "./ItemRow.svelte";
   import { departmentOrder, getDepartment } from "./classifier";
+  import ItemRow from "./ItemRow.svelte";
   import type { Item } from "./list";
 
   interface Props {

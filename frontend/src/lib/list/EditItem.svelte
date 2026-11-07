@@ -2,10 +2,10 @@
   import "@awesome.me/webawesome/dist/components/select/select.js";
   import "@awesome.me/webawesome/dist/components/option/option.js";
   import "@awesome.me/webawesome/dist/components/input/input.js";
-  import type { Item } from "./list";
+  import { type ChangeEvent } from "../utils/events";
   import type { ItemChanges } from "./api";
   import { departments } from "./classifier";
-  import { type ChangeEvent } from "../utils/events";
+  import type { Item } from "./list";
 
   type Props = {
     item: Item;

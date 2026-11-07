@@ -1,10 +1,11 @@
 <script lang="ts">
   import { browserSupportsWebAuthn, startRegistration } from "@simplewebauthn/browser";
   import { createMutation } from "@tanstack/svelte-query";
+
   import { navigate } from "../../router";
-  import { clearSession, refreshSession } from "./session";
   import { post } from "../api";
   import Link from "../components/Link.svelte";
+  import { clearSession, refreshSession } from "./session";
   import "@awesome.me/webawesome/dist/components/button/button.js";
   import "@awesome.me/webawesome/dist/components/callout/callout.js";
   import "@awesome.me/webawesome/dist/components/icon/icon.js";

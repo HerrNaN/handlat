@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { p } from "../../router";
-  import { session, clearSession } from "./session";
-  import { post } from "../api";
   import { createMutation } from "@tanstack/svelte-query";
+
+  import { p } from "../../router";
+  import { post } from "../api";
+  import { session, clearSession } from "./session";
   import "@awesome.me/webawesome/dist/components/button/button.js";
   import "@awesome.me/webawesome/dist/components/icon/icon.js";
 
