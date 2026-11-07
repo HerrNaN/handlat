@@ -38,6 +38,9 @@ jobs:
         shell: bash
         run: hk check --all
 
+      - name: Audit dependencies
+        run: hk run audit --all
+
       - name: Test
         shell: bash
         run: hk run test --all

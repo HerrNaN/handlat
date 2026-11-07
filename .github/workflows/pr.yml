@@ -39,6 +39,9 @@ jobs:
       - name: Verify
         run: hk check --all
 
+      - name: Audit dependencies
+        run: hk run audit --all
+
       - name: Test
         run: hk run test --all
 
