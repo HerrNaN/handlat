@@ -33,6 +33,10 @@ steps {
   // Mise
   ["mise"] = Builtins.mise
 
+  // Workflows and shell scripts
+  ["actionlint"] = Builtins.actionlint
+  ["shellcheck"] = Builtins.shellcheck
+
   // Web
   ["web-oxfmt"] = (Builtins.oxfmt) {
     dir = "frontend"

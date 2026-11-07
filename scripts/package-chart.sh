@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Mise supplies these variables from the task's usage flags.
+: "${usage_output_dir:?}" "${usage_version:?}" "${usage_app_version:?}"
+
 mkdir -p "$usage_output_dir"
 source_dir=$(mktemp -d)
 trap 'rm -rf "$source_dir"' EXIT

@@ -69,9 +69,11 @@ jobs:
             --image-repository "${REGISTRY}/${GITHUB_REPOSITORY,,}" \
             --image-digest "$IMAGE_DIGEST" --output-dir "$package_dir"
 
-          echo "archive=$package_dir/handlat-$version.tgz" >> "$GITHUB_OUTPUT"
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "registry=oci://${REGISTRY}/${GITHUB_REPOSITORY_OWNER,,}/charts/devel" >> "$GITHUB_OUTPUT"
+          {
+            echo "archive=$package_dir/handlat-$version.tgz"
+            echo "version=$version"
+            echo "registry=oci://${REGISTRY}/${GITHUB_REPOSITORY_OWNER,,}/charts/devel"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Publish devel chart
         shell: bash
