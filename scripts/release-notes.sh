@@ -33,7 +33,7 @@ latest_tag=$(git -c 'versionsort.suffix=-' tag --list "v*.*.*" --sort=-v:refname
 
 if [[ -n "$latest_tag" ]]; then
   range="${latest_tag}..origin/main"
-  raw_version=$(echo "$latest_tag" | sed 's/^v//')
+  raw_version=${latest_tag#v}
   IFS='.' read -r major minor patch <<< "$raw_version"
   major="${major:-0}"
   minor="${minor:-0}"
