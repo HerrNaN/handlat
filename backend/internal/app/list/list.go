@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 	"unicode/utf8"
 
@@ -22,6 +23,9 @@ type Handler struct {
 	conn    *sql.DB
 	queries *db.Queries
 	log     *slog.Logger
+	// Serializes subscription snapshots and publication with committed writes.
+	mu          sync.Mutex
+	subscribers map[string]map[chan listEvent]struct{}
 }
 
 type Item struct {
@@ -45,7 +49,12 @@ type Summary struct {
 }
 
 func New(conn *sql.DB, log *slog.Logger) *Handler {
-	return &Handler{conn: conn, queries: db.New(conn), log: log}
+	return &Handler{
+		conn:        conn,
+		queries:     db.New(conn),
+		log:         log,
+		subscribers: make(map[string]map[chan listEvent]struct{}),
+	}
 }
 
 func (h *Handler) Register(mux *http.ServeMux, requireSession func(http.Handler) http.Handler) {
@@ -53,6 +62,7 @@ func (h *Handler) Register(mux *http.ServeMux, requireSession func(http.Handler)
 	routes.HandleFunc("GET /lists", h.index)
 	routes.HandleFunc("POST /lists", h.create)
 	routes.HandleFunc("GET /lists/{id}", h.get)
+	routes.HandleFunc("GET /lists/{id}/events", h.stream)
 	routes.HandleFunc("PATCH /lists/{id}", h.rename)
 	routes.HandleFunc("DELETE /lists/{id}", h.deleteList)
 	routes.HandleFunc("POST /lists/{id}/items", h.addItem)
@@ -173,11 +183,13 @@ func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
 
 // Transactions serialize writes in backend order. Authorization, field changes,
 // timestamps, and the returned snapshot are atomic; no client version is needed.
-func (h *Handler) mutate(w http.ResponseWriter, r *http.Request, change func(*db.Queries) error) {
+func (h *Handler) commitChange(r *http.Request, change func(*db.Queries) error) (List, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
 	tx, err := h.conn.BeginTx(r.Context(), nil)
 	if err != nil {
-		h.fail(w, err)
-		return
+		return List{}, err
 	}
 	defer h.rollback(tx)
 
@@ -185,33 +197,39 @@ func (h *Handler) mutate(w http.ResponseWriter, r *http.Request, change func(*db
 
 	value, err := accessibleList(r.Context(), q, r.PathValue("id"), auth.UserID(r.Context()))
 	if err != nil {
-		h.fail(w, err)
-		return
+		return List{}, err
 	}
 
 	if err := q.TouchList(r.Context(), db.TouchListParams{ID: value.ID, Now: now()}); err != nil {
-		h.fail(w, err)
-		return
+		return List{}, err
 	}
 
 	if err := change(q); err != nil {
-		h.fail(w, err)
-		return
+		return List{}, err
 	}
 
 	value, err = q.GetList(r.Context(), value.ID)
 	if err != nil {
-		h.fail(w, err)
-		return
+		return List{}, err
 	}
 
 	result, err := snapshot(r.Context(), q, value)
 	if err != nil {
-		h.fail(w, err)
-		return
+		return List{}, err
 	}
 
 	if err := tx.Commit(); err != nil {
+		return List{}, err
+	}
+
+	h.publish(value.ID, listEvent{List: result})
+
+	return result, nil
+}
+
+func (h *Handler) mutate(w http.ResponseWriter, r *http.Request, change func(*db.Queries) error) {
+	result, err := h.commitChange(r, change)
+	if err != nil {
 		h.fail(w, err)
 		return
 	}
@@ -219,11 +237,13 @@ func (h *Handler) mutate(w http.ResponseWriter, r *http.Request, change func(*db
 	h.respond(w, http.StatusOK, result)
 }
 
-func (h *Handler) deleteList(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) commitDeletion(r *http.Request) error {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
 	tx, err := h.conn.BeginTx(r.Context(), nil)
 	if err != nil {
-		h.fail(w, err)
-		return
+		return err
 	}
 	defer h.rollback(tx)
 
@@ -231,16 +251,24 @@ func (h *Handler) deleteList(w http.ResponseWriter, r *http.Request) {
 
 	value, err := accessibleList(r.Context(), q, r.PathValue("id"), auth.UserID(r.Context()))
 	if err != nil {
-		h.fail(w, err)
-		return
+		return err
 	}
 
 	if err := q.DeleteList(r.Context(), value.ID); err != nil {
-		h.fail(w, err)
-		return
+		return err
 	}
 
 	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	h.publish(value.ID, listEvent{Deleted: true})
+
+	return nil
+}
+
+func (h *Handler) deleteList(w http.ResponseWriter, r *http.Request) {
+	if err := h.commitDeletion(r); err != nil {
 		h.fail(w, err)
 		return
 	}

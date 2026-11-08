@@ -140,3 +140,8 @@ func (sr *statusRecorder) Write(b []byte) (int, error) {
 
 	return sr.ResponseWriter.Write(b)
 }
+
+// Unwrap lets http.ResponseController flush through the logging wrapper.
+func (sr *statusRecorder) Unwrap() http.ResponseWriter {
+	return sr.ResponseWriter
+}

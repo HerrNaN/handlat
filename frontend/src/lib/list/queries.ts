@@ -1,4 +1,8 @@
-import type { MutationOptions, QueryFunctionContext } from "@tanstack/query-core";
+import {
+  experimental_streamedQuery as streamedQuery,
+  type MutationOptions,
+  type QueryFunctionContext,
+} from "@tanstack/query-core";
 import { get } from "svelte/store";
 
 import { queryClient } from "../query";
@@ -9,7 +13,6 @@ import {
   createList,
   deleteItem,
   deleteList,
-  getList,
   getLists,
   renameList,
   setItemChecked,
@@ -19,6 +22,7 @@ import {
   type NewItem,
   type ShoppingList,
 } from "./api";
+import { streamList } from "./stream";
 
 type Owner = { account: string };
 type ListTarget = Owner & { listID: string };
@@ -40,12 +44,29 @@ export const summariesQuery = (account?: string) => ({
   queryFn: ({ signal }: QueryFunctionContext) => getLists(signal),
 });
 
-export const listQuery = (account: string | undefined, id: string) => ({
+export const listQuery = (account: string | undefined, id: string, onDeleted: () => void) => ({
   queryKey: listKey(account, id),
   enabled: Boolean(account && id),
-  refetchOnWindowFocus,
-  refetchOnMount: refetchOnWindowFocus,
-  queryFn: ({ signal }: QueryFunctionContext) => getList(id, signal),
+  refetchOnMount: "always" as const,
+  queryFn: streamedQuery({
+    streamFn: ({ signal }) => ({
+      async *[Symbol.asyncIterator]() {
+        const deleted = () => {
+          queryClient.removeQueries({ queryKey: listKey(account, id), exact: true });
+          void queryClient.invalidateQueries({ queryKey: summariesKey(account) });
+          onDeleted();
+        };
+        for await (const snapshot of streamList(id, signal, deleted)) {
+          void queryClient.invalidateQueries({ queryKey: summariesKey(account) });
+          yield snapshot;
+        }
+      },
+    }),
+    // Each event is a complete list. Keep cached data until the next snapshot.
+    refetchMode: "append",
+    initialValue: undefined as ShoppingList | undefined,
+    reducer: (_previous, snapshot: ShoppingList) => snapshot,
+  }),
 });
 
 export const dismissListErrors = () => {
@@ -57,16 +78,15 @@ export const dismissListErrors = () => {
 
 const listMutationOptions = {
   mutationKey: ["private-lists", "write"],
-  onMutate: async ({ account }: Owner) => {
+  onMutate: ({ account }: Owner) => {
     dismissListErrors();
-    await queryClient.cancelQueries({ queryKey: ["private-lists"] });
     if (account !== get(session)?.id) throw new Error("The active account changed.");
   },
   onSettled: (_data: ShoppingList | void, _error: Error | null, { account }: Owner) => {
     if (account !== get(session)?.id) return;
     // This mutation still counts as pending until onSettled completes.
     if (queryClient.isMutating({ mutationKey: ["private-lists"] }) === 1) {
-      return queryClient.invalidateQueries({ queryKey: ["private-lists", account] });
+      return queryClient.invalidateQueries({ queryKey: summariesKey(account) });
     }
   },
 };
@@ -83,6 +103,10 @@ export const renameListMutation = () => ({
 
 export const deleteListMutation = () => ({
   ...listMutationOptions,
+  onMutate: async (target: ListTarget) => {
+    await queryClient.cancelQueries({ queryKey: summariesKey(target.account) });
+    listMutationOptions.onMutate(target);
+  },
   mutationFn: ({ listID }: ListTarget) => deleteList(listID),
   onSettled: (data: void, error: Error | null, target: ListTarget) => {
     // Deletion is complete when the server confirms it, not when refetching finishes.
