@@ -5,8 +5,8 @@ import { hasActiveSession } from "./lib/user/session";
 // Use sv-router's supported code splitting to load pages without eager
 // component/router import cycles.
 export const { p, navigate, isActive, route } = createRouter({
-  "/sign-up": () => import("./lib/user/SignUp.svelte"),
-  "/sign-in": () => import("./lib/user/SignIn.svelte"),
+  "/sign-up": () => import("./lib/user/Authenticate.svelte"),
+  "/sign-in": () => import("./lib/user/Authenticate.svelte"),
   "/user": () => import("./lib/user/User.svelte"),
   "/lists": {
     "/": () => import("./lib/list/Lists.svelte"),
@@ -15,11 +15,15 @@ export const { p, navigate, isActive, route } = createRouter({
   "*": () => import("./CatchAll.svelte"),
   layout: () => import("./Layout.svelte"),
   hooks: {
-    // Anonymous visitors can sign up or sign in. Signed-in visitors skip
-    // both auth pages. The session is only fetched until we know which it is.
+    // Anonymous visitors use one screen for both passkey actions. Keep the old
+    // sign-up URL working; signed-in visitors skip authentication altogether.
     beforeLoad: async ({ pathname }) => {
+      if (pathname === "/sign-up") {
+        throw await navigate("/sign-in", { replace: true });
+      }
+
       const isLoggedIn = await hasActiveSession();
-      const isAuthPage = pathname === "/sign-up" || pathname === "/sign-in";
+      const isAuthPage = pathname === "/sign-in";
       if (!isAuthPage && !isLoggedIn) {
         throw await navigate("/sign-in", { replace: true });
       }

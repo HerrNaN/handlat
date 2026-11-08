@@ -30,8 +30,7 @@
     </wa-button>
   {:else}
     <p>You are not signed in.</p>
-    <p><a href={p("/sign-in")}>Sign in</a></p>
-    <p><a href={p("/sign-up")}>Create an account</a></p>
+    <p><a href={p("/sign-in")}>Log in or create an account</a></p>
   {/if}
 </section>
 

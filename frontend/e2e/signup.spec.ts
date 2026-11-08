@@ -5,10 +5,32 @@ test("signs up with a passkey and stays signed in after reload", async ({ page, 
 
   await page.goto("/user");
   await expect(page).toHaveURL(/\/sign-in$/);
-  await page.getByRole("button", { name: "Sign up", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Welcome to Handlat" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Log in with passkey" })).toBeVisible();
 
-  await expect(page).toHaveURL(/\/sign-up$/);
-
+  // A failed request must leave both choices available for another attempt.
+  let releaseSignup!: () => void;
+  const signupGate = new Promise<void>((resolve) => {
+    releaseSignup = resolve;
+  });
+  await page.route(
+    "**/api/auth/register/begin",
+    async (route) => {
+      await signupGate;
+      await route.fulfill({ status: 500, body: "Could not create account" });
+    },
+    { times: 1 },
+  );
+  try {
+    await page.getByRole("button", { name: "Create account with passkey" }).click();
+    await expect(page.getByRole("button", { name: "Creating account…" })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Log in with passkey" })).toBeDisabled();
+  } finally {
+    releaseSignup();
+  }
+  await expect(page.getByRole("alert")).toContainText("Could not create account");
+  await expect(page.getByRole("button", { name: "Log in with passkey" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Create account with passkey" })).toBeEnabled();
   await page.getByRole("button", { name: "Create account with passkey" }).click();
   await expect(page).toHaveURL(/\/user$/);
 

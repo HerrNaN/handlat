@@ -15,7 +15,21 @@ test("signs in to an existing account with a passkey and stays signed in after r
   await page.getByRole("button", { name: "Log out" }).click();
 
   await expect(page).toHaveURL(/\/sign-in$/);
-  await page.getByRole("button", { name: "Sign in with passkey" }).click();
+  let releaseLogin!: () => void;
+  const loginGate = new Promise<void>((resolve) => {
+    releaseLogin = resolve;
+  });
+  await page.route("**/api/auth/login/begin", async (route) => {
+    await loginGate;
+    await route.continue();
+  });
+  try {
+    await page.getByRole("button", { name: "Log in with passkey" }).click();
+    await expect(page.getByRole("button", { name: "Logging in…" })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Create account with passkey" })).toBeDisabled();
+  } finally {
+    releaseLogin();
+  }
   await expect(page).toHaveURL(/\/user$/);
   await expect(account).toHaveText(name ?? "");
   expect(await context.credentials.get({ rpId: "localhost" })).toHaveLength(1);
