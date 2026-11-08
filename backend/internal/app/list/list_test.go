@@ -1,6 +1,7 @@
 package list_test
 
 import (
+	"context"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/base64"
@@ -27,6 +28,21 @@ type fixture struct {
 	handler http.Handler
 	conn    *sql.DB
 	owner   string
+}
+
+type seedListParams struct {
+	ID     string
+	UserID []byte
+	Name   string
+	Now    int64
+}
+
+func seedList(ctx context.Context, q *listdb.Queries, params seedListParams) error {
+	if err := q.CreateList(ctx, listdb.CreateListParams{ID: params.ID, Name: params.Name, Now: params.Now}); err != nil {
+		return err
+	}
+
+	return q.AddMember(ctx, listdb.AddMemberParams{ListID: params.ID, UserID: params.UserID})
 }
 
 func newFixture(t *testing.T) fixture {
@@ -90,8 +106,8 @@ func TestCreateList(t *testing.T) {
 func TestGetList(t *testing.T) {
 	f := newFixture(t)
 	q := listdb.New(f.conn)
-	require.NoError(t, q.CreateList(t.Context(), listdb.CreateListParams{
-		ID: "list", OwnerID: []byte("owner"), Name: "Groceries", Now: time.Now().Unix(),
+	require.NoError(t, seedList(t.Context(), q, seedListParams{
+		ID: "list", UserID: []byte("owner"), Name: "Groceries", Now: time.Now().Unix(),
 	}))
 	require.NoError(t, q.AddItem(t.Context(), listdb.AddItemParams{
 		ID: "milk", ListID: "list", Text: "Milk", Department: "other", CreatedAt: time.Now().Unix(),
@@ -117,8 +133,8 @@ func TestGetList(t *testing.T) {
 func TestRenameList(t *testing.T) {
 	f := newFixture(t)
 	q := listdb.New(f.conn)
-	require.NoError(t, q.CreateList(t.Context(), listdb.CreateListParams{
-		ID: "list", OwnerID: []byte("owner"), Name: "Groceries", Now: time.Now().Unix(),
+	require.NoError(t, seedList(t.Context(), q, seedListParams{
+		ID: "list", UserID: []byte("owner"), Name: "Groceries", Now: time.Now().Unix(),
 	}))
 	require.NoError(t, q.AddItem(t.Context(), listdb.AddItemParams{
 		ID: "milk", ListID: "list", Text: "Milk", Department: "other", CreatedAt: time.Now().Unix(),
@@ -170,8 +186,8 @@ func TestDeleteList(t *testing.T) {
 			require.NoError(t, err)
 
 			q := listdb.New(f.conn)
-			require.NoError(t, q.CreateList(t.Context(), listdb.CreateListParams{
-				ID: "list", OwnerID: []byte(tc.owner), Name: "Groceries", Now: time.Now().Unix(),
+			require.NoError(t, seedList(t.Context(), q, seedListParams{
+				ID: "list", UserID: []byte(tc.owner), Name: "Groceries", Now: time.Now().Unix(),
 			}))
 			require.NoError(t, q.AddItem(t.Context(), listdb.AddItemParams{
 				ID:         "milk",
@@ -221,8 +237,8 @@ func TestDeleteList(t *testing.T) {
 func TestAddItem(t *testing.T) {
 	f := newFixture(t)
 	q := listdb.New(f.conn)
-	require.NoError(t, q.CreateList(t.Context(), listdb.CreateListParams{
-		ID: "list", OwnerID: []byte("owner"), Name: "Groceries", Now: time.Now().Unix(),
+	require.NoError(t, seedList(t.Context(), q, seedListParams{
+		ID: "list", UserID: []byte("owner"), Name: "Groceries", Now: time.Now().Unix(),
 	}))
 
 	id := uuid.NewString()
@@ -266,8 +282,8 @@ func TestUpdateItem(t *testing.T) {
 			f := newFixture(t)
 			q := listdb.New(f.conn)
 			now := time.Now().Unix()
-			require.NoError(t, q.CreateList(t.Context(), listdb.CreateListParams{
-				ID: "list", OwnerID: []byte("owner"), Name: "Groceries", Now: now,
+			require.NoError(t, seedList(t.Context(), q, seedListParams{
+				ID: "list", UserID: []byte("owner"), Name: "Groceries", Now: now,
 			}))
 			require.NoError(t, q.AddItem(t.Context(), listdb.AddItemParams{
 				ID: "milk", ListID: "list", Text: "Milk", Department: "other", CreatedAt: now,
@@ -320,8 +336,8 @@ func TestUpdateItem(t *testing.T) {
 func TestDeleteItem(t *testing.T) {
 	f := newFixture(t)
 	q := listdb.New(f.conn)
-	require.NoError(t, q.CreateList(t.Context(), listdb.CreateListParams{
-		ID: "list", OwnerID: []byte("owner"), Name: "Groceries", Now: time.Now().Unix(),
+	require.NoError(t, seedList(t.Context(), q, seedListParams{
+		ID: "list", UserID: []byte("owner"), Name: "Groceries", Now: time.Now().Unix(),
 	}))
 	require.NoError(t, q.AddItem(t.Context(), listdb.AddItemParams{
 		ID: "milk", ListID: "list", Text: "Milk", Department: "other", CreatedAt: time.Now().Unix(),
@@ -343,8 +359,8 @@ func TestDeleteItem(t *testing.T) {
 func TestDeleteCheckedItems(t *testing.T) {
 	f := newFixture(t)
 	q := listdb.New(f.conn)
-	require.NoError(t, q.CreateList(t.Context(), listdb.CreateListParams{
-		ID: "list", OwnerID: []byte("owner"), Name: "Groceries", Now: time.Now().Unix(),
+	require.NoError(t, seedList(t.Context(), q, seedListParams{
+		ID: "list", UserID: []byte("owner"), Name: "Groceries", Now: time.Now().Unix(),
 	}))
 
 	for _, item := range []struct{ id, text string }{{"milk", "Milk"}, {"bread", "Bread"}} {
@@ -380,8 +396,8 @@ func TestDeleteCheckedItems(t *testing.T) {
 func TestListSummaries(t *testing.T) {
 	f := newFixture(t)
 	q := listdb.New(f.conn)
-	require.NoError(t, q.CreateList(t.Context(), listdb.CreateListParams{
-		ID: "list", OwnerID: []byte("owner"), Name: "Groceries", Now: time.Now().Unix(),
+	require.NoError(t, seedList(t.Context(), q, seedListParams{
+		ID: "list", UserID: []byte("owner"), Name: "Groceries", Now: time.Now().Unix(),
 	}))
 
 	for _, item := range []struct{ id, text string }{{"milk", "Milk"}, {"bread", "Bread"}} {

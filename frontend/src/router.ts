@@ -5,6 +5,7 @@ import { hasActiveSession } from "./lib/user/session";
 // Use sv-router's supported code splitting to load pages without eager
 // component/router import cycles.
 export const { p, navigate, isActive, route } = createRouter({
+  "/invitations/:token": () => import("./lib/list/Invitation.svelte"),
   "/login": () => import("./lib/user/Authenticate.svelte"),
   "/user": () => import("./lib/user/User.svelte"),
   "/lists": {
@@ -19,7 +20,7 @@ export const { p, navigate, isActive, route } = createRouter({
     beforeLoad: async ({ pathname }) => {
       const isLoggedIn = await hasActiveSession();
       const isAuthPage = pathname === "/login";
-      if (!isAuthPage && !isLoggedIn) {
+      if (!isAuthPage && !pathname.startsWith("/invitations/") && !isLoggedIn) {
         throw await navigate("/login", { replace: true });
       }
 

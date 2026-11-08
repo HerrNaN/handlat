@@ -25,7 +25,7 @@ type Handler struct {
 	log     *slog.Logger
 	// Serializes subscription snapshots and publication with committed writes.
 	mu          sync.Mutex
-	subscribers map[string]map[chan listEvent]struct{}
+	subscribers map[string]map[chan listEvent]string
 }
 
 type Item struct {
@@ -37,15 +37,17 @@ type Item struct {
 }
 
 type List struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Items []Item `json:"items"`
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Items       []Item `json:"items"`
+	MemberCount int64  `json:"memberCount"`
 }
 
 type Summary struct {
-	ID        string `json:"id"`
-	Name      string `json:"name"`
-	ItemCount int64  `json:"itemCount"`
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	ItemCount   int64  `json:"itemCount"`
+	MemberCount int64  `json:"memberCount"`
 }
 
 func New(conn *sql.DB, log *slog.Logger) *Handler {
@@ -53,7 +55,7 @@ func New(conn *sql.DB, log *slog.Logger) *Handler {
 		conn:        conn,
 		queries:     db.New(conn),
 		log:         log,
-		subscribers: make(map[string]map[chan listEvent]struct{}),
+		subscribers: make(map[string]map[chan listEvent]string),
 	}
 }
 
@@ -64,7 +66,8 @@ func (h *Handler) Register(mux *http.ServeMux, requireSession func(http.Handler)
 	routes.HandleFunc("GET /lists/{id}", h.get)
 	routes.HandleFunc("GET /lists/{id}/events", h.stream)
 	routes.HandleFunc("PATCH /lists/{id}", h.rename)
-	routes.HandleFunc("DELETE /lists/{id}", h.deleteList)
+	routes.HandleFunc("DELETE /lists/{id}", h.leaveList)
+	routes.HandleFunc("POST /lists/{id}/invitations", h.createInvitation)
 	routes.HandleFunc("POST /lists/{id}/items", h.addItem)
 	routes.HandleFunc("PATCH /lists/{id}/items/{itemID}", h.updateItem)
 	routes.HandleFunc("DELETE /lists/{id}/items/{itemID}", h.deleteItem)
@@ -72,6 +75,11 @@ func (h *Handler) Register(mux *http.ServeMux, requireSession func(http.Handler)
 	protected := requireSession(routes)
 	mux.Handle("/lists", protected)
 	mux.Handle("/lists/", protected)
+	mux.HandleFunc("GET /invitations/{token}", h.getInvitation)
+	mux.Handle(
+		"POST /invitations/{token}/accept",
+		requireSession(http.HandlerFunc(h.acceptInvitation)),
+	)
 }
 
 func (h *Handler) index(w http.ResponseWriter, r *http.Request) {
@@ -83,7 +91,7 @@ func (h *Handler) index(w http.ResponseWriter, r *http.Request) {
 
 	result := make([]Summary, 0, len(rows))
 	for _, row := range rows {
-		result = append(result, Summary{row.ID, row.Name, row.ItemCount})
+		result = append(result, Summary{row.ID, row.Name, row.ItemCount, row.MemberCount})
 	}
 
 	h.respond(w, http.StatusOK, result)
@@ -109,22 +117,35 @@ func (h *Handler) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.queries.CreateList(
-		r.Context(),
-		db.CreateListParams{
-			ID:      id.String(),
-			OwnerID: auth.UserID(r.Context()),
-			Name:    body.Name,
-			Now:     now(),
-		},
-	)
+	tx, err := h.conn.BeginTx(r.Context(), nil)
 	if err != nil {
+		h.fail(w, err)
+		return
+	}
+	defer h.rollback(tx)
+
+	q := h.queries.WithTx(tx)
+	if err := q.CreateList(r.Context(), db.CreateListParams{ID: id.String(), Name: body.Name, Now: now()}); err != nil {
+		h.fail(w, err)
+		return
+	}
+
+	if err := q.AddMember(r.Context(), db.AddMemberParams{ListID: id.String(), UserID: auth.UserID(r.Context())}); err != nil {
+		h.fail(w, err)
+		return
+	}
+
+	if err := tx.Commit(); err != nil {
 		h.fail(w, err)
 		return
 	}
 
 	w.Header().Set("Location", "/api/lists/"+id.String())
-	h.respond(w, http.StatusCreated, List{ID: id.String(), Name: body.Name, Items: []Item{}})
+	h.respond(
+		w,
+		http.StatusCreated,
+		List{ID: id.String(), Name: body.Name, Items: []Item{}, MemberCount: 1},
+	)
 }
 
 func snapshot(ctx context.Context, q *db.Queries, value db.List) (List, error) {
@@ -133,7 +154,17 @@ func snapshot(ctx context.Context, q *db.Queries, value db.List) (List, error) {
 		return List{}, err
 	}
 
-	result := List{ID: value.ID, Name: value.Name, Items: make([]Item, 0, len(rows))}
+	members, err := q.CountMembers(ctx, value.ID)
+	if err != nil {
+		return List{}, err
+	}
+
+	result := List{
+		ID:          value.ID,
+		Name:        value.Name,
+		Items:       make([]Item, 0, len(rows)),
+		MemberCount: members,
+	}
 	for _, row := range rows {
 		var checkedAt *time.Time
 
@@ -237,7 +268,7 @@ func (h *Handler) mutate(w http.ResponseWriter, r *http.Request, change func(*db
 	h.respond(w, http.StatusOK, result)
 }
 
-func (h *Handler) commitDeletion(r *http.Request) error {
+func (h *Handler) commitLeave(r *http.Request) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
@@ -254,21 +285,42 @@ func (h *Handler) commitDeletion(r *http.Request) error {
 		return err
 	}
 
-	if err := q.DeleteList(r.Context(), value.ID); err != nil {
+	if err := q.RemoveMember(r.Context(), db.RemoveMemberParams{ListID: value.ID, UserID: auth.UserID(r.Context())}); err != nil {
 		return err
+	}
+
+	if err := q.DeleteEmptyList(r.Context(), value.ID); err != nil {
+		return err
+	}
+
+	members, err := q.CountMembers(r.Context(), value.ID)
+	if err != nil {
+		return err
+	}
+
+	var remaining List
+	if members > 0 {
+		remaining, err = snapshot(r.Context(), q, value)
+		if err != nil {
+			return err
+		}
 	}
 
 	if err := tx.Commit(); err != nil {
 		return err
 	}
 
-	h.publish(value.ID, listEvent{Deleted: true})
+	h.revoke(value.ID, auth.UserID(r.Context()))
+
+	if members > 0 {
+		h.publish(value.ID, listEvent{List: remaining})
+	}
 
 	return nil
 }
 
-func (h *Handler) deleteList(w http.ResponseWriter, r *http.Request) {
-	if err := h.commitDeletion(r); err != nil {
+func (h *Handler) leaveList(w http.ResponseWriter, r *http.Request) {
+	if err := h.commitLeave(r); err != nil {
 		h.fail(w, err)
 		return
 	}
