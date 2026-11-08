@@ -3,7 +3,6 @@
   import "@awesome.me/webawesome/dist/components/button/button.js";
   import "@awesome.me/webawesome/dist/components/icon/icon.js";
   import { createMutation, createQuery, useMutationState } from "@tanstack/svelte-query";
-  import { onMount } from "svelte";
 
   import { route, navigate } from "../../router";
   import Input from "../components/Input.svelte";
@@ -23,21 +22,9 @@
     renameListMutation,
     updateItemMutation,
   } from "./queries";
-  import { subscribeToList } from "./stream";
 
   const target = $derived({ account: $session?.id ?? "", listID: route.params.id ?? "" });
-  const query = createQuery(() => listQuery($session?.id, target.listID));
-  let unsubscribe: (() => void) | undefined;
-  const reconnect = () => {
-    unsubscribe?.();
-    unsubscribe = undefined;
-    if (!target.account || !target.listID) return;
-    unsubscribe = subscribeToList(target.account, target.listID, () => navigate("/lists"));
-  };
-  onMount(() => {
-    reconnect();
-    return () => unsubscribe?.();
-  });
+  const query = createQuery(() => listQuery($session?.id, target.listID, () => navigate("/lists")));
   const rename = createMutation(() => renameListMutation());
   const addition = createMutation(() => addItemMutation());
   const update = createMutation(() => updateItemMutation());
@@ -72,7 +59,7 @@
     if (pending.length) return;
     mutations.forEach((mutation) => mutation.reset());
     dismissListErrors();
-    reconnect();
+    void query.refetch();
   };
   const saveName = async (name: string) => {
     try {

@@ -1,40 +1,60 @@
-import { get } from "svelte/store";
+import { ListSchema, type ShoppingList } from "./api";
 
-import { queryClient } from "../query";
-import { session } from "../user/session";
-import { ListSchema } from "./api";
-import { listKey, summariesKey } from "./queries";
-
-export const subscribeToList = (account: string, listID: string, onDeleted: () => void) => {
-  const events = new EventSource(`/api/lists/${encodeURIComponent(listID)}/events`);
-  let closed = false;
-  const active = () => !closed && account === get(session)?.id;
-  events.onmessage = (event) => {
-    if (!active()) return;
-    const result = ListSchema.safeParse(JSON.parse(event.data));
-    if (!result.success || result.data.id !== listID) return;
-    queryClient.setQueryData(listKey(account, listID), result.data);
-    void queryClient.invalidateQueries({ queryKey: summariesKey(account) });
-  };
-  events.onerror = () => {
-    if (!active() || events.readyState !== EventSource.CLOSED) return;
-    queryClient
-      .getQueryCache()
-      .find({ queryKey: listKey(account, listID), exact: true })
-      ?.setState({
-        status: "error",
-        error: new Error("Unable to open the list stream."),
-      });
-  };
-  events.addEventListener("deleted", () => {
-    events.close();
-    if (!active()) return;
-    queryClient.removeQueries({ queryKey: listKey(account, listID), exact: true });
-    void queryClient.invalidateQueries({ queryKey: summariesKey(account) });
-    onDeleted();
-  });
-  return () => {
-    closed = true;
-    events.close();
-  };
-};
+export const streamList = (listID: string, signal: AbortSignal, onDeleted: () => void) => ({
+  async *[Symbol.asyncIterator]() {
+    if (signal.aborted) return;
+    const events = new EventSource(`/api/lists/${encodeURIComponent(listID)}/events`);
+    let pending: ShoppingList | undefined;
+    let error: unknown;
+    let closed = false;
+    let wake: (() => void) | undefined;
+    const close = () => {
+      closed = true;
+      events.close();
+      wake?.();
+    };
+    events.onmessage = (event) => {
+      if (closed) return;
+      try {
+        const snapshot = ListSchema.parse(JSON.parse(event.data));
+        if (snapshot.id !== listID) throw new Error("Unexpected list in stream.");
+        // Full snapshots supersede each other if several arrive before consumption.
+        pending = snapshot;
+        wake?.();
+      } catch (cause) {
+        error = cause;
+        close();
+      }
+    };
+    events.onerror = () => {
+      // EventSource reconnects transient failures itself.
+      if (events.readyState !== EventSource.CLOSED) return;
+      error = new Error("Unable to open the list stream.");
+      close();
+    };
+    events.addEventListener("deleted", () => {
+      if (closed) return;
+      close();
+      onDeleted();
+    });
+    signal.addEventListener("abort", close, { once: true });
+    try {
+      while (!closed) {
+        if (pending) {
+          const snapshot = pending;
+          pending = undefined;
+          yield snapshot;
+        } else {
+          await new Promise<void>((resolve) => {
+            wake = resolve;
+          });
+          wake = undefined;
+        }
+      }
+      if (error) throw error;
+    } finally {
+      signal.removeEventListener("abort", close);
+      close();
+    }
+  },
+});

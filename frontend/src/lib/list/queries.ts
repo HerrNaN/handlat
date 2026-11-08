@@ -1,6 +1,5 @@
 import {
-  skipToken,
-  type QueryObserverOptions,
+  experimental_streamedQuery as streamedQuery,
   type MutationOptions,
   type QueryFunctionContext,
 } from "@tanstack/query-core";
@@ -23,6 +22,7 @@ import {
   type NewItem,
   type ShoppingList,
 } from "./api";
+import { streamList } from "./stream";
 
 type Owner = { account: string };
 type ListTarget = Owner & { listID: string };
@@ -44,17 +44,29 @@ export const summariesQuery = (account?: string) => ({
   queryFn: ({ signal }: QueryFunctionContext) => getLists(signal),
 });
 
-// Observe the list cache without fetching: subscribeToList writes both the initial
-// snapshot and subsequent updates here. Disabling the query prevents automatic
-// HTTP fetches; skipToken also prevents a manual refetch from issuing one.
-// Checkbox mutations can still update this cache optimistically.
-export const listQuery = (
-  account: string | undefined,
-  id: string,
-): QueryObserverOptions<ShoppingList> => ({
+export const listQuery = (account: string | undefined, id: string, onDeleted: () => void) => ({
   queryKey: listKey(account, id),
-  enabled: false,
-  queryFn: skipToken,
+  enabled: Boolean(account && id),
+  refetchOnMount: "always" as const,
+  queryFn: streamedQuery({
+    streamFn: ({ signal }) => ({
+      async *[Symbol.asyncIterator]() {
+        const deleted = () => {
+          queryClient.removeQueries({ queryKey: listKey(account, id), exact: true });
+          void queryClient.invalidateQueries({ queryKey: summariesKey(account) });
+          onDeleted();
+        };
+        for await (const snapshot of streamList(id, signal, deleted)) {
+          void queryClient.invalidateQueries({ queryKey: summariesKey(account) });
+          yield snapshot;
+        }
+      },
+    }),
+    // Each event is a complete list. Keep cached data until the next snapshot.
+    refetchMode: "append",
+    initialValue: undefined as ShoppingList | undefined,
+    reducer: (_previous, snapshot: ShoppingList) => snapshot,
+  }),
 });
 
 export const dismissListErrors = () => {
@@ -66,9 +78,8 @@ export const dismissListErrors = () => {
 
 const listMutationOptions = {
   mutationKey: ["private-lists", "write"],
-  onMutate: async ({ account }: Owner) => {
+  onMutate: ({ account }: Owner) => {
     dismissListErrors();
-    await queryClient.cancelQueries({ queryKey: ["private-lists"] });
     if (account !== get(session)?.id) throw new Error("The active account changed.");
   },
   onSettled: (_data: ShoppingList | void, _error: Error | null, { account }: Owner) => {
@@ -92,6 +103,10 @@ export const renameListMutation = () => ({
 
 export const deleteListMutation = () => ({
   ...listMutationOptions,
+  onMutate: async (target: ListTarget) => {
+    await queryClient.cancelQueries({ queryKey: summariesKey(target.account) });
+    listMutationOptions.onMutate(target);
+  },
   mutationFn: ({ listID }: ListTarget) => deleteList(listID),
   onSettled: (data: void, error: Error | null, target: ListTarget) => {
     // Deletion is complete when the server confirms it, not when refetching finishes.
