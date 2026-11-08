@@ -2,8 +2,8 @@ import { expect, test } from "@playwright/test";
 
 test("keeps item input focused and editable while saving", async ({ page, context }) => {
   await context.credentials.install();
-  await page.goto("/sign-up");
-  await page.getByRole("button", { name: "Create account with passkey" }).click();
+  await page.goto("/login");
+  await page.getByRole("button", { name: "Create Account" }).click();
   await expect(page).toHaveURL(/\/user$/);
   await page.goto("/lists");
   await page.getByRole("button", { name: "New list", exact: true }).click();
@@ -72,8 +72,8 @@ test("creates a list, adds an item, and keeps its checked state after reload", a
   context,
 }) => {
   await context.credentials.install();
-  await page.goto("/sign-up");
-  await page.getByRole("button", { name: "Create account with passkey" }).click();
+  await page.goto("/login");
+  await page.getByRole("button", { name: "Create Account" }).click();
   await expect(page).toHaveURL(/\/user$/);
 
   await page.goto("/lists");
@@ -100,8 +100,8 @@ test("creates a list, adds an item, and keeps its checked state after reload", a
 
 test("deletes a list using its trash button only after confirmation", async ({ page, context }) => {
   await context.credentials.install();
-  await page.goto("/sign-up");
-  await page.getByRole("button", { name: "Create account with passkey" }).click();
+  await page.goto("/login");
+  await page.getByRole("button", { name: "Create Account" }).click();
   await expect(page).toHaveURL(/\/user$/);
   await page.goto("/lists");
   await page.getByRole("button", { name: "New list", exact: true }).click();
@@ -145,8 +145,8 @@ test("deletes a list using its trash button only after confirmation", async ({ p
 
 test("keeps a list after a failed deletion and allows retrying", async ({ page, context }) => {
   await context.credentials.install();
-  await page.goto("/sign-up");
-  await page.getByRole("button", { name: "Create account with passkey" }).click();
+  await page.goto("/login");
+  await page.getByRole("button", { name: "Create Account" }).click();
   await expect(page).toHaveURL(/\/user$/);
   await page.goto("/lists");
   await page.getByRole("button", { name: "New list", exact: true }).click();
@@ -203,8 +203,8 @@ test("streams list changes between independent clients without refreshing", asyn
   browser,
 }) => {
   await context.credentials.install();
-  await page.goto("/sign-up");
-  await page.getByRole("button", { name: "Create account with passkey" }).click();
+  await page.goto("/login");
+  await page.getByRole("button", { name: "Create Account" }).click();
   await expect(page).toHaveURL(/\/user$/);
   await page.goto("/lists");
   await page.getByRole("button", { name: "New list", exact: true }).click();

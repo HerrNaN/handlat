@@ -1,21 +1,21 @@
 import { expect, test } from "@playwright/test";
 
-test("signs in to an existing account with a passkey and stays signed in after reload", async ({
+test("logs in to an existing account with a passkey and stays logged in after reload", async ({
   page,
   context,
 }) => {
   await context.credentials.install();
 
-  await page.goto("/sign-up");
-  await page.getByRole("button", { name: "Create account with passkey" }).click();
+  await page.goto("/login");
+  await page.getByRole("button", { name: "Create Account" }).click();
   await expect(page).toHaveURL(/\/user$/);
-  const account = page.getByText(/^You are signed in as: /);
+  const account = page.getByText(/^You are logged in as: /);
   const name = await account.textContent();
 
   await page.getByRole("button", { name: "Log out" }).click();
 
-  await expect(page).toHaveURL(/\/sign-in$/);
-  await page.getByRole("button", { name: "Sign in with passkey" }).click();
+  await expect(page).toHaveURL(/\/login$/);
+  await page.getByRole("button", { name: "Login" }).click();
   await expect(page).toHaveURL(/\/user$/);
   await expect(account).toHaveText(name ?? "");
   expect(await context.credentials.get({ rpId: "localhost" })).toHaveLength(1);

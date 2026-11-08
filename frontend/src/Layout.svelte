@@ -16,8 +16,8 @@
   let { children }: { children?: Snippet } = $props();
 
   $effect(() => {
-    if ($session === null && route.pathname !== "/sign-in" && route.pathname !== "/sign-up") {
-      void navigate("/sign-in", { replace: true });
+    if ($session === null && route.pathname !== "/login") {
+      void navigate("/login", { replace: true });
     }
   });
 </script>
