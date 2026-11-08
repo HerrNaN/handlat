@@ -3,6 +3,7 @@
   import "@awesome.me/webawesome/dist/components/button/button.js";
   import "@awesome.me/webawesome/dist/components/icon/icon.js";
   import { createMutation, createQuery, useMutationState } from "@tanstack/svelte-query";
+  import { onMount } from "svelte";
 
   import { route, navigate } from "../../router";
   import Input from "../components/Input.svelte";
@@ -26,14 +27,16 @@
 
   const target = $derived({ account: $session?.id ?? "", listID: route.params.id ?? "" });
   const query = createQuery(() => listQuery($session?.id, target.listID));
-  let reconnect = $state(0);
-  // Open a stream for the current account and list. Svelte calls the returned
-  // cleanup before rerunning this effect or when leaving the page.
-  $effect(() => {
-    // Track manual retries so Refresh recreates the stream.
-    void reconnect;
+  let unsubscribe: (() => void) | undefined;
+  const reconnect = () => {
+    unsubscribe?.();
+    unsubscribe = undefined;
     if (!target.account || !target.listID) return;
-    return subscribeToList(target.account, target.listID, () => navigate("/lists"));
+    unsubscribe = subscribeToList(target.account, target.listID, () => navigate("/lists"));
+  };
+  onMount(() => {
+    reconnect();
+    return () => unsubscribe?.();
   });
   const rename = createMutation(() => renameListMutation());
   const addition = createMutation(() => addItemMutation());
@@ -69,7 +72,7 @@
     if (pending.length) return;
     mutations.forEach((mutation) => mutation.reset());
     dismissListErrors();
-    reconnect++;
+    reconnect();
   };
   const saveName = async (name: string) => {
     try {
