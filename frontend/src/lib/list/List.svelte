@@ -28,7 +28,8 @@
   const query = createQuery(() => listQuery($session?.id, target.listID));
   let reconnect = $state(0);
   $effect(() => {
-    reconnect;
+    // Track manual retries so Refresh recreates the stream.
+    void reconnect;
     if (!target.account || !target.listID) return;
     return subscribeToList(target.account, target.listID, () => navigate("/lists"));
   });
