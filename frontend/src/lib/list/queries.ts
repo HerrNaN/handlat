@@ -1,4 +1,9 @@
-import type { MutationOptions, QueryFunctionContext } from "@tanstack/query-core";
+import {
+  skipToken,
+  type QueryObserverOptions,
+  type MutationOptions,
+  type QueryFunctionContext,
+} from "@tanstack/query-core";
 import { get } from "svelte/store";
 
 import { queryClient } from "../query";
@@ -9,7 +14,6 @@ import {
   createList,
   deleteItem,
   deleteList,
-  getList,
   getLists,
   renameList,
   setItemChecked,
@@ -40,12 +44,15 @@ export const summariesQuery = (account?: string) => ({
   queryFn: ({ signal }: QueryFunctionContext) => getLists(signal),
 });
 
-export const listQuery = (account: string | undefined, id: string) => ({
+// Only SSE snapshots populate list details; HTTP mutation responses and query
+// invalidation must not introduce a competing source of confirmed list state.
+export const listQuery = (
+  account: string | undefined,
+  id: string,
+): QueryObserverOptions<ShoppingList> => ({
   queryKey: listKey(account, id),
-  enabled: Boolean(account && id),
-  refetchOnWindowFocus,
-  refetchOnMount: refetchOnWindowFocus,
-  queryFn: ({ signal }: QueryFunctionContext) => getList(id, signal),
+  enabled: false,
+  queryFn: skipToken,
 });
 
 export const dismissListErrors = () => {
@@ -66,7 +73,7 @@ const listMutationOptions = {
     if (account !== get(session)?.id) return;
     // This mutation still counts as pending until onSettled completes.
     if (queryClient.isMutating({ mutationKey: ["private-lists"] }) === 1) {
-      return queryClient.invalidateQueries({ queryKey: ["private-lists", account] });
+      return queryClient.invalidateQueries({ queryKey: summariesKey(account) });
     }
   },
 };

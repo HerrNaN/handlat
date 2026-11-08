@@ -3,7 +3,11 @@ import z from "zod";
 import { clearSession } from "../user/session";
 import { ItemSchema, type Item } from "./list";
 
-const ListSchema = z.object({ id: z.string(), name: z.string(), items: z.array(ItemSchema) });
+export const ListSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  items: z.array(ItemSchema),
+});
 const SummariesSchema = z.array(
   z.object({ id: z.string(), name: z.string(), itemCount: z.number().int() }),
 );

@@ -196,3 +196,43 @@ test("keeps a list after a failed deletion and allows retrying", async ({ page, 
   const response = await page.request.get(listURL.replace("/lists/", "/api/lists/"));
   expect(response.status()).toBe(404);
 });
+
+test("streams list changes between independent clients without refreshing", async ({
+  page,
+  context,
+  browser,
+}) => {
+  await context.credentials.install();
+  await page.goto("/sign-up");
+  await page.getByRole("button", { name: "Create account with passkey" }).click();
+  await expect(page).toHaveURL(/\/user$/);
+  await page.goto("/lists");
+  await page.getByRole("button", { name: "New list", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Shopping List" })).toBeVisible();
+
+  // Separate browser contexts share authentication, not application/query state.
+  const otherContext = await browser.newContext({ storageState: await context.storageState() });
+  try {
+    const other = await otherContext.newPage();
+    const connected = other.waitForResponse(
+      (response) => response.url().endsWith("/events") && response.status() === 200,
+    );
+    await other.goto(page.url());
+    await connected;
+    await expect(other.getByRole("heading", { name: "Shopping List" })).toBeVisible();
+
+    await page.getByRole("button", { name: "Add item", exact: true }).click();
+    const input = page.getByPlaceholder("t.ex. 2 kg potatis");
+    await input.fill("Milk");
+    await input.press("Enter");
+    await input.press("Escape");
+    const otherMilk = other.getByRole("checkbox", { name: "Milk", exact: true });
+    await expect(otherMilk).toBeVisible();
+
+    // Exercise the reverse direction using the real UI and backend as well.
+    await otherMilk.click();
+    await expect(page.getByRole("checkbox", { name: "Milk", exact: true })).toBeChecked();
+  } finally {
+    await otherContext.close();
+  }
+});

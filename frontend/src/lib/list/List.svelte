@@ -22,9 +22,16 @@
     renameListMutation,
     updateItemMutation,
   } from "./queries";
+  import { subscribeToList } from "./stream";
 
   const target = $derived({ account: $session?.id ?? "", listID: route.params.id ?? "" });
   const query = createQuery(() => listQuery($session?.id, target.listID));
+  let reconnect = $state(0);
+  $effect(() => {
+    reconnect;
+    if (!target.account || !target.listID) return;
+    return subscribeToList(target.account, target.listID, () => navigate("/lists"));
+  });
   const rename = createMutation(() => renameListMutation());
   const addition = createMutation(() => addItemMutation());
   const update = createMutation(() => updateItemMutation());
@@ -56,10 +63,10 @@
     listWrites.findLast((write) => write.status === "error")?.error ?? query.error,
   );
   const refresh = async () => {
-    if (pending.length || query.isFetching) return;
+    if (pending.length) return;
     mutations.forEach((mutation) => mutation.reset());
     dismissListErrors();
-    await query.refetch();
+    reconnect++;
   };
   const saveName = async (name: string) => {
     try {
@@ -90,7 +97,7 @@
       {/if}
     </h2>
   </header>
-  {#if query.isFetching && !query.data}
+  {#if query.isPending && !query.data}
     <p role="status">Loading…</p>
   {/if}
   {#if error}
