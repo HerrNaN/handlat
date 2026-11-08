@@ -17,7 +17,7 @@
   } = $props();
 
   const mutation = createMutation(() => ({
-    mutationKey: ["auth", "sign-up"],
+    mutationKey: ["auth", "create-account"],
     mutationFn: async () => {
       const begin = await post("/api/auth/register/begin");
       const credential = await startRegistration({ optionsJSON: await begin.json() });
@@ -46,11 +46,11 @@
   loading={mutation.isPending}
   appearance="outlined"
 >
-  {mutation.isPending ? "Creating account…" : "Create account with passkey"}
+  {mutation.isPending ? "Creating account…" : "Create Account"}
 </wa-button>
 {#if mutation.isError}
   <wa-callout variant="danger" role="alert">
     <wa-icon slot="icon" name="circle-exclamation"></wa-icon>
-    {mutation.error instanceof Error ? mutation.error.message : "Registration failed"}
+    {mutation.error instanceof Error ? mutation.error.message : "Could not create account"}
   </wa-callout>
 {/if}

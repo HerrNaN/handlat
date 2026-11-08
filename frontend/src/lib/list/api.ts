@@ -36,7 +36,7 @@ const request = async (url: string, init?: RequestInit) => {
     throw new ApiError(
       response.status,
       response.status === 401
-        ? "Your session expired. Please sign in again."
+        ? "Your session expired. Please log in again."
         : response.status === 404
           ? "This list or item is no longer available."
           : response.status >= 500

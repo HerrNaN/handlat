@@ -17,7 +17,7 @@
   } = $props();
 
   const mutation = createMutation(() => ({
-    mutationKey: ["auth", "sign-in"],
+    mutationKey: ["auth", "login"],
     mutationFn: async () => {
       const begin = await post("/api/auth/login/begin");
       const credential = await startAuthentication({ optionsJSON: await begin.json() });
@@ -41,11 +41,11 @@
 </script>
 
 <wa-button onclick={authenticate} disabled={pending} loading={mutation.isPending} variant="brand">
-  {mutation.isPending ? "Logging in…" : "Log in with passkey"}
+  {mutation.isPending ? "Logging in…" : "Login"}
 </wa-button>
 {#if mutation.isError}
   <wa-callout variant="danger" role="alert">
     <wa-icon slot="icon" name="circle-exclamation"></wa-icon>
-    {mutation.error instanceof Error ? mutation.error.message : "Sign-in failed"}
+    {mutation.error instanceof Error ? mutation.error.message : "Login failed"}
   </wa-callout>
 {/if}

@@ -2,8 +2,8 @@
   import { browserSupportsWebAuthn } from "@simplewebauthn/browser";
 
   import { navigate } from "../../router";
-  import SignInButton from "./SignInButton.svelte";
-  import SignUpButton from "./SignUpButton.svelte";
+  import CreateAccountButton from "./CreateAccountButton.svelte";
+  import LoginButton from "./LoginButton.svelte";
 
   let pending = $state(false);
   const onSuccess = async () => {
@@ -16,8 +16,8 @@
   <p>Use a passkey to log in or create an account.</p>
   {#if browserSupportsWebAuthn()}
     <div>
-      <SignInButton bind:pending onsuccess={onSuccess} />
-      <SignUpButton bind:pending onsuccess={onSuccess} />
+      <LoginButton bind:pending onsuccess={onSuccess} />
+      <CreateAccountButton bind:pending onsuccess={onSuccess} />
     </div>
   {:else}
     <p>This browser does not support passkeys.</p>
