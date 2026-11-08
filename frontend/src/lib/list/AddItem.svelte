@@ -8,31 +8,26 @@
   import { classify, departments } from "./classifier";
 
   let input = $state<WaInput>();
-  let {
-    busy,
-    error,
-    onAdd,
-  }: { busy: boolean; error?: unknown; onAdd: (item: NewItem) => Promise<unknown> } = $props();
-  let draft: { text: string; id: string } | undefined;
+  let { error, onAdd }: { error?: unknown; onAdd: (item: NewItem) => Promise<unknown> } = $props();
 
   const handleAdd = async () => {
-    if (!input || busy) return;
+    if (!input) return;
 
     const text = input.value?.trim();
     if (text) {
-      if (draft?.text !== text) draft = { text, id: crypto.randomUUID() };
+      // Clear before saving so the next item can be entered without losing focus.
+      input.value = "";
       try {
-        await onAdd({ ...draft, department: classify(text, departments).id });
-        input.value = "";
-        draft = undefined;
+        await onAdd({ id: crypto.randomUUID(), text, department: classify(text, departments).id });
       } catch {
-        // Keep the draft UUID so retrying a lost response cannot duplicate the item.
+        // The parent displays the error. Leave any newer input untouched.
       }
     }
   };
 
   const handleKeydown = (e: KeyboardEvent) => {
     if (e.key === "Enter") {
+      e.preventDefault();
       handleAdd();
     }
   };
@@ -52,7 +47,6 @@
       bind:this={input}
       enterkeyhint="go"
       placeholder="t.ex. 2 kg potatis"
-      disabled={busy}
       onkeydown={handleKeydown}
     ></wa-input>
     {#if error}

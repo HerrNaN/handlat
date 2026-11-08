@@ -1,5 +1,72 @@
 import { expect, test } from "@playwright/test";
 
+test("keeps item input focused and editable while saving", async ({ page, context }) => {
+  await context.credentials.install();
+  await page.goto("/sign-up");
+  await page.getByRole("button", { name: "Create account with passkey" }).click();
+  await expect(page).toHaveURL(/\/user$/);
+  await page.goto("/lists");
+  await page.getByRole("button", { name: "New list", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Shopping List" })).toBeVisible();
+  await page.getByRole("button", { name: "Add item", exact: true }).click();
+  const input = page.getByPlaceholder("t.ex. 2 kg potatis");
+  await input.fill("Milk");
+
+  let releaseSave!: () => void;
+  const saveGate = new Promise<void>((resolve) => {
+    releaseSave = resolve;
+  });
+  let requests = 0;
+  await page.route("**/api/lists/*/items", async (route) => {
+    requests++;
+    if (requests === 1) {
+      await saveGate;
+    }
+    await route.continue();
+  });
+  // Record even temporary focus loss; restoring focus later is insufficient on mobile.
+  await input.evaluate((element) => {
+    element.setAttribute("data-blurs", "0");
+    element.addEventListener("blur", () => {
+      element.setAttribute("data-blurs", String(Number(element.getAttribute("data-blurs")) + 1));
+    });
+  });
+  try {
+    await page.keyboard.press("Enter");
+    await expect.poll(() => requests).toBe(1);
+    await expect(input).toHaveValue("");
+    await expect(input).toBeFocused();
+    await expect(input).toBeEditable();
+    // Empty submissions must not create extra requests.
+    await page.keyboard.press("Enter");
+    expect(requests).toBe(1);
+    await page.keyboard.type("Bread");
+    await expect(input).toHaveValue("Bread");
+  } finally {
+    releaseSave();
+  }
+  await expect(
+    page.getByRole("checkbox", { name: "Milk", exact: true, includeHidden: true }),
+  ).toHaveCount(1);
+
+  await expect(input).toHaveValue("Bread");
+  await expect(input).toBeFocused();
+  await expect(input).toHaveAttribute("data-blurs", "0");
+  // Use the keyboard directly so the test cannot silently refocus the field.
+  await page.keyboard.press("Enter");
+  await expect(input).toHaveValue("");
+  await expect(
+    page.getByRole("checkbox", { name: "Bread", exact: true, includeHidden: true }),
+  ).toHaveCount(1);
+  await expect(input).toBeFocused();
+  await expect(input).toHaveAttribute("data-blurs", "0");
+  expect(requests).toBe(2);
+  await page.keyboard.press("Escape");
+  await expect(
+    page.getByRole("checkbox", { name: "Milk", exact: true, includeHidden: true }),
+  ).toHaveCount(1);
+});
+
 test("creates a list, adds an item, and keeps its checked state after reload", async ({
   page,
   context,
