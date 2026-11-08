@@ -111,11 +111,7 @@
           onDelete={(itemID) => remove.mutateAsync({ ...target, itemID })}
           onClear={() => clear.mutate({ ...target })}
         />
-        <AddItem
-          busy={addition.isPending}
-          {error}
-          onAdd={(item) => addition.mutateAsync({ ...target, item })}
-        />
+        <AddItem {error} onAdd={(item) => addition.mutateAsync({ ...target, item })} />
       </div>
     {/key}
   {/if}
