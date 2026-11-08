@@ -214,11 +214,12 @@ test("streams list changes between independent clients without refreshing", asyn
   const otherContext = await browser.newContext({ storageState: await context.storageState() });
   try {
     const other = await otherContext.newPage();
-    const connected = other.waitForResponse(
-      (response) => response.url().endsWith("/events") && response.status() === 200,
-    );
-    await other.goto(page.url());
-    await connected;
+    await Promise.all([
+      other.waitForResponse(
+        (response) => response.url().endsWith("/events") && response.status() === 200,
+      ),
+      other.goto(page.url()),
+    ]);
     await expect(other.getByRole("heading", { name: "Shopping List" })).toBeVisible();
 
     await page.getByRole("button", { name: "Add item", exact: true }).click();

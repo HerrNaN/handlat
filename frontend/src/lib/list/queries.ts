@@ -44,8 +44,10 @@ export const summariesQuery = (account?: string) => ({
   queryFn: ({ signal }: QueryFunctionContext) => getLists(signal),
 });
 
-// Only SSE snapshots populate list details; HTTP mutation responses and query
-// invalidation must not introduce a competing source of confirmed list state.
+// Observe the list cache without fetching: subscribeToList writes both the initial
+// snapshot and subsequent updates here. Disabling the query prevents automatic
+// HTTP fetches; skipToken also prevents a manual refetch from issuing one.
+// Checkbox mutations can still update this cache optimistically.
 export const listQuery = (
   account: string | undefined,
   id: string,
