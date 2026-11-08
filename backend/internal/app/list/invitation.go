@@ -133,7 +133,10 @@ func (h *Handler) join(r *http.Request) (List, error) {
 		return List{}, err
 	}
 
-	if err := q.AddMember(r.Context(), db.AddMemberParams{ListID: id, UserID: auth.UserID(r.Context())}); err != nil {
+	if err := q.AddMember(
+		r.Context(),
+		db.AddMemberParams{ListID: id, UserID: auth.UserID(r.Context())},
+	); err != nil {
 		return List{}, err
 	}
 

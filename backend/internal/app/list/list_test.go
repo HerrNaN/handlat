@@ -38,7 +38,10 @@ type seedListParams struct {
 }
 
 func seedList(ctx context.Context, q *listdb.Queries, params seedListParams) error {
-	if err := q.CreateList(ctx, listdb.CreateListParams{ID: params.ID, Name: params.Name, Now: params.Now}); err != nil {
+	if err := q.CreateList(
+		ctx,
+		listdb.CreateListParams{ID: params.ID, Name: params.Name, Now: params.Now},
+	); err != nil {
 		return err
 	}
 

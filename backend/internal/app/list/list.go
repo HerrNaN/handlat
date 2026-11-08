@@ -125,12 +125,18 @@ func (h *Handler) create(w http.ResponseWriter, r *http.Request) {
 	defer h.rollback(tx)
 
 	q := h.queries.WithTx(tx)
-	if err := q.CreateList(r.Context(), db.CreateListParams{ID: id.String(), Name: body.Name, Now: now()}); err != nil {
+	if err := q.CreateList(
+		r.Context(),
+		db.CreateListParams{ID: id.String(), Name: body.Name, Now: now()},
+	); err != nil {
 		h.fail(w, err)
 		return
 	}
 
-	if err := q.AddMember(r.Context(), db.AddMemberParams{ListID: id.String(), UserID: auth.UserID(r.Context())}); err != nil {
+	if err := q.AddMember(
+		r.Context(),
+		db.AddMemberParams{ListID: id.String(), UserID: auth.UserID(r.Context())},
+	); err != nil {
 		h.fail(w, err)
 		return
 	}
@@ -285,7 +291,10 @@ func (h *Handler) commitLeave(r *http.Request) error {
 		return err
 	}
 
-	if err := q.RemoveMember(r.Context(), db.RemoveMemberParams{ListID: value.ID, UserID: auth.UserID(r.Context())}); err != nil {
+	if err := q.RemoveMember(
+		r.Context(),
+		db.RemoveMemberParams{ListID: value.ID, UserID: auth.UserID(r.Context())},
+	); err != nil {
 		return err
 	}
 
