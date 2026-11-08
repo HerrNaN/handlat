@@ -25,11 +25,13 @@ test("keeps item input focused and editable while saving", async ({ page, contex
     await route.continue();
   });
   // Record even temporary focus loss; restoring focus later is insufficient on mobile.
+  let blurs = 0;
+  await page.exposeFunction("recordBlur", () => {
+    blurs++;
+  });
   await input.evaluate((element) => {
-    element.setAttribute("data-blurs", "0");
-    element.addEventListener("blur", () => {
-      element.setAttribute("data-blurs", String(Number(element.getAttribute("data-blurs")) + 1));
-    });
+    const { recordBlur } = window as unknown as { recordBlur: () => Promise<void> };
+    element.addEventListener("blur", recordBlur);
   });
   try {
     await page.keyboard.press("Enter");
@@ -51,7 +53,7 @@ test("keeps item input focused and editable while saving", async ({ page, contex
 
   await expect(input).toHaveValue("Bread");
   await expect(input).toBeFocused();
-  await expect(input).toHaveAttribute("data-blurs", "0");
+  expect(blurs).toBe(0);
   // Use the keyboard directly so the test cannot silently refocus the field.
   await page.keyboard.press("Enter");
   await expect(input).toHaveValue("");
@@ -59,7 +61,7 @@ test("keeps item input focused and editable while saving", async ({ page, contex
     page.getByRole("checkbox", { name: "Bread", exact: true, includeHidden: true }),
   ).toHaveCount(1);
   await expect(input).toBeFocused();
-  await expect(input).toHaveAttribute("data-blurs", "0");
+  expect(blurs).toBe(0);
   expect(requests).toBe(2);
   await page.keyboard.press("Escape");
   await expect(
