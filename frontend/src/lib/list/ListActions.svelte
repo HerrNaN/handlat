@@ -92,7 +92,7 @@
         <wa-icon
           slot="icon"
           name={shared ? "arrow-right-from-bracket" : "trash-can"}
-          variant={shared ? "solid" : "regular"}
+          variant="solid"
         ></wa-icon>
         {shared ? "Leave list" : "Delete list"}
       </wa-dropdown-item>
