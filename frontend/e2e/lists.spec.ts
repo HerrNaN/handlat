@@ -261,7 +261,8 @@ test("renames a list from both actions menus and deletes it from the open list",
   await expect(page.getByRole("menuitem", { name: "Rename", exact: true })).toBeFocused();
   await page.keyboard.press("Enter");
   const rename = page.locator('wa-dialog[label="Rename list"]');
-  const name = rename.getByRole("textbox", { name: "List name", exact: true });
+  await expect(rename).toBeVisible();
+  const name = rename.getByRole("textbox", { name: /^List name/ });
   await expect(name).toBeFocused();
   await name.fill("Weekly groceries");
   await name.press("Enter");
