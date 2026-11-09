@@ -13,15 +13,18 @@ test("shares a list with a logged-out invitee who creates an account and accepts
   await page.getByRole("button", { name: "New list", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Shopping List" })).toBeVisible();
   const listURL = page.url();
+  await page.getByRole("button", { name: "Back", exact: true }).click();
 
   // Desktop browsers use the copy fallback. Keep the real invitation creation.
   await page.evaluate(() =>
     Object.defineProperty(navigator, "share", { value: undefined, configurable: true }),
   );
-  await page.getByRole("button", { name: "Share list", exact: true }).click();
+  await page.getByRole("button", { name: "Actions for Shopping List", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Share", exact: true }).click();
   const link = await page.getByRole("textbox", { name: "Invitation link" }).inputValue();
   expect(link).toContain("/invitations/");
   await page.getByRole("button", { name: "Done", exact: true }).click();
+  await page.getByRole("link", { name: /Shopping List/ }).click();
 
   const inviteeContext = await browser.newContext({ baseURL: new URL(listURL).origin });
   try {
@@ -59,7 +62,8 @@ test("shares a list with a logged-out invitee who creates an account and accepts
 
     await invitee.getByRole("button", { name: "Back", exact: true }).click();
     await expect(invitee.getByRole("link", { name: /Shopping List/ })).toBeVisible();
-    await invitee.getByRole("button", { name: "Leave Shopping List", exact: true }).click();
+    await invitee.getByRole("button", { name: "Actions for Shopping List", exact: true }).click();
+    await invitee.getByRole("menuitem", { name: "Leave list", exact: true }).click();
     await invitee.getByRole("button", { name: "Leave list", exact: true }).click();
     await expect(invitee.getByRole("link", { name: /Shopping List/ })).toHaveCount(0);
     await expect(page.getByRole("checkbox", { name: "Milk", exact: true })).toBeChecked();

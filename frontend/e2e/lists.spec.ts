@@ -98,7 +98,7 @@ test("creates a list, adds an item, and keeps its checked state after reload", a
   await expect(milk).toBeChecked();
 });
 
-test("deletes a list using its trash button only after confirmation", async ({ page, context }) => {
+test("deletes a list from its actions menu only after confirmation", async ({ page, context }) => {
   await context.credentials.install();
   await page.goto("/login");
   await page.getByRole("button", { name: "Create Account" }).click();
@@ -109,15 +109,18 @@ test("deletes a list using its trash button only after confirmation", async ({ p
   const listURL = page.url();
   await page.goto("/lists");
 
-  const deleteButton = page.getByRole("button", { name: "Delete Shopping List", exact: true });
+  const actions = page.getByRole("button", { name: "Actions for Shopping List", exact: true });
+  const deleteButton = page.getByRole("menuitem", { name: "Delete list", exact: true });
+  await actions.click();
   await deleteButton.click();
   await expect(page).toHaveURL(/\/lists$/);
-  const dialog = page.locator("wa-dialog");
+  const dialog = page.locator('wa-dialog[label="Delete list?"]');
   await expect(dialog).toContainText("Shopping List");
   await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(dialog).not.toBeVisible();
   await expect(page.getByRole("link", { name: /Shopping List/ })).toBeVisible();
 
+  await actions.click();
   await deleteButton.click();
   let releaseRefresh!: () => void;
   const refreshGate = new Promise<void>((resolve) => {
@@ -154,15 +157,18 @@ test("keeps a list after a failed deletion and allows retrying", async ({ page, 
   const listURL = page.url();
   await page.goto("/lists");
 
-  const deleteButton = page.getByRole("button", { name: "Delete Shopping List", exact: true });
+  const actions = page.getByRole("button", { name: "Actions for Shopping List", exact: true });
+  const deleteButton = page.getByRole("menuitem", { name: "Delete list", exact: true });
+  await actions.click();
   await deleteButton.click();
   await expect(page).toHaveURL(/\/lists$/);
-  const dialog = page.locator("wa-dialog");
+  const dialog = page.locator('wa-dialog[label="Delete list?"]');
   await expect(dialog).toContainText("Shopping List");
   await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(dialog).not.toBeVisible();
   await expect(page.getByRole("link", { name: /Shopping List/ })).toBeVisible();
 
+  await actions.click();
   await deleteButton.click();
   await page.route("**/api/lists/*", (route) =>
     route.request().method() === "DELETE"
@@ -236,4 +242,46 @@ test("streams list changes between independent clients without refreshing", asyn
   } finally {
     await otherContext.close();
   }
+});
+
+test("renames a list from both actions menus and deletes it from the open list", async ({
+  page,
+  context,
+}) => {
+  await context.credentials.install();
+  await page.goto("/login");
+  await page.getByRole("button", { name: "Create Account", exact: true }).click();
+  await expect(page).toHaveURL(/\/user$/);
+  await page.goto("/lists");
+  await page.getByRole("button", { name: "New list", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Shopping List", exact: true })).toBeVisible();
+  const actions = page.getByRole("button", { name: "Actions for Shopping List", exact: true });
+  await actions.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("menuitem", { name: "Rename", exact: true })).toBeFocused();
+  await page.keyboard.press("Enter");
+  const rename = page.locator('wa-dialog[label="Rename list"]');
+  await expect(rename.getByRole("dialog")).toBeVisible();
+  const name = rename.getByRole("textbox", { name: /^List name/ });
+  await expect(name).toBeFocused();
+  await name.fill("Weekly groceries");
+  await name.press("Enter");
+  await expect(rename.getByRole("dialog")).not.toBeVisible();
+  await expect(page.getByRole("heading", { name: "Weekly groceries", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Back", exact: true }).click();
+  await page.getByRole("button", { name: "Actions for Weekly groceries", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Rename", exact: true }).click();
+  await name.fill("Weekend groceries");
+  await rename.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(rename.getByRole("dialog")).not.toBeVisible();
+  await page.getByRole("link", { name: /Weekend groceries/ }).click();
+  await expect(page.getByRole("heading", { name: "Weekend groceries", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Actions for Weekend groceries", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Delete list", exact: true }).click();
+  await page
+    .locator('wa-dialog[label="Delete list?"]')
+    .getByRole("button", { name: "Delete list", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/lists$/);
+  await expect(page.getByRole("link", { name: /Weekend groceries/ })).toHaveCount(0);
 });
