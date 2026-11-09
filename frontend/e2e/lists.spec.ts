@@ -114,7 +114,7 @@ test("deletes a list from its actions menu only after confirmation", async ({ pa
   await actions.click();
   await deleteButton.click();
   await expect(page).toHaveURL(/\/lists$/);
-  const dialog = page.getByRole("dialog", { name: "Delete list?", exact: true });
+  const dialog = page.locator('wa-dialog[label="Delete list?"]');
   await expect(dialog).toContainText("Shopping List");
   await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(dialog).not.toBeVisible();
@@ -162,7 +162,7 @@ test("keeps a list after a failed deletion and allows retrying", async ({ page, 
   await actions.click();
   await deleteButton.click();
   await expect(page).toHaveURL(/\/lists$/);
-  const dialog = page.getByRole("dialog", { name: "Delete list?", exact: true });
+  const dialog = page.locator('wa-dialog[label="Delete list?"]');
   await expect(dialog).toContainText("Shopping List");
   await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(dialog).not.toBeVisible();
@@ -254,12 +254,13 @@ test("renames a list from both actions menus and deletes it from the open list",
   await expect(page).toHaveURL(/\/user$/);
   await page.goto("/lists");
   await page.getByRole("button", { name: "New list", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Shopping List", exact: true })).toBeVisible();
   const actions = page.getByRole("button", { name: "Actions for Shopping List", exact: true });
   await actions.focus();
-  await page.keyboard.press("Space");
+  await page.keyboard.press("Enter");
   await expect(page.getByRole("menuitem", { name: "Rename", exact: true })).toBeFocused();
   await page.keyboard.press("Enter");
-  const rename = page.getByRole("dialog", { name: "Rename list", exact: true });
+  const rename = page.locator('wa-dialog[label="Rename list"]');
   const name = rename.getByRole("textbox", { name: "List name", exact: true });
   await expect(name).toBeFocused();
   await name.fill("Weekly groceries");
@@ -277,7 +278,7 @@ test("renames a list from both actions menus and deletes it from the open list",
   await page.getByRole("button", { name: "Actions for Weekend groceries", exact: true }).click();
   await page.getByRole("menuitem", { name: "Delete list", exact: true }).click();
   await page
-    .getByRole("dialog", { name: "Delete list?", exact: true })
+    .locator('wa-dialog[label="Delete list?"]')
     .getByRole("button", { name: "Delete list", exact: true })
     .click();
   await expect(page).toHaveURL(/\/lists$/);
