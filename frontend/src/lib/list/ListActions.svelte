@@ -80,9 +80,20 @@
       <wa-button slot="trigger" appearance="plain" disabled={sharing || departure.isPending}>
         <wa-icon name="ellipsis-vertical" label={`Actions for ${list.name}`}></wa-icon>
       </wa-button>
-      <wa-dropdown-item value="rename">Rename</wa-dropdown-item>
-      <wa-dropdown-item value="share">Share</wa-dropdown-item>
+      <wa-dropdown-item value="rename">
+        <wa-icon slot="icon" name="pen"></wa-icon>
+        Rename
+      </wa-dropdown-item>
+      <wa-dropdown-item value="share">
+        <wa-icon slot="icon" name="share-nodes"></wa-icon>
+        Share
+      </wa-dropdown-item>
       <wa-dropdown-item value="leave" variant="danger">
+        <wa-icon
+          slot="icon"
+          name={shared ? "arrow-right-from-bracket" : "trash-can"}
+          variant={shared ? "solid" : "regular"}
+        ></wa-icon>
         {shared ? "Leave list" : "Delete list"}
       </wa-dropdown-item>
     </wa-dropdown>
