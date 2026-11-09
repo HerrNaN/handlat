@@ -136,7 +136,7 @@ test("deletes a list using its trash button only after confirmation", async ({ p
   } finally {
     releaseRefresh();
   }
-  await expect(page.getByText("No lists yet. Create your first private list.")).toBeVisible();
+  await expect(page.getByText("No lists yet. Create your first list.")).toBeVisible();
   await page.reload();
   await expect(page.getByRole("link", { name: /Shopping List/ })).toHaveCount(0);
   const response = await page.request.get(listURL.replace("/lists/", "/api/lists/"));
@@ -190,7 +190,7 @@ test("keeps a list after a failed deletion and allows retrying", async ({ page, 
   } finally {
     releaseRefresh();
   }
-  await expect(page.getByText("No lists yet. Create your first private list.")).toBeVisible();
+  await expect(page.getByText("No lists yet. Create your first list.")).toBeVisible();
   await page.reload();
   await expect(page.getByRole("link", { name: /Shopping List/ })).toHaveCount(0);
   const response = await page.request.get(listURL.replace("/lists/", "/api/lists/"));

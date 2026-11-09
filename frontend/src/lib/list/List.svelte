@@ -22,6 +22,7 @@
     renameListMutation,
     updateItemMutation,
   } from "./queries";
+  import ShareList from "./ShareList.svelte";
 
   const target = $derived({ account: $session?.id ?? "", listID: route.params.id ?? "" });
   const query = createQuery(() => listQuery($session?.id, target.listID, () => navigate("/lists")));
@@ -89,6 +90,7 @@
         <Input value={query.data.name} onsave={saveName} disabled={rename.isPending} />
       {/if}
     </h2>
+    {#if query.data}<ShareList listID={query.data.id} name={query.data.name} />{/if}
   </header>
   {#if query.isPending && !query.data}
     <p role="status">Loading…</p>
@@ -169,6 +171,8 @@
   }
 
   h2 {
+    flex: 1;
+    min-width: 0;
     margin: 0;
     margin-inline-start: var(--wa-space-xs);
     font-size: var(--wa-font-size-xl);

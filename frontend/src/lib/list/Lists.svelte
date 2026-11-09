@@ -5,33 +5,34 @@
   import { p, navigate } from "../../router";
   import { session } from "../user/session";
   import { errorMessage, type ListSummary } from "./api";
-  import { createListMutation, deleteListMutation, summariesQuery } from "./queries";
+  import { createListMutation, leaveListMutation, summariesQuery } from "./queries";
   import "@awesome.me/webawesome/dist/components/icon/icon.js";
   import "@awesome.me/webawesome/dist/components/button/button.js";
   import "@awesome.me/webawesome/dist/components/callout/callout.js";
 
   const createList = createMutation(() => createListMutation());
-  const deletion = createMutation(() => deleteListMutation());
-  let deleteDialog = $state<WaDialog>();
-  let listToDelete = $state<ListSummary>();
-  let deleting = $state(false);
-  const confirmDelete = (list: ListSummary) => {
-    deletion.reset();
-    listToDelete = list;
-    if (deleteDialog) deleteDialog.open = true;
+  const departure = createMutation(() => leaveListMutation());
+  let leaveDialog = $state<WaDialog>();
+  let listToLeave = $state<ListSummary>();
+  let leaving = $state(false);
+  const shared = $derived((listToLeave?.memberCount ?? 1) > 1);
+  const confirmLeave = (list: ListSummary) => {
+    departure.reset();
+    listToLeave = list;
+    if (leaveDialog) leaveDialog.open = true;
   };
-  const handleDelete = async () => {
-    if (!$session || !listToDelete || deleting) return;
-    deleting = true;
+  const handleLeave = async () => {
+    if (!$session || !listToLeave || leaving) return;
+    leaving = true;
     try {
-      await deletion.mutateAsync({ account: $session.id, listID: listToDelete.id });
+      await departure.mutateAsync({ account: $session.id, listID: listToLeave.id });
     } catch {
       // Keep the dialog open; the mutation error is displayed below.
       return;
     } finally {
-      deleting = false;
+      leaving = false;
     }
-    if (deleteDialog) deleteDialog.open = false;
+    if (leaveDialog) leaveDialog.open = false;
   };
   const query = createQuery(() => summariesQuery($session?.id));
   const handleCreateList = () => {
@@ -70,7 +71,7 @@
     </aside>
   {/if}
   {#if !query.isFetching && !query.error && !createList.error && query.data?.length === 0}
-    <p>No lists yet. Create your first private list.</p>
+    <p>No lists yet. Create your first list.</p>
   {/if}
   <ul>
     {#each query.data ?? [] as list (list.id)}
@@ -83,10 +84,14 @@
         <wa-button
           appearance="plain"
           variant="danger"
-          onclick={() => confirmDelete(list)}
-          disabled={deleting}
+          onclick={() => confirmLeave(list)}
+          disabled={leaving}
         >
-          <wa-icon name="trash-can" variant="regular" label={`Delete ${list.name}`}></wa-icon>
+          <wa-icon
+            name={list.memberCount > 1 ? "arrow-right-from-bracket" : "trash-can"}
+            variant={list.memberCount > 1 ? "solid" : "regular"}
+            label={`${list.memberCount > 1 ? "Leave" : "Delete"} ${list.name}`}
+          ></wa-icon>
         </wa-button>
       </li>
     {/each}
@@ -94,23 +99,30 @@
 </article>
 
 <wa-dialog
-  bind:this={deleteDialog}
-  label="Delete list?"
+  bind:this={leaveDialog}
+  label={shared ? "Leave list?" : "Delete list?"}
   onwa-hide={(event: Event) => {
-    if (deleting) event.preventDefault();
+    if (leaving) event.preventDefault();
   }}
 >
-  <p>Delete “{listToDelete?.name}” and all its items? This cannot be undone.</p>
-  {#if deletion.error}
-    <p role="alert">{errorMessage(deletion.error)}</p>
+  {#if shared}
+    <p>Leave “{listToLeave?.name}”? Other members will keep the list.</p>
+  {:else}
+    <p>
+      You're the only member. Leaving will delete “{listToLeave?.name}” and all its items. This
+      cannot be undone.
+    </p>
   {/if}
-  <wa-button slot="footer" data-dialog="close" disabled={deleting}>Cancel</wa-button>
+  {#if departure.error}
+    <p role="alert">{errorMessage(departure.error)}</p>
+  {/if}
+  <wa-button slot="footer" data-dialog="close" disabled={leaving}>Cancel</wa-button>
   <wa-button
     slot="footer"
     variant="danger"
-    onclick={handleDelete}
-    disabled={deleting}
-    loading={deleting}>Delete list</wa-button
+    onclick={handleLeave}
+    disabled={leaving}
+    loading={leaving}>{shared ? "Leave list" : "Delete list"}</wa-button
   >
 </wa-dialog>
 

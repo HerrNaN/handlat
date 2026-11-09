@@ -27,6 +27,25 @@ func (h *Handler) publish(id string, event listEvent) {
 	}
 }
 
+// Stop all of the departing user's streams before publishing further changes.
+// Called under mu, after the membership removal commits.
+func (h *Handler) revoke(id string, userID []byte) {
+	for events, member := range h.subscribers[id] {
+		if member != string(userID) {
+			continue
+		}
+
+		select {
+		case <-events:
+		default:
+		}
+
+		events <- listEvent{Deleted: true}
+
+		delete(h.subscribers[id], events)
+	}
+}
+
 func (h *Handler) subscribe(r *http.Request) (List, chan listEvent, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -55,10 +74,10 @@ func (h *Handler) subscribe(r *http.Request) (List, chan listEvent, error) {
 
 	events := make(chan listEvent, 1)
 	if h.subscribers[value.ID] == nil {
-		h.subscribers[value.ID] = make(map[chan listEvent]struct{})
+		h.subscribers[value.ID] = make(map[chan listEvent]string)
 	}
 
-	h.subscribers[value.ID][events] = struct{}{}
+	h.subscribers[value.ID][events] = string(auth.UserID(r.Context()))
 
 	return initial, events, nil
 }

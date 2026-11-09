@@ -16,7 +16,11 @@
   let { children }: { children?: Snippet } = $props();
 
   $effect(() => {
-    if ($session === null && route.pathname !== "/login") {
+    if (
+      $session === null &&
+      route.pathname !== "/login" &&
+      !route.pathname.startsWith("/invitations/")
+    ) {
       void navigate("/login", { replace: true });
     }
   });
