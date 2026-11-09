@@ -1,39 +1,16 @@
 <script lang="ts">
-  import WaDialog from "@awesome.me/webawesome/dist/components/dialog/dialog.js";
   import { createMutation, createQuery } from "@tanstack/svelte-query";
 
   import { p, navigate } from "../../router";
   import { session } from "../user/session";
-  import { errorMessage, type ListSummary } from "./api";
-  import { createListMutation, leaveListMutation, summariesQuery } from "./queries";
+  import { errorMessage } from "./api";
+  import ListActions from "./ListActions.svelte";
+  import { createListMutation, summariesQuery } from "./queries";
   import "@awesome.me/webawesome/dist/components/icon/icon.js";
   import "@awesome.me/webawesome/dist/components/button/button.js";
   import "@awesome.me/webawesome/dist/components/callout/callout.js";
 
   const createList = createMutation(() => createListMutation());
-  const departure = createMutation(() => leaveListMutation());
-  let leaveDialog = $state<WaDialog>();
-  let listToLeave = $state<ListSummary>();
-  let leaving = $state(false);
-  const shared = $derived((listToLeave?.memberCount ?? 1) > 1);
-  const confirmLeave = (list: ListSummary) => {
-    departure.reset();
-    listToLeave = list;
-    if (leaveDialog) leaveDialog.open = true;
-  };
-  const handleLeave = async () => {
-    if (!$session || !listToLeave || leaving) return;
-    leaving = true;
-    try {
-      await departure.mutateAsync({ account: $session.id, listID: listToLeave.id });
-    } catch {
-      // Keep the dialog open; the mutation error is displayed below.
-      return;
-    } finally {
-      leaving = false;
-    }
-    if (leaveDialog) leaveDialog.open = false;
-  };
   const query = createQuery(() => summariesQuery($session?.id));
   const handleCreateList = () => {
     if (!$session) return;
@@ -81,50 +58,11 @@
           <span class="name">{list.name}</span>
           <span class="count">{list.itemCount}</span>
         </a>
-        <wa-button
-          appearance="plain"
-          variant="danger"
-          onclick={() => confirmLeave(list)}
-          disabled={leaving}
-        >
-          <wa-icon
-            name={list.memberCount > 1 ? "arrow-right-from-bracket" : "trash-can"}
-            variant={list.memberCount > 1 ? "solid" : "regular"}
-            label={`${list.memberCount > 1 ? "Leave" : "Delete"} ${list.name}`}
-          ></wa-icon>
-        </wa-button>
+        <ListActions {list} />
       </li>
     {/each}
   </ul>
 </article>
-
-<wa-dialog
-  bind:this={leaveDialog}
-  label={shared ? "Leave list?" : "Delete list?"}
-  onwa-hide={(event: Event) => {
-    if (leaving) event.preventDefault();
-  }}
->
-  {#if shared}
-    <p>Leave “{listToLeave?.name}”? Other members will keep the list.</p>
-  {:else}
-    <p>
-      You're the only member. Leaving will delete “{listToLeave?.name}” and all its items. This
-      cannot be undone.
-    </p>
-  {/if}
-  {#if departure.error}
-    <p role="alert">{errorMessage(departure.error)}</p>
-  {/if}
-  <wa-button slot="footer" data-dialog="close" disabled={leaving}>Cancel</wa-button>
-  <wa-button
-    slot="footer"
-    variant="danger"
-    onclick={handleLeave}
-    disabled={leaving}
-    loading={leaving}>{shared ? "Leave list" : "Delete list"}</wa-button
-  >
-</wa-dialog>
 
 <style>
   aside,

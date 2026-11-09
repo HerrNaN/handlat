@@ -5,13 +5,13 @@
   import { createMutation, createQuery, useMutationState } from "@tanstack/svelte-query";
 
   import { route, navigate } from "../../router";
-  import Input from "../components/Input.svelte";
   import { session } from "../user/session";
   import AddItem from "./AddItem.svelte";
   import { errorMessage } from "./api";
   import EditItem from "./EditItem.svelte";
   import ItemList from "./ItemList.svelte";
   import { type Item } from "./list";
+  import ListActions from "./ListActions.svelte";
   import {
     addItemMutation,
     checkItemMutation,
@@ -19,20 +19,17 @@
     deleteItemMutation,
     dismissListErrors,
     listQuery,
-    renameListMutation,
     updateItemMutation,
   } from "./queries";
-  import ShareList from "./ShareList.svelte";
 
   const target = $derived({ account: $session?.id ?? "", listID: route.params.id ?? "" });
   const query = createQuery(() => listQuery($session?.id, target.listID, () => navigate("/lists")));
-  const rename = createMutation(() => renameListMutation());
   const addition = createMutation(() => addItemMutation());
   const update = createMutation(() => updateItemMutation());
   const check = createMutation(() => checkItemMutation());
   const remove = createMutation(() => deleteItemMutation());
   const clear = createMutation(() => clearCheckedMutation());
-  const mutations = [rename, addition, update, check, remove, clear];
+  const mutations = [addition, update, check, remove, clear];
   const writes = useMutationState({
     filters: { mutationKey: ["private-lists"] },
     select: (mutation) => ({
@@ -62,15 +59,6 @@
     dismissListErrors();
     void query.refetch();
   };
-  const saveName = async (name: string) => {
-    try {
-      await rename.mutateAsync({ ...target, name });
-      return true;
-    } catch {
-      return false;
-    }
-  };
-
   let editItemDialog = $state<WaDialog>();
   let itemToEditID = $state("");
   const itemToEdit = $derived(query.data?.items.find((item) => item.id === itemToEditID));
@@ -85,12 +73,10 @@
     <wa-button appearance="plain" onclick={() => navigate("/lists")}>
       <wa-icon name="arrow-left" label="Back"></wa-icon>
     </wa-button>
-    <h2>
-      {#if query.data}
-        <Input value={query.data.name} onsave={saveName} disabled={rename.isPending} />
-      {/if}
-    </h2>
-    {#if query.data}<ShareList listID={query.data.id} name={query.data.name} />{/if}
+    <h2>{query.data?.name ?? ""}</h2>
+    {#if query.data}
+      <ListActions list={query.data} onleave={() => navigate("/lists")} />
+    {/if}
   </header>
   {#if query.isPending && !query.data}
     <p role="status">Loading…</p>

@@ -1,12 +1,21 @@
 <script lang="ts">
   import WaDialog from "@awesome.me/webawesome/dist/components/dialog/dialog.js";
+  import type { Snippet } from "svelte";
   import "@awesome.me/webawesome/dist/components/button/button.js";
   import "@awesome.me/webawesome/dist/components/icon/icon.js";
 
   import { p } from "../../router";
   import { createInvitation, errorMessage } from "./api";
 
-  const { listID, name }: { listID: string; name: string } = $props();
+  const {
+    listID,
+    name,
+    children,
+  }: {
+    listID: string;
+    name: string;
+    children: Snippet<[() => Promise<void>, boolean]>;
+  } = $props();
   let dialog = $state<WaDialog>();
   let pending = $state(false);
   let link = $state("");
@@ -67,9 +76,7 @@
   };
 </script>
 
-<wa-button appearance="plain" onclick={share} disabled={pending}>
-  <wa-icon name="share-nodes" label="Share list"></wa-icon>
-</wa-button>
+{@render children(share, pending)}
 
 <wa-dialog bind:this={dialog} label="Share list" light-dismiss>
   {#if link}
