@@ -256,7 +256,7 @@ test("renames a list from both actions menus and deletes it from the open list",
   await page.getByRole("button", { name: "New list", exact: true }).click();
   const actions = page.getByRole("button", { name: "Actions for Shopping List", exact: true });
   await actions.focus();
-  await page.keyboard.press("Enter");
+  await page.keyboard.press("Space");
   await expect(page.getByRole("menuitem", { name: "Rename", exact: true })).toBeFocused();
   await page.keyboard.press("Enter");
   const rename = page.getByRole("dialog", { name: "Rename list", exact: true });

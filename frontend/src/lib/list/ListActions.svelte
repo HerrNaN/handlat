@@ -1,10 +1,10 @@
 <script lang="ts">
   import WaDialog from "@awesome.me/webawesome/dist/components/dialog/dialog.js";
-  import WaInput from "@awesome.me/webawesome/dist/components/input/input.js";
+  import WaDropdownItem from "@awesome.me/webawesome/dist/components/dropdown-item/dropdown-item.js";
   import "@awesome.me/webawesome/dist/components/button/button.js";
   import "@awesome.me/webawesome/dist/components/icon/icon.js";
   import "@awesome.me/webawesome/dist/components/dropdown/dropdown.js";
-  import "@awesome.me/webawesome/dist/components/dropdown-item/dropdown-item.js";
+  import WaInput from "@awesome.me/webawesome/dist/components/input/input.js";
   import type { WaSelectEvent } from "@awesome.me/webawesome/dist/events/select.js";
   import { createMutation } from "@tanstack/svelte-query";
   import { tick } from "svelte";
@@ -66,7 +66,7 @@
     <wa-dropdown
       placement="bottom-end"
       onwa-select={(event: WaSelectEvent) => {
-        const action = event.detail.item.getAttribute("value");
+        const action = (event.detail.item as WaDropdownItem).value;
         if (action === "rename") void openRename();
         if (action === "share") void share();
         if (action === "leave") confirmLeave();
