@@ -27,6 +27,7 @@
   let leaveDialog = $state<WaDialog>();
   let nameInput = $state<WaInput>();
   let name = $state("");
+  let saving = $state(false);
   const shared = $derived(list.memberCount > 1);
 
   const openRename = async () => {
@@ -37,13 +38,17 @@
   };
   const saveName = async (event: SubmitEvent) => {
     event.preventDefault();
-    if (!$session || rename.isPending || !name.trim()) return;
+    if (!$session || saving || !name.trim()) return;
+    saving = true;
     try {
       await rename.mutateAsync({ account: $session.id, listID: list.id, name: name.trim() });
-      if (renameDialog) renameDialog.open = false;
     } catch {
       // Keep the dialog open so the user can retry.
+      return;
+    } finally {
+      saving = false;
     }
+    if (renameDialog) renameDialog.open = false;
   };
   const confirmLeave = () => {
     departure.reset();
@@ -92,7 +97,7 @@
     nameInput?.select();
   }}
   onwa-hide={(event: Event) => {
-    if (rename.isPending) event.preventDefault();
+    if (saving) event.preventDefault();
   }}
 >
   <form onsubmit={saveName}>
@@ -104,16 +109,13 @@
         name = nameInput?.value ?? "";
       }}
       required
-      disabled={rename.isPending}
+      disabled={saving}
     ></wa-input>
     {#if rename.error}<p role="alert">{errorMessage(rename.error)}</p>{/if}
     <footer>
-      <wa-button data-dialog="close" disabled={rename.isPending}>Cancel</wa-button>
-      <wa-button
-        type="submit"
-        variant="brand"
-        disabled={rename.isPending || !name.trim()}
-        loading={rename.isPending}>Save</wa-button
+      <wa-button data-dialog="close" disabled={saving}>Cancel</wa-button>
+      <wa-button type="submit" variant="brand" disabled={saving || !name.trim()} loading={saving}
+        >Save</wa-button
       >
     </footer>
   </form>
