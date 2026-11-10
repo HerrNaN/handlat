@@ -1,13 +1,32 @@
 <script lang="ts">
+  import WaDrawer from "@awesome.me/webawesome/dist/components/drawer/drawer.js";
   import WaInput from "@awesome.me/webawesome/dist/components/input/input.js";
-  import "@awesome.me/webawesome/dist/components/drawer/drawer.js";
+  import { onDestroy } from "svelte";
   import "@awesome.me/webawesome/dist/components/button/button.js";
   import "@awesome.me/webawesome/dist/components/icon/icon.js";
 
+  import { observeKeyboardDismissal } from "../utils/keyboard";
   import { errorMessage, type NewItem } from "./api";
   import { classify, departments } from "./classifier";
 
   let input = $state<WaInput>();
+  let drawer = $state<WaDrawer>();
+  let stopObserving: (() => void) | undefined;
+  let focusTimer: ReturnType<typeof setTimeout> | undefined;
+
+  const stop = () => {
+    clearTimeout(focusTimer);
+    stopObserving?.();
+    stopObserving = undefined;
+  };
+  const show = () => {
+    stop();
+    stopObserving = observeKeyboardDismissal(() => {
+      if (drawer) drawer.open = false;
+    });
+    focusTimer = setTimeout(() => input?.focus());
+  };
+  onDestroy(stop);
   let { error, onAdd }: { error?: unknown; onAdd: (item: NewItem) => Promise<unknown> } = $props();
 
   const handleAdd = async () => {
@@ -38,10 +57,12 @@
 <div class="input-wrapper">
   <wa-drawer
     {id}
+    bind:this={drawer}
     placement="bottom"
     light-dismiss
     without-header
-    onwa-show={() => setTimeout(() => input?.focus())}
+    onwa-show={show}
+    onwa-hide={stop}
   >
     <wa-input
       bind:this={input}
