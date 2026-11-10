@@ -62,10 +62,7 @@
     light-dismiss
     without-header
     onwa-show={show}
-    onwa-hide={() => {
-      stop();
-      void handleAdd();
-    }}
+    onwa-hide={stop}
   >
     <wa-input
       bind:this={input}
