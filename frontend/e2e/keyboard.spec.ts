@@ -2,10 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test.use({ hasTouch: true, viewport: { width: 390, height: 844 } });
 
-test("closes the item drawer after keyboard viewport recovery and preserves the draft", async ({
-  page,
-  context,
-}) => {
+test("submits unfinished items when the item drawer closes", async ({ page, context }) => {
   await context.credentials.install();
   await page.goto("/login");
   await page.getByRole("button", { name: "Create Account", exact: true }).click();
@@ -18,7 +15,13 @@ test("closes the item drawer after keyboard viewport recovery and preserves the 
   const input = page.getByPlaceholder("t.ex. 2 kg potatis");
   await add.click();
   await expect(input).toBeFocused();
-  await input.fill("Milk");
+  let additions = 0;
+  page.on("request", (request) => {
+    if (request.method() === "POST" && /\/api\/lists\/[^/]+\/items$/.test(request.url())) {
+      additions++;
+    }
+  });
+  await input.fill("  Milk  ");
 
   // Desktop emulation has no software keyboard: simulate its viewport changes.
   await page.setViewportSize({ width: 390, height: 500 });
@@ -33,10 +36,20 @@ test("closes the item drawer after keyboard viewport recovery and preserves the 
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(input).not.toBeVisible();
   await expect(add).toBeVisible();
+  await expect(page.getByRole("checkbox", { name: "Milk", exact: true })).toHaveCount(1);
 
   await add.click();
   await expect(input).toBeFocused();
-  await expect(input).toHaveValue("Milk");
+  await expect(input).toHaveValue("");
+  await input.fill("Bread");
   await page.keyboard.press("Escape");
   await expect(input).not.toBeVisible();
+  await expect(page.getByRole("checkbox", { name: "Bread", exact: true })).toHaveCount(1);
+
+  await add.click();
+  await expect(input).toBeFocused();
+  await input.fill("   ");
+  await page.keyboard.press("Escape");
+  await expect(input).not.toBeVisible();
+  expect(additions).toBe(2);
 });
