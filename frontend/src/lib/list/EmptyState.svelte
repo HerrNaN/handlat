@@ -66,6 +66,8 @@
     position: absolute;
     right: 0;
     bottom: 0;
+    width: 1rem;
+    height: 1rem;
     font-size: 1rem;
     padding: var(--wa-space-xs);
     border-radius: 50%;
