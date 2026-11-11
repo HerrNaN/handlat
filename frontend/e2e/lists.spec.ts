@@ -77,8 +77,11 @@ test("creates a list, adds an item, and keeps its checked state after reload", a
   await expect(page).toHaveURL(/\/user$/);
 
   await page.goto("/lists");
-  await page.getByRole("button", { name: "New list", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Your first list starts here" })).toBeVisible();
+  await page.getByRole("button", { name: "Create list", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Shopping List" })).toBeVisible();
+  const emptyList = page.getByRole("heading", { name: "What do you need to buy?" });
+  await expect(emptyList).toBeVisible();
 
   await page.getByRole("button", { name: "Add item", exact: true }).click();
   const input = page.getByPlaceholder("t.ex. 2 kg potatis");
@@ -88,10 +91,12 @@ test("creates a list, adds an item, and keeps its checked state after reload", a
   await input.press("Escape");
   await expect(input).not.toBeVisible();
 
+  await expect(emptyList).not.toBeVisible();
   const milk = page.getByRole("checkbox", { name: "Milk", exact: true });
   await milk.click();
   await expect(milk).toBeChecked();
   await expect(milk).toBeEnabled();
+  await expect(emptyList).not.toBeVisible();
 
   await page.reload();
   await expect(page.getByRole("heading", { name: "Shopping List" })).toBeVisible();
@@ -139,7 +144,7 @@ test("deletes a list from its actions menu only after confirmation", async ({ pa
   } finally {
     releaseRefresh();
   }
-  await expect(page.getByText("No lists yet. Create your first list.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Your first list starts here" })).toBeVisible();
   await page.reload();
   await expect(page.getByRole("link", { name: /Shopping List/ })).toHaveCount(0);
   const response = await page.request.get(listURL.replace("/lists/", "/api/lists/"));
@@ -196,7 +201,7 @@ test("keeps a list after a failed deletion and allows retrying", async ({ page, 
   } finally {
     releaseRefresh();
   }
-  await expect(page.getByText("No lists yet. Create your first list.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Your first list starts here" })).toBeVisible();
   await page.reload();
   await expect(page.getByRole("link", { name: /Shopping List/ })).toHaveCount(0);
   const response = await page.request.get(listURL.replace("/lists/", "/api/lists/"));
