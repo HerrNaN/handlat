@@ -6,6 +6,7 @@
   import { errorMessage } from "./api";
   import EmptyState from "./EmptyState.svelte";
   import ListActions from "./ListActions.svelte";
+  import ListSkeleton from "./ListSkeleton.svelte";
   import { createListMutation, summariesQuery } from "./queries";
   import "@awesome.me/webawesome/dist/components/icon/icon.js";
   import "@awesome.me/webawesome/dist/components/button/button.js";
@@ -37,9 +38,6 @@
       <wa-icon name="plus" label="New list"></wa-icon>
     </wa-button>
   </header>
-  {#if query.isFetching && !query.data}
-    <p role="status">Loading…</p>
-  {/if}
   {#if createList.error ?? query.error}
     <aside role="alert">
       <wa-callout variant="danger">
@@ -49,7 +47,9 @@
     </aside>
   {/if}
   <div class="content">
-    {#if query.isSuccess && query.data.length === 0}
+    {#if query.isPending}
+      <ListSkeleton overview />
+    {:else if query.isSuccess && query.data.length === 0}
       <EmptyState
         icon="list-check"
         heading="Your first list starts here"
@@ -82,8 +82,7 @@
 </article>
 
 <style>
-  aside,
-  p[role="status"] {
+  aside {
     margin: var(--wa-space-s) var(--wa-space-m);
   }
 
@@ -97,6 +96,7 @@
 
   header {
     height: 2rem;
+    flex-shrink: 0;
     z-index: 1;
     position: sticky;
     top: 0;

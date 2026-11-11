@@ -2,6 +2,7 @@
   import WaDialog from "@awesome.me/webawesome/dist/components/dialog/dialog.js";
   import "@awesome.me/webawesome/dist/components/button/button.js";
   import "@awesome.me/webawesome/dist/components/icon/icon.js";
+  import "@awesome.me/webawesome/dist/components/skeleton/skeleton.js";
   import { createMutation, createQuery, useMutationState } from "@tanstack/svelte-query";
 
   import { route, navigate } from "../../router";
@@ -14,6 +15,7 @@
   import ItemList from "./ItemList.svelte";
   import { type Item } from "./list";
   import ListActions from "./ListActions.svelte";
+  import ListSkeleton from "./ListSkeleton.svelte";
   import {
     addItemMutation,
     checkItemMutation,
@@ -26,6 +28,7 @@
 
   const target = $derived({ account: $session?.id ?? "", listID: route.params.id ?? "" });
   const query = createQuery(() => listQuery($session?.id, target.listID, () => navigate("/lists")));
+  const loading = $derived(query.isPending && !query.data);
   const addition = createMutation(() => addItemMutation());
   const update = createMutation(() => updateItemMutation());
   const check = createMutation(() => checkItemMutation());
@@ -75,23 +78,32 @@
     <wa-button appearance="plain" onclick={() => navigate("/lists")}>
       <wa-icon name="arrow-left" label="Back"></wa-icon>
     </wa-button>
-    <h2>{query.data?.name ?? ""}</h2>
+    <h2>
+      {#if loading}
+        <wa-skeleton class="title" effect="none" aria-hidden="true"></wa-skeleton>
+      {:else}
+        {query.data?.name ?? ""}
+      {/if}
+    </h2>
     {#if query.data}
       <ListActions list={query.data} onleave={() => navigate("/lists")} />
+    {:else if loading}
+      <wa-button appearance="plain" disabled aria-label="List actions">
+        <wa-icon name="ellipsis-vertical"></wa-icon>
+      </wa-button>
     {/if}
   </header>
-  {#if query.isPending && !query.data}
-    <p role="status">Loading…</p>
-  {/if}
   {#if error}
     <aside role="alert">
       <p>{errorMessage(error)}</p>
       <wa-button onclick={refresh}>Refresh</wa-button>
     </aside>
   {/if}
-  {#if query.data}
-    {#key query.data.id}
-      <div class="list-area">
+  <div class="list-area" aria-busy={loading}>
+    {#if loading}
+      <ListSkeleton />
+    {:else if query.data}
+      {#key query.data.id}
         {#if query.data.items.length === 0 && !error}
           <EmptyState
             illustration={emptyShoppingList}
@@ -109,9 +121,9 @@
           onClear={() => clear.mutate({ ...target })}
         />
         <AddItem {error} onAdd={(item) => addition.mutateAsync({ ...target, item })} />
-      </div>
-    {/key}
-  {/if}
+      {/key}
+    {/if}
+  </div>
 </article>
 
 <wa-dialog bind:this={editItemDialog} label="Edit Item" light-dismiss>
@@ -132,7 +144,6 @@
 
 <style>
   aside,
-  p[role="status"],
   aside p {
     margin: var(--wa-space-s) var(--wa-space-m);
   }
@@ -147,6 +158,7 @@
 
   .list-area {
     flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     overflow-y: auto;
@@ -155,6 +167,7 @@
 
   header {
     height: 2rem;
+    flex-shrink: 0;
     z-index: 1;
     position: sticky;
     top: 0;
@@ -173,5 +186,11 @@
     font-size: var(--wa-font-size-xl);
     font-weight: var(--wa-font-weight-normal);
     color: var(--wa-color-text-normal);
+  }
+
+  .title {
+    display: block;
+    width: min(12rem, 80%);
+    height: 1.5rem;
   }
 </style>
