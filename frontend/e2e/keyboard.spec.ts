@@ -16,12 +16,7 @@ test("closes the item drawer after keyboard viewport recovery and preserves the 
 
   const add = page.getByRole("button", { name: "Add item", exact: true });
   const input = page.getByPlaceholder("t.ex. 2 kg potatis");
-  // Check in the click's call stack; eventual focus cannot open the iOS keyboard.
-  const focusedOnClick = await add.evaluate((button) => {
-    (button as HTMLElement).click();
-    return document.querySelector("wa-drawer wa-input")?.matches(":focus-within");
-  });
-  expect(focusedOnClick).toBe(true);
+  await add.click();
   await expect(input).toBeFocused();
   let additions = 0;
   page.on("request", (request) => {

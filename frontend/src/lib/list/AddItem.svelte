@@ -29,9 +29,6 @@
     // The drawer finds its focus target by attribute; Svelte only sets the input property.
     input.setAttribute("autofocus", "");
     drawer.open = true;
-    // Flush Lit's update so the drawer is visible before focusing, within this user gesture.
-    drawer["performUpdate"]();
-    input.focus();
   };
   onDestroy(stop);
   let { error, onAdd }: { error?: unknown; onAdd: (item: NewItem) => Promise<unknown> } = $props();
