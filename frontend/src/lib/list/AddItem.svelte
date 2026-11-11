@@ -12,10 +12,8 @@
   let input = $state<WaInput>();
   let drawer = $state<WaDrawer>();
   let stopObserving: (() => void) | undefined;
-  let focusTimer: ReturnType<typeof setTimeout> | undefined;
 
   const stop = () => {
-    clearTimeout(focusTimer);
     stopObserving?.();
     stopObserving = undefined;
   };
@@ -24,7 +22,14 @@
     stopObserving = observeKeyboardDismissal(() => {
       if (drawer) drawer.open = false;
     });
-    focusTimer = setTimeout(() => input?.focus());
+  };
+  const open = () => {
+    if (!drawer || !input) return;
+
+    drawer.open = true;
+    // Flush Lit's update so the drawer is visible before focusing, within this user gesture.
+    drawer["performUpdate"]();
+    input.focus();
   };
   onDestroy(stop);
   let { error, onAdd }: { error?: unknown; onAdd: (item: NewItem) => Promise<unknown> } = $props();
@@ -50,13 +55,10 @@
       handleAdd();
     }
   };
-
-  const id = $props.id();
 </script>
 
 <div class="input-wrapper">
   <wa-drawer
-    {id}
     bind:this={drawer}
     placement="bottom"
     light-dismiss
@@ -64,8 +66,10 @@
     onwa-show={show}
     onwa-hide={stop}
   >
+    <!-- svelte-ignore a11y_autofocus (focus stays in the drawer explicitly opened by the user) -->
     <wa-input
       bind:this={input}
+      autofocus
       enterkeyhint="go"
       placeholder="t.ex. 2 kg potatis"
       onkeydown={handleKeydown}
@@ -74,7 +78,7 @@
       <p role="alert">{errorMessage(error)}</p>
     {/if}
   </wa-drawer>
-  <wa-button size="l" variant="brand" data-drawer="open {id}">
+  <wa-button size="l" variant="brand" onclick={open}>
     <wa-icon name="plus" label="Add item"></wa-icon>
   </wa-button>
 </div>
