@@ -9,6 +9,7 @@
   import AddItem from "./AddItem.svelte";
   import { errorMessage } from "./api";
   import EditItem from "./EditItem.svelte";
+  import emptyShoppingList from "./empty-shopping-list.svg";
   import EmptyState from "./EmptyState.svelte";
   import ItemList from "./ItemList.svelte";
   import { type Item } from "./list";
@@ -93,7 +94,7 @@
       <div class="list-area">
         {#if query.data.items.length === 0 && !error}
           <EmptyState
-            icon="basket-shopping"
+            illustration={emptyShoppingList}
             heading="What do you need to buy?"
             description="Add your first item using the plus button."
           />

@@ -4,11 +4,13 @@
 
   let {
     icon,
+    illustration,
     heading,
     description,
     children,
   }: {
-    icon: string;
+    icon?: string;
+    illustration?: string;
     heading: string;
     description: string;
     children?: Snippet;
@@ -17,17 +19,16 @@
 
 <section>
   <div>
-    <span class:groceries={icon === "basket-shopping"} aria-hidden="true">
-      <wa-icon name={icon} variant="solid"></wa-icon>
-      {#if icon === "basket-shopping"}
-        <wa-icon class="apple" name="apple-whole" variant="solid"></wa-icon>
-        <wa-icon class="bottle" name="bottle-water" variant="solid"></wa-icon>
-        <i></i>
-      {/if}
-      {#if children}
-        <wa-icon class="badge" name="plus" variant="solid"></wa-icon>
-      {/if}
-    </span>
+    {#if illustration}
+      <img src={illustration} alt="" width="320" height="320" />
+    {:else}
+      <span aria-hidden="true">
+        <wa-icon name={icon} variant="solid"></wa-icon>
+        {#if children}
+          <wa-icon class="badge" name="plus" variant="solid"></wa-icon>
+        {/if}
+      </span>
+    {/if}
     <h3>{heading}</h3>
     <p>{description}</p>
     {#if children}
@@ -67,66 +68,12 @@
     font-size: 2.5rem;
   }
 
-  .groceries {
-    width: 9rem;
-    height: 9rem;
-  }
-
-  .groceries wa-icon {
-    position: absolute;
-  }
-
-  .groceries wa-icon:first-child {
-    bottom: 0.625rem;
-    font-size: 6rem;
-    z-index: 1;
-  }
-
-  .apple {
-    top: 1rem;
-    left: 1.4rem;
-    font-size: 2.25rem;
-    rotate: -12deg;
-  }
-
-  .bottle {
-    top: 0.75rem;
-    right: 1.5rem;
-    font-size: 3rem;
-    color: var(--wa-color-brand-fill-loud);
-    rotate: 12deg;
-  }
-
-  i,
-  i::before,
-  i::after {
-    position: absolute;
-    width: 0.2rem;
-    height: 0.65rem;
-    border-radius: 999px;
-    background: var(--wa-color-brand-fill-loud);
-  }
-
-  i {
-    top: 2rem;
-    right: 0.25rem;
-    rotate: 45deg;
-  }
-
-  i::before,
-  i::after {
-    content: "";
-    top: 0.35rem;
-  }
-
-  i::before {
-    left: -0.65rem;
-    rotate: -35deg;
-  }
-
-  i::after {
-    right: -0.65rem;
-    rotate: 35deg;
+  img {
+    display: block;
+    width: 12rem;
+    max-width: 100%;
+    height: auto;
+    margin: 0 auto var(--wa-space-l);
   }
 
   .badge {
