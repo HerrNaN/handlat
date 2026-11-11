@@ -4,6 +4,7 @@
   import { p, navigate } from "../../router";
   import { session } from "../user/session";
   import { errorMessage } from "./api";
+  import EmptyState from "./EmptyState.svelte";
   import ListActions from "./ListActions.svelte";
   import { createListMutation, summariesQuery } from "./queries";
   import "@awesome.me/webawesome/dist/components/icon/icon.js";
@@ -47,21 +48,37 @@
       </wa-callout>
     </aside>
   {/if}
-  {#if !query.isFetching && !query.error && !createList.error && query.data?.length === 0}
-    <p>No lists yet. Create your first list.</p>
-  {/if}
-  <ul>
-    {#each query.data ?? [] as list (list.id)}
-      <li>
-        <a href={p("/lists/:id", { params: { id: list.id } })}>
-          <wa-icon name="list-check"></wa-icon>
-          <span class="name">{list.name}</span>
-          <span class="count">{list.itemCount}</span>
-        </a>
-        <ListActions {list} />
-      </li>
-    {/each}
-  </ul>
+  <div class="content">
+    {#if query.isSuccess && query.data.length === 0}
+      <EmptyState
+        icon="list-check"
+        heading="Your first list starts here"
+        description="For the weekly shop, a quick stop, or anything you don’t want to forget."
+      >
+        <wa-button
+          onclick={handleCreateList}
+          appearance="outlined"
+          disabled={!$session || query.isFetching || createList.isPending}
+        >
+          <wa-icon slot="start" name="plus"></wa-icon>
+          Create list
+        </wa-button>
+      </EmptyState>
+    {:else}
+      <ul>
+        {#each query.data ?? [] as list (list.id)}
+          <li>
+            <a href={p("/lists/:id", { params: { id: list.id } })}>
+              <wa-icon name="list-check"></wa-icon>
+              <span class="name">{list.name}</span>
+              <span class="count">{list.itemCount}</span>
+            </a>
+            <ListActions {list} />
+          </li>
+        {/each}
+      </ul>
+    {/if}
+  </div>
 </article>
 
 <style>
@@ -96,6 +113,14 @@
     font-size: var(--wa-font-size-xl);
     font-weight: var(--wa-font-weight-normal);
     color: var(--wa-color-text-normal);
+  }
+
+  .content {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
   }
 
   ul {
