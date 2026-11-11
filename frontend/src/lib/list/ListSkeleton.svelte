@@ -9,7 +9,7 @@
     {#if !overview}
       <wa-skeleton class="department" effect="none"></wa-skeleton>
     {/if}
-    {#each [65, 45, 75, 55] as width}
+    {#each [65, 45, 75, 55] as width (width)}
       <div class="row">
         <wa-skeleton class="icon" effect="none"></wa-skeleton>
         <wa-skeleton class="text" style:width={`${width}%`} effect="none"></wa-skeleton>
