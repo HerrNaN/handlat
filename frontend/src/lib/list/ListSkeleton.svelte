@@ -27,6 +27,14 @@
     min-height: 0;
     overflow: hidden;
     display: flex;
+    visibility: hidden;
+    animation: show-loading 0s 200ms forwards;
+  }
+
+  @keyframes show-loading {
+    to {
+      visibility: visible;
+    }
   }
 
   div[aria-hidden] {

@@ -88,7 +88,7 @@
     {#if query.data}
       <ListActions list={query.data} onleave={() => navigate("/lists")} />
     {:else if loading}
-      <wa-button appearance="plain" disabled aria-label="List actions">
+      <wa-button class="loading-actions" appearance="plain" disabled aria-label="List actions">
         <wa-icon name="ellipsis-vertical"></wa-icon>
       </wa-button>
     {/if}
@@ -192,5 +192,17 @@
     display: block;
     width: min(12rem, 80%);
     height: 1.5rem;
+  }
+
+  .title,
+  .loading-actions {
+    visibility: hidden;
+    animation: show-loading 0s 200ms forwards;
+  }
+
+  @keyframes show-loading {
+    to {
+      visibility: visible;
+    }
   }
 </style>
