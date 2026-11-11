@@ -68,8 +68,8 @@
   }
 
   .groceries {
-    width: 7.5rem;
-    height: 7.5rem;
+    width: 9rem;
+    height: 9rem;
   }
 
   .groceries wa-icon {
@@ -77,22 +77,22 @@
   }
 
   .groceries wa-icon:first-child {
-    bottom: 0.75rem;
-    font-size: 3.75rem;
+    bottom: 0.625rem;
+    font-size: 6rem;
     z-index: 1;
   }
 
   .apple {
-    top: 1.25rem;
-    left: 1rem;
-    font-size: 2rem;
+    top: 1rem;
+    left: 1.4rem;
+    font-size: 2.25rem;
     rotate: -12deg;
   }
 
   .bottle {
     top: 0.75rem;
-    right: 1rem;
-    font-size: 2.75rem;
+    right: 1.5rem;
+    font-size: 3rem;
     color: var(--wa-color-brand-fill-loud);
     rotate: 12deg;
   }
@@ -108,8 +108,8 @@
   }
 
   i {
-    top: 1.75rem;
-    right: -0.25rem;
+    top: 2rem;
+    right: 0.25rem;
     rotate: 45deg;
   }
 
