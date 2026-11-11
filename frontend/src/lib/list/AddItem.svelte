@@ -26,6 +26,8 @@
   const open = () => {
     if (!drawer || !input) return;
 
+    // The drawer finds its focus target by attribute; Svelte only sets the input property.
+    input.setAttribute("autofocus", "");
     drawer.open = true;
     // Flush Lit's update so the drawer is visible before focusing, within this user gesture.
     drawer["performUpdate"]();
@@ -66,10 +68,8 @@
     onwa-show={show}
     onwa-hide={stop}
   >
-    <!-- svelte-ignore a11y_autofocus (focus stays in the drawer explicitly opened by the user) -->
     <wa-input
       bind:this={input}
-      autofocus
       enterkeyhint="go"
       placeholder="t.ex. 2 kg potatis"
       onkeydown={handleKeydown}
