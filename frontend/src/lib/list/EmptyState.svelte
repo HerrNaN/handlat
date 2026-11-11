@@ -17,8 +17,13 @@
 
 <section>
   <div>
-    <span aria-hidden="true">
+    <span class:groceries={icon === "basket-shopping"} aria-hidden="true">
       <wa-icon name={icon} variant="solid"></wa-icon>
+      {#if icon === "basket-shopping"}
+        <wa-icon class="apple" name="apple-whole" variant="solid"></wa-icon>
+        <wa-icon class="bottle" name="bottle-water" variant="solid"></wa-icon>
+        <i></i>
+      {/if}
       {#if children}
         <wa-icon class="badge" name="plus" variant="solid"></wa-icon>
       {/if}
@@ -60,6 +65,68 @@
 
   wa-icon {
     font-size: 2.5rem;
+  }
+
+  .groceries {
+    width: 7.5rem;
+    height: 7.5rem;
+  }
+
+  .groceries wa-icon {
+    position: absolute;
+  }
+
+  .groceries wa-icon:first-child {
+    bottom: 0.75rem;
+    font-size: 3.75rem;
+    z-index: 1;
+  }
+
+  .apple {
+    top: 1.25rem;
+    left: 1rem;
+    font-size: 2rem;
+    rotate: -12deg;
+  }
+
+  .bottle {
+    top: 0.75rem;
+    right: 1rem;
+    font-size: 2.75rem;
+    color: var(--wa-color-brand-fill-loud);
+    rotate: 12deg;
+  }
+
+  i,
+  i::before,
+  i::after {
+    position: absolute;
+    width: 0.2rem;
+    height: 0.65rem;
+    border-radius: 999px;
+    background: var(--wa-color-brand-fill-loud);
+  }
+
+  i {
+    top: 1.75rem;
+    right: -0.25rem;
+    rotate: 45deg;
+  }
+
+  i::before,
+  i::after {
+    content: "";
+    top: 0.35rem;
+  }
+
+  i::before {
+    left: -0.65rem;
+    rotate: -35deg;
+  }
+
+  i::after {
+    right: -0.65rem;
+    rotate: 35deg;
   }
 
   .badge {
