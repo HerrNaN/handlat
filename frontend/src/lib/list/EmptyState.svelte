@@ -67,6 +67,7 @@
     right: 0;
     bottom: 0;
     width: 1rem;
+    min-width: 1rem;
     height: 1rem;
     font-size: 1rem;
     padding: var(--wa-space-xs);
