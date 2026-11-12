@@ -290,3 +290,125 @@ test("renames a list from both actions menus and deletes it from the open list",
   await expect(page).toHaveURL(/\/lists$/);
   await expect(page.getByRole("link", { name: /Weekend groceries/ })).toHaveCount(0);
 });
+
+test("parses quantities and edits amount and unit independently", async ({ page, context }) => {
+  await context.credentials.install();
+  await page.goto("/login");
+  await page.getByRole("button", { name: "Create Account" }).click();
+  await expect(page).toHaveURL(/\/user$/);
+  await page.goto("/lists");
+  await page.getByRole("button", { name: "New list", exact: true }).click();
+  await page.getByRole("button", { name: "Add item", exact: true }).click();
+  const input = page.getByPlaceholder("t.ex. 2 kg potatis");
+  await input.fill("1,5kg Potatoes");
+  await input.press("Enter");
+  await input.press("Escape");
+  await expect(page.getByRole("checkbox", { name: "Potatoes 1,5 kg", exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Edit Potatoes", exact: true }).click();
+  const dialog = page.locator('wa-dialog[label="Edit Item"]');
+  const amount = dialog.getByRole("textbox", { name: "Amount", exact: true });
+  const unit = dialog.getByRole("combobox", { name: "Unit", exact: true });
+  await expect(amount).toHaveValue("1,5");
+
+  const patch = () => page.waitForRequest((request) => request.method() === "PATCH");
+  let update = patch();
+  await amount.fill("2.25");
+  await amount.press("Tab");
+  expect((await update).postDataJSON()).toEqual({ amount: "2.25" });
+  await expect(amount).toBeEnabled();
+  await expect(
+    page.getByRole("checkbox", { name: "Potatoes 2,25 kg", exact: true, includeHidden: true }),
+  ).toHaveCount(1);
+
+  update = patch();
+  await unit.click();
+  await page.getByRole("option", { name: "g", exact: true }).click();
+  expect((await update).postDataJSON()).toEqual({ unit: "g" });
+  await expect(amount).toBeEnabled();
+  await expect(amount).toHaveValue("2,25");
+
+  update = patch();
+  await amount.fill("");
+  await amount.press("Tab");
+  expect((await update).postDataJSON()).toEqual({ amount: null });
+  await expect(amount).toBeEnabled();
+  await expect(
+    page.getByRole("checkbox", { name: "Potatoes g", exact: true, includeHidden: true }),
+  ).toHaveCount(1);
+
+  update = patch();
+  await unit.click();
+  await page.getByRole("option", { name: "–", exact: true }).click();
+  expect((await update).postDataJSON()).toEqual({ unit: null });
+  await expect(amount).toBeEnabled();
+  await dialog.getByRole("button", { name: "Close", exact: true }).click();
+  await expect(page.getByRole("checkbox", { name: "Potatoes", exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("checkbox", { name: "Potatoes", exact: true })).toBeVisible();
+});
+
+test("keeps focus and typed text when switching edit fields during a save", async ({
+  page,
+  context,
+}) => {
+  await context.credentials.install();
+  await page.goto("/login");
+  await page.getByRole("button", { name: "Create Account" }).click();
+  await expect(page).toHaveURL(/\/user$/);
+  await page.goto("/lists");
+  await page.getByRole("button", { name: "New list", exact: true }).click();
+  await page.getByRole("button", { name: "Add item", exact: true }).click();
+  const input = page.getByPlaceholder("t.ex. 2 kg potatis");
+  await input.fill("Milk");
+  await input.press("Enter");
+  await input.press("Escape");
+  await page.getByRole("button", { name: "Edit Milk", exact: true }).click();
+  const dialog = page.locator('wa-dialog[label="Edit Item"]');
+  const name = dialog.getByRole("textbox", { name: "Name", exact: true });
+  const amount = dialog.getByRole("textbox", { name: "Amount", exact: true });
+
+  let releaseSave!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    releaseSave = resolve;
+  });
+  let requests = 0;
+  await page.route("**/api/lists/*/items/*", async (route) => {
+    if (route.request().method() === "PATCH" && ++requests === 1) await gate;
+    await route.continue();
+  });
+  await name.fill("Oat milk");
+  try {
+    await amount.click();
+    await expect.poll(() => requests).toBe(1);
+    await expect(amount).toBeFocused();
+    await expect(amount).toBeEditable();
+    await amount.evaluate((element) => {
+      element.setAttribute("data-blurs", "0");
+      element.addEventListener("blur", () => {
+        element.setAttribute("data-blurs", String(Number(element.getAttribute("data-blurs")) + 1));
+      });
+    });
+    // Typing directly cannot silently restore focus lost during the save.
+    await page.keyboard.type("2");
+    const saved = page.waitForResponse((response) => response.request().method() === "PATCH");
+    releaseSave();
+    await saved;
+    await expect(
+      page.getByRole("checkbox", { name: "Oat milk", exact: true, includeHidden: true }),
+    ).toHaveCount(1);
+    await expect(amount).toBeFocused();
+    await expect(amount).toHaveValue("2");
+    await expect(amount).toHaveAttribute("data-blurs", "0");
+  } finally {
+    releaseSave();
+  }
+  await name.click();
+  await expect(name).toBeFocused();
+  await expect(
+    page.getByRole("checkbox", { name: "Oat milk 2", exact: true, includeHidden: true }),
+  ).toHaveCount(1);
+  await dialog.getByRole("button", { name: "Close", exact: true }).click();
+  await page.reload();
+  await expect(page.getByRole("checkbox", { name: "Oat milk 2", exact: true })).toBeVisible();
+});

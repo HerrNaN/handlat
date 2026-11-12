@@ -20,8 +20,11 @@ const SummariesSchema = z.array(
 
 export type ShoppingList = z.infer<typeof ListSchema>;
 export type ListSummary = z.infer<typeof SummariesSchema>[number];
-export type NewItem = Pick<Item, "id" | "text" | "department">;
-export type ItemChanges = Partial<Pick<Item, "text" | "department">>;
+export type NewItem = Pick<Item, "id" | "text" | "department" | "amount" | "unit">;
+export type ItemChanges = Partial<Pick<Item, "text" | "department">> & {
+  amount?: string | null;
+  unit?: Item["unit"] | null;
+};
 
 export class ApiError extends Error {
   constructor(

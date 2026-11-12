@@ -8,6 +8,7 @@
   import { observeKeyboardDismissal } from "../utils/keyboard";
   import { errorMessage, type NewItem } from "./api";
   import { classify, departments } from "./classifier";
+  import { parseItemInput } from "./quantity";
 
   let input = $state<WaInput>();
   let drawer = $state<WaDrawer>();
@@ -43,7 +44,12 @@
       // Clear before saving so the next item can be entered without losing focus.
       input.value = "";
       try {
-        await onAdd({ id: crypto.randomUUID(), text, department: classify(text, departments).id });
+        const item = parseItemInput(text);
+        await onAdd({
+          id: crypto.randomUUID(),
+          ...item,
+          department: classify(item.text, departments).id,
+        });
       } catch {
         // The parent displays the error. Leave any newer input untouched.
       }

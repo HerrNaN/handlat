@@ -18,6 +18,8 @@ type Item struct {
 	CreatedAt  int64
 	CheckedAt  *int64
 	DeletedAt  *int64
+	Amount     *string
+	Unit       *string
 }
 
 type List struct {

@@ -29,6 +29,8 @@ type Handler struct {
 }
 
 type Item struct {
+	Amount     *string    `json:"amount,omitempty"`
+	Unit       *Unit      `json:"unit,omitempty"`
 	ID         string     `json:"id"`
 	Text       string     `json:"text"`
 	Department string     `json:"department"`
@@ -181,7 +183,15 @@ func snapshot(ctx context.Context, q *db.Queries, value db.List) (List, error) {
 
 		result.Items = append(
 			result.Items,
-			Item{row.ID, row.Text, row.Department, time.Unix(row.CreatedAt, 0).UTC(), checkedAt},
+			Item{
+				ID:         row.ID,
+				Text:       row.Text,
+				Department: row.Department,
+				CreatedAt:  time.Unix(row.CreatedAt, 0).UTC(),
+				CheckedAt:  checkedAt,
+				Amount:     row.Amount,
+				Unit:       (*Unit)(row.Unit),
+			},
 		)
 	}
 
@@ -361,9 +371,11 @@ func (h *Handler) rename(w http.ResponseWriter, r *http.Request) {
 }
 
 type itemInput struct {
-	ID         string `json:"id"`
-	Text       string `json:"text"`
-	Department string `json:"department"`
+	Amount     *string `json:"amount"`
+	Unit       *Unit   `json:"unit"`
+	ID         string  `json:"id"`
+	Text       string  `json:"text"`
+	Department string  `json:"department"`
 }
 
 func readItem(w http.ResponseWriter, r *http.Request) (itemInput, bool) {
@@ -394,6 +406,21 @@ func readItem(w http.ResponseWriter, r *http.Request) (itemInput, bool) {
 		return body, false
 	}
 
+	if !normalizeAmount(body.Amount) {
+		http.Error(
+			w,
+			"Amount must be a positive decimal with at most 100 characters",
+			http.StatusBadRequest,
+		)
+
+		return body, false
+	}
+
+	if body.Unit != nil && !body.Unit.valid() {
+		http.Error(w, "Unsupported unit", http.StatusBadRequest)
+		return body, false
+	}
+
 	return body, true
 }
 
@@ -412,6 +439,8 @@ func (h *Handler) addItem(w http.ResponseWriter, r *http.Request) {
 				Text:       body.Text,
 				Department: body.Department,
 				CreatedAt:  now(),
+				Amount:     body.Amount,
+				Unit:       (*string)(body.Unit),
 			},
 		)
 	})
@@ -447,6 +476,8 @@ func (h *Handler) updateItem(w http.ResponseWriter, r *http.Request) {
 		Text       optional[string] `json:"text"`
 		Department optional[string] `json:"department"`
 		Checked    optional[bool]   `json:"checked"`
+		Amount     nullable[string] `json:"amount"`
+		Unit       nullable[Unit]   `json:"unit"`
 	}
 	if !decode(w, r, &body) {
 		return
@@ -456,8 +487,14 @@ func (h *Handler) updateItem(w http.ResponseWriter, r *http.Request) {
 		body.Text.value = strings.TrimSpace(body.Text.value)
 	}
 
-	if !body.Text.set && !body.Department.set && !body.Checked.set {
-		http.Error(w, "Provide text, department or checked fields", http.StatusBadRequest)
+	if !body.Text.set && !body.Department.set && !body.Checked.set && !body.Amount.set &&
+		!body.Unit.set {
+		http.Error(
+			w,
+			"Provide text, department, checked, amount or unit fields",
+			http.StatusBadRequest,
+		)
+
 		return
 	}
 
@@ -471,7 +508,31 @@ func (h *Handler) updateItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !normalizeAmount(body.Amount.value) {
+		http.Error(
+			w,
+			"Amount must be a positive decimal with at most 100 characters",
+			http.StatusBadRequest,
+		)
+
+		return
+	}
+
+	if body.Unit.value != nil && !body.Unit.value.valid() {
+		http.Error(w, "Unsupported unit", http.StatusBadRequest)
+		return
+	}
+
 	h.mutate(w, r, func(q *db.Queries) error {
+		var setAmount, setUnit int64
+		if body.Amount.set {
+			setAmount = 1
+		}
+
+		if body.Unit.set {
+			setUnit = 1
+		}
+
 		var setChecked, checked int64
 		if body.Checked.set {
 			setChecked = 1
@@ -489,6 +550,10 @@ func (h *Handler) updateItem(w http.ResponseWriter, r *http.Request) {
 				Text:       body.Text.pointer(),
 				Department: body.Department.pointer(),
 				SetChecked: setChecked,
+				SetAmount:  setAmount,
+				Amount:     body.Amount.value,
+				SetUnit:    setUnit,
+				Unit:       (*string)(body.Unit.value),
 				Checked:    checked,
 				Now:        now(),
 			},

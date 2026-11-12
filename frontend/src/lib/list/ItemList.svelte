@@ -89,7 +89,7 @@
   }
 
   li {
-    height: 3rem;
+    min-height: 3rem;
     margin-inline: var(--wa-space-2xs);
   }
 

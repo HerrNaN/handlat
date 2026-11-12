@@ -10,8 +10,8 @@ import (
 )
 
 const addItem = `-- name: AddItem :exec
-INSERT INTO items (id, list_id, text, department, created_at)
-VALUES (?1, ?2, ?3, ?4, ?5)
+INSERT INTO items (id, list_id, text, department, created_at, amount, unit)
+VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
 ON CONFLICT (list_id, id) DO NOTHING
 `
 
@@ -21,6 +21,8 @@ type AddItemParams struct {
 	Text       string
 	Department string
 	CreatedAt  int64
+	Amount     *string
+	Unit       *string
 }
 
 func (q *Queries) AddItem(ctx context.Context, arg AddItemParams) error {
@@ -30,6 +32,8 @@ func (q *Queries) AddItem(ctx context.Context, arg AddItemParams) error {
 		arg.Text,
 		arg.Department,
 		arg.CreatedAt,
+		arg.Amount,
+		arg.Unit,
 	)
 	return err
 }
@@ -221,7 +225,7 @@ func (q *Queries) GetMemberList(ctx context.Context, arg GetMemberListParams) (L
 }
 
 const listItems = `-- name: ListItems :many
-SELECT id, list_id, text, department, created_at, checked_at, deleted_at FROM items WHERE list_id = ?1 AND deleted_at IS NULL ORDER BY created_at, id
+SELECT id, list_id, text, department, created_at, checked_at, deleted_at, amount, unit FROM items WHERE list_id = ?1 AND deleted_at IS NULL ORDER BY created_at, id
 `
 
 func (q *Queries) ListItems(ctx context.Context, listID string) ([]Item, error) {
@@ -241,6 +245,8 @@ func (q *Queries) ListItems(ctx context.Context, listID string) ([]Item, error) 
 			&i.CreatedAt,
 			&i.CheckedAt,
 			&i.DeletedAt,
+			&i.Amount,
+			&i.Unit,
 		); err != nil {
 			return nil, err
 		}
@@ -345,15 +351,21 @@ const updateItem = `-- name: UpdateItem :exec
 UPDATE items SET
     text = COALESCE(?1, text),
     department = COALESCE(?2, department),
-    checked_at = CASE WHEN CAST(?3 AS INTEGER) THEN
-        CASE WHEN CAST(?4 AS INTEGER) THEN COALESCE(checked_at, CAST(?5 AS INTEGER)) ELSE NULL END
+    amount = CASE WHEN CAST(?3 AS INTEGER) THEN ?4 ELSE amount END,
+    unit = CASE WHEN CAST(?5 AS INTEGER) THEN ?6 ELSE unit END,
+    checked_at = CASE WHEN CAST(?7 AS INTEGER) THEN
+        CASE WHEN CAST(?8 AS INTEGER) THEN COALESCE(checked_at, CAST(?9 AS INTEGER)) ELSE NULL END
         ELSE checked_at END
-WHERE id = ?6 AND list_id = ?7 AND deleted_at IS NULL
+WHERE id = ?10 AND list_id = ?11 AND deleted_at IS NULL
 `
 
 type UpdateItemParams struct {
 	Text       *string
 	Department *string
+	SetAmount  int64
+	Amount     *string
+	SetUnit    int64
+	Unit       *string
 	SetChecked int64
 	Checked    int64
 	Now        int64
@@ -362,11 +374,16 @@ type UpdateItemParams struct {
 }
 
 // narg makes omitted PATCH fields nullable parameters despite NOT NULL columns.
-// COALESCE preserves the current value; explicit JSON null is rejected by the API.
+// COALESCE preserves text and department; explicit null is rejected for those fields.
+// Separate presence flags let amount and unit be explicitly cleared with null.
 func (q *Queries) UpdateItem(ctx context.Context, arg UpdateItemParams) error {
 	_, err := q.db.ExecContext(ctx, updateItem,
 		arg.Text,
 		arg.Department,
+		arg.SetAmount,
+		arg.Amount,
+		arg.SetUnit,
+		arg.Unit,
 		arg.SetChecked,
 		arg.Checked,
 		arg.Now,

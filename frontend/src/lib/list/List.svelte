@@ -136,7 +136,6 @@
   {#if itemToEdit}
     <EditItem
       item={itemToEdit}
-      busy={pendingItems.has(itemToEdit.id)}
       onUpdate={(itemID, changes) => update.mutate({ ...target, itemID, changes })}
     />
   {/if}

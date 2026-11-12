@@ -13,6 +13,7 @@
     onDelete: (itemID: string) => Promise<unknown>;
   };
   let { item, busy, onEditItem, onCheck, onDelete }: Props = $props();
+  const quantity = $derived([item.amount?.replace(".", ","), item.unit].filter(Boolean).join(" "));
   const checked = $derived(item.checkedAt !== undefined);
   let swipe = $state<SwipeAction>();
   const remove = async () => {
@@ -35,7 +36,10 @@
     >
       <!-- The button owns interaction; the checkbox only displays query state. -->
       <wa-checkbox {checked} defaultChecked={checked} inert aria-hidden="true"></wa-checkbox>
-      <span class:checked>{item.text}</span>
+      <span class="label" class:checked>
+        {item.text}{#if quantity}
+          <span class="quantity">{` ${quantity}`}</span>{/if}
+      </span>
     </button>
     <wa-button appearance="plain" onclick={onEditItem} disabled={busy}>
       <wa-icon name="pen" label="Edit {item.text}"></wa-icon>
@@ -47,7 +51,7 @@
   .content {
     position: relative;
     width: 100%;
-    height: 100%;
+    min-height: 3rem;
     display: flex;
     align-items: center;
     padding-inline: var(--wa-space-2xs);
@@ -57,7 +61,7 @@
   button {
     flex: 1;
     min-width: 0;
-    height: 100%;
+    min-height: 3rem;
     display: flex;
     align-items: center;
     gap: var(--wa-space-s);
@@ -90,6 +94,17 @@
     &::part(control) {
       margin-inline-end: 0;
     }
+  }
+  .label {
+    font-weight: 500;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    padding-block: var(--wa-space-xs);
+  }
+  .quantity {
+    white-space: nowrap;
+    color: var(--wa-color-neutral-on-quiet);
+    font-weight: 400;
   }
   .checked {
     text-decoration: line-through;
