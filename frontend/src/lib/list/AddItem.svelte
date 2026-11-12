@@ -23,12 +23,14 @@
       if (drawer) drawer.open = false;
     });
   };
-  const open = () => {
+  const open = async () => {
     if (!drawer || !input) return;
 
     // The drawer finds its focus target by attribute; Svelte only sets the input property.
     input.setAttribute("autofocus", "");
     drawer.open = true;
+    await drawer.updateComplete;
+    if (drawer.open) input.focus();
   };
   onDestroy(stop);
   let { error, onAdd }: { error?: unknown; onAdd: (item: NewItem) => Promise<unknown> } = $props();
