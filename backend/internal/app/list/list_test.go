@@ -441,15 +441,19 @@ func TestItemQuantities(t *testing.T) {
 	}))
 	request := func(t *testing.T, method, path, body string, status int) listapi.List {
 		t.Helper()
+
 		req := httptest.NewRequest(method, path, strings.NewReader(body))
 		req.AddCookie(&http.Cookie{Name: "laga_session", Value: f.owner})
+
 		response := httptest.NewRecorder()
 		f.handler.ServeHTTP(response, req)
 		require.Equal(t, status, response.Code, response.Body.String())
+
 		var result listapi.List
 		if status == http.StatusOK {
 			require.NoError(t, json.Unmarshal(response.Body.Bytes(), &result))
 		}
+
 		return result
 	}
 	id := uuid.NewString()
@@ -463,6 +467,7 @@ func TestItemQuantities(t *testing.T) {
 	)
 	require.Equal(t, "1.5", *initial.Items[0].Amount)
 	require.Equal(t, listapi.UnitLiter, *initial.Items[0].Unit)
+
 	for _, tc := range []struct {
 		name, body, amount string
 		unit               listapi.Unit
@@ -480,11 +485,13 @@ func TestItemQuantities(t *testing.T) {
 			result := request(t, http.MethodPatch, path, tc.body, http.StatusOK)
 			item := result.Items[0]
 			require.Equal(t, "Milk", item.Text)
+
 			if tc.amount == "" {
 				require.Nil(t, item.Amount)
 			} else {
 				require.Equal(t, tc.amount, *item.Amount)
 			}
+
 			if tc.unit == "" {
 				require.Nil(t, item.Unit)
 			} else {
@@ -498,6 +505,7 @@ func TestItemQuantities(t *testing.T) {
 			)
 		})
 	}
+
 	for _, body := range []string{
 		`{"amount":0}`, `{"amount":"0"}`, `{"amount":"-1"}`, `{"amount":"NaN"}`,
 		`{"amount":"1e3"}`, `{"amount":"1.2.3"}`, `{"amount":""}`,
@@ -514,10 +522,12 @@ func TestItemQuantities(t *testing.T) {
 			if strings.Contains(body, `"text"`) || strings.Contains(body, `"checked"`) {
 				return
 			}
+
 			createBody := `{"id":"` + uuid.NewString() + `","text":"Invalid",` + body[1:]
 			request(t, http.MethodPost, "/lists/list/items", createBody, http.StatusBadRequest)
 		})
 	}
+
 	for _, unit := range []listapi.Unit{listapi.UnitPiece, listapi.UnitPackage, listapi.UnitKilogram, listapi.UnitGram, listapi.UnitLiter, listapi.UnitDeciliter, listapi.UnitCentiliter, listapi.UnitMilliliter} {
 		result := request(t, http.MethodPatch, path, `{"unit":"`+string(unit)+`"}`, http.StatusOK)
 		require.Equal(t, unit, *result.Items[0].Unit)

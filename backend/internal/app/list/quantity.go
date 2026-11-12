@@ -43,7 +43,9 @@ func normalizeAmount(amount *string) bool {
 	if amount == nil {
 		return true
 	}
+
 	*amount = strings.ReplaceAll(strings.TrimSpace(*amount), ",", ".")
+
 	return len(*amount) <= 100 && decimalAmount.MatchString(*amount) &&
 		strings.Trim(*amount, "0.") != ""
 }

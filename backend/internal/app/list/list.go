@@ -412,12 +412,15 @@ func readItem(w http.ResponseWriter, r *http.Request) (itemInput, bool) {
 			"Amount must be a positive decimal with at most 100 characters",
 			http.StatusBadRequest,
 		)
+
 		return body, false
 	}
+
 	if body.Unit != nil && !body.Unit.valid() {
 		http.Error(w, "Unsupported unit", http.StatusBadRequest)
 		return body, false
 	}
+
 	return body, true
 }
 
@@ -491,6 +494,7 @@ func (h *Handler) updateItem(w http.ResponseWriter, r *http.Request) {
 			"Provide text, department, checked, amount or unit fields",
 			http.StatusBadRequest,
 		)
+
 		return
 	}
 
@@ -510,20 +514,25 @@ func (h *Handler) updateItem(w http.ResponseWriter, r *http.Request) {
 			"Amount must be a positive decimal with at most 100 characters",
 			http.StatusBadRequest,
 		)
+
 		return
 	}
+
 	if body.Unit.value != nil && !body.Unit.value.valid() {
 		http.Error(w, "Unsupported unit", http.StatusBadRequest)
 		return
 	}
+
 	h.mutate(w, r, func(q *db.Queries) error {
 		var setAmount, setUnit int64
 		if body.Amount.set {
 			setAmount = 1
 		}
+
 		if body.Unit.set {
 			setUnit = 1
 		}
+
 		var setChecked, checked int64
 		if body.Checked.set {
 			setChecked = 1

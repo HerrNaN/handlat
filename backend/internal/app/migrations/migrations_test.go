@@ -154,9 +154,12 @@ func TestQuantitiesPreserveExistingItems(t *testing.T) {
 	)
 	require.NoError(t, err)
 	require.NoError(t, Up(conn))
-	var text, department string
-	var amount, unit *string
-	var created, checked int64
+
+	var (
+		text, department string
+		amount, unit     *string
+		created, checked int64
+	)
 	require.NoError(
 		t,
 		conn.QueryRowContext(ctx, "SELECT text, department, created_at, checked_at, amount, unit FROM items").
@@ -168,6 +171,7 @@ func TestQuantitiesPreserveExistingItems(t *testing.T) {
 	require.EqualValues(t, 2, checked)
 	require.Nil(t, amount)
 	require.Nil(t, unit)
+
 	_, err = conn.ExecContext(ctx, "UPDATE items SET amount = '500', unit = 'g'")
 	require.NoError(t, err)
 	_, err = conn.ExecContext(ctx, "UPDATE items SET unit = 'kilograms'")
