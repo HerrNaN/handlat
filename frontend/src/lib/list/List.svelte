@@ -65,12 +65,6 @@
     void query.refetch();
   };
   let editItemDialog = $state<WaDialog>();
-  let emptyArea = $state<HTMLDivElement>();
-  let emptyHeight = $state<number>();
-  const onAddOpenChange = (open: boolean) => {
-    // Measure before the FAB disappears or the keyboard reduces the viewport.
-    emptyHeight = open ? emptyArea?.getBoundingClientRect().height : undefined;
-  };
   let itemToEditID = $state("");
   const itemToEdit = $derived(query.data?.items.find((item) => item.id === itemToEditID));
   const onClickEditItem = (item: Item) => {
@@ -111,12 +105,7 @@
     {:else if query.data}
       {#key query.data.id}
         {#if query.data.items.length === 0 && !error}
-          <div
-            class="empty-area"
-            bind:this={emptyArea}
-            style:flex={emptyHeight === undefined ? undefined : "none"}
-            style:height={emptyHeight === undefined ? undefined : `${emptyHeight}px`}
-          >
+          <div class="empty-area">
             <EmptyState
               illustration={emptyShoppingList}
               heading="What do you need to buy?"
@@ -133,11 +122,7 @@
           onDelete={(itemID) => remove.mutateAsync({ ...target, itemID })}
           onClear={() => clear.mutate({ ...target })}
         />
-        <AddItem
-          {error}
-          onOpenChange={onAddOpenChange}
-          onAdd={(item) => addition.mutateAsync({ ...target, item })}
-        />
+        <AddItem {error} onAdd={(item) => addition.mutateAsync({ ...target, item })} />
       {/key}
     {/if}
   </div>
@@ -165,6 +150,7 @@
   }
 
   article {
+    position: relative;
     height: 100%;
     display: flex;
     flex-direction: column;
@@ -182,7 +168,11 @@
   }
 
   .empty-area {
-    flex: 1;
+    position: absolute;
+    inset-inline: 0;
+    /* Anchor to the stable viewport, independent of the drawer and keyboard. */
+    top: 50svh;
+    transform: translateY(-50%);
     display: flex;
   }
 
