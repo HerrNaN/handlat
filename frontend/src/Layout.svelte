@@ -70,6 +70,7 @@
 <style>
   :global(body) {
     margin: 0;
+    -webkit-tap-highlight-color: transparent;
   }
 
   main {
@@ -104,6 +105,7 @@
       &::part(base) {
         width: 100%;
         height: 100%;
+        background-color: transparent;
       }
     }
 
