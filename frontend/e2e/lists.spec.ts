@@ -339,7 +339,7 @@ test("parses quantities and edits amount and unit independently", async ({ page,
 
   update = patch();
   await unit.click();
-  await page.getByRole("option", { name: "No unit", exact: true }).click();
+  await page.getByRole("option", { name: "–", exact: true }).click();
   expect((await update).postDataJSON()).toEqual({ unit: null });
   await expect(amount).toBeEnabled();
   await dialog.getByRole("button", { name: "Close", exact: true }).click();

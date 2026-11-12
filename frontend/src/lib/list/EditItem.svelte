@@ -62,7 +62,7 @@
       oninput={(event: Event) => (event.currentTarget as WaInput).setCustomValidity("")}
     ></wa-input>
     <wa-select label="Unit" value={unit} onchange={onChangeUnit}>
-      <wa-option value="none">No unit</wa-option>
+      <wa-option value="none">–</wa-option>
       {#each units as unit (unit)}
         <wa-option value={unit}>{unit}</wa-option>
       {/each}
