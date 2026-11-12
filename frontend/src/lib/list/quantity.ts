@@ -21,12 +21,16 @@ type ParsedItem = { text: string; amount?: string; unit?: Unit };
 
 export const parseItemInput = (input: string): ParsedItem => {
   const text = input.trim();
-  const match = /^(\S+)\s+(.+)$/s.exec(text);
+  const match = /^([0-9]+(?:[.,][0-9]+)?)(\S*)\s+(.+)$/s.exec(text);
   if (!match) return { text };
   const amount = AmountSchema.safeParse(match[1]);
   if (!amount.success) return { text };
 
-  const rest = match[2]!.trim();
+  const rest = match[3]!.trim();
+  if (match[2]) {
+    const unit = UnitSchema.safeParse(match[2]);
+    return unit.success ? { text: rest, amount: amount.data, unit: unit.data } : { text };
+  }
   const unitMatch = /^(\S+)\s+(.+)$/s.exec(rest);
   const unit = UnitSchema.safeParse(unitMatch?.[1]);
   if (unit.success && unitMatch) {

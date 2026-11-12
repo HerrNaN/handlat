@@ -7,6 +7,14 @@ describe("item quantities", () => {
     ["milk", { text: "milk" }],
     ["  1,5 kg potatoes  ", { text: "potatoes", amount: "1.5", unit: "kg" }],
     ["1.25 l milk", { text: "milk", amount: "1.25", unit: "l" }],
+    ["1kg potatis", { text: "potatis", amount: "1", unit: "kg" }],
+    ["1,5kg potatis", { text: "potatis", amount: "1.5", unit: "kg" }],
+    ["1.25l milk", { text: "milk", amount: "1.25", unit: "l" }],
+    ["2bags potatoes", { text: "2bags potatoes" }],
+    ["2KG potatoes", { text: "2KG potatoes" }],
+    ["2kg", { text: "2kg" }],
+    ["7up soda", { text: "7up soda" }],
+    ["1,2,3kg potatoes", { text: "1,2,3kg potatoes" }],
     ["3 milk", { text: "milk", amount: "3" }],
     ["2 bags potatoes", { text: "bags potatoes", amount: "2" }],
     ["2 kilograms potatoes", { text: "kilograms potatoes", amount: "2" }],
@@ -25,6 +33,12 @@ describe("item quantities", () => {
   });
 
   it.each(units)("recognizes the exact unit %s", (unit) => {
-    expect(parseItemInput(`2 ${unit} groceries`)).toEqual({ text: "groceries", amount: "2", unit });
+    for (const gap of ["", " "]) {
+      expect(parseItemInput(`2${gap}${unit} groceries`)).toEqual({
+        text: "groceries",
+        amount: "2",
+        unit,
+      });
+    }
   });
 });

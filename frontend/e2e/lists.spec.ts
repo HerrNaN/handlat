@@ -300,7 +300,7 @@ test("parses quantities and edits amount and unit independently", async ({ page,
   await page.getByRole("button", { name: "New list", exact: true }).click();
   await page.getByRole("button", { name: "Add item", exact: true }).click();
   const input = page.getByPlaceholder("t.ex. 2 kg potatis");
-  await input.fill("1,5 kg Potatoes");
+  await input.fill("1,5kg Potatoes");
   await input.press("Enter");
   await input.press("Escape");
   await expect(page.getByRole("checkbox", { name: "Potatoes 1,5 kg", exact: true })).toBeVisible();
