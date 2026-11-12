@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/google/uuid"
@@ -428,6 +429,11 @@ func (h *Handler) addItem(w http.ResponseWriter, r *http.Request) {
 	body, ok := readItem(w, r)
 	if !ok {
 		return
+	}
+
+	first, size := utf8.DecodeRuneInString(body.Text)
+	if unicode.IsLower(first) {
+		body.Text = string(unicode.ToUpper(first)) + body.Text[size:]
 	}
 
 	h.mutate(w, r, func(q *db.Queries) error {

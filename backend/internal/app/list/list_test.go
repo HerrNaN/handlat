@@ -238,34 +238,50 @@ func TestDeleteList(t *testing.T) {
 }
 
 func TestAddItem(t *testing.T) {
-	f := newFixture(t)
-	q := listdb.New(f.conn)
-	require.NoError(t, seedList(t.Context(), q, seedListParams{
-		ID: "list", UserID: []byte("owner"), Name: "Groceries", Now: time.Now().Unix(),
-	}))
+	for _, tc := range []struct {
+		input string
+		want  string
+	}{
+		{"milk", "Milk"},
+		{"Milk", "Milk"},
+		{"mILK", "MILK"},
+		{"oat milk", "Oat milk"},
+		{"  äpplen  ", "Äpplen"},
+		{"öl", "Öl"},
+		{"7up soda", "7up soda"},
+		{"🍎 apples", "🍎 apples"},
+	} {
+		t.Run(tc.input, func(t *testing.T) {
+			f := newFixture(t)
+			q := listdb.New(f.conn)
+			require.NoError(t, seedList(t.Context(), q, seedListParams{
+				ID: "list", UserID: []byte("owner"), Name: "Groceries", Now: time.Now().Unix(),
+			}))
 
-	id := uuid.NewString()
-	req := httptest.NewRequest(
-		http.MethodPost,
-		"/lists/list/items",
-		strings.NewReader(`{"id":"`+id+`","text":"Milk"}`),
-	)
-	req.AddCookie(&http.Cookie{Name: "laga_session", Value: f.owner})
-	req.Header.Set("Content-Type", "application/json")
+			id := uuid.NewString()
+			req := httptest.NewRequest(
+				http.MethodPost,
+				"/lists/list/items",
+				strings.NewReader(`{"id":"`+id+`","text":"`+tc.input+`"}`),
+			)
+			req.AddCookie(&http.Cookie{Name: "laga_session", Value: f.owner})
+			req.Header.Set("Content-Type", "application/json")
 
-	response := httptest.NewRecorder()
+			response := httptest.NewRecorder()
 
-	f.handler.ServeHTTP(response, req)
-	require.Equal(t, http.StatusOK, response.Code)
+			f.handler.ServeHTTP(response, req)
+			require.Equal(t, http.StatusOK, response.Code)
 
-	var list listapi.List
-	require.NoError(t, json.Unmarshal(response.Body.Bytes(), &list))
-	require.Len(t, list.Items, 1)
-	require.Equal(t, id, list.Items[0].ID)
-	require.Equal(t, "Milk", list.Items[0].Text)
-	require.Equal(t, "other", list.Items[0].Department)
-	require.NotEmpty(t, list.Items[0].CreatedAt)
-	require.Nil(t, list.Items[0].CheckedAt)
+			var list listapi.List
+			require.NoError(t, json.Unmarshal(response.Body.Bytes(), &list))
+			require.Len(t, list.Items, 1)
+			require.Equal(t, id, list.Items[0].ID)
+			require.Equal(t, tc.want, list.Items[0].Text)
+			require.Equal(t, "other", list.Items[0].Department)
+			require.NotEmpty(t, list.Items[0].CreatedAt)
+			require.Nil(t, list.Items[0].CheckedAt)
+		})
+	}
 }
 
 func TestUpdateItem(t *testing.T) {
@@ -276,7 +292,7 @@ func TestUpdateItem(t *testing.T) {
 		department string
 		checked    bool
 	}{
-		{"text", `{"text":"Oat milk"}`, "Oat milk", "other", true},
+		{"text", `{"text":"oat milk"}`, "oat milk", "other", true},
 		{"department", `{"department":"dairy"}`, "Milk", "dairy", true},
 		{"check", `{"checked":true}`, "Milk", "other", true},
 		{"uncheck", `{"checked":false}`, "Milk", "other", false},
