@@ -306,7 +306,7 @@ test("parses quantities and edits amount and unit independently", async ({ page,
   await expect(page.getByRole("checkbox", { name: "Potatoes 1,5 kg", exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "Edit Potatoes", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "Edit Item", exact: true });
+  const dialog = page.locator('wa-dialog[label="Edit Item"]');
   const amount = dialog.getByRole("textbox", { name: "Amount", exact: true });
   const unit = dialog.getByRole("combobox", { name: "Unit", exact: true });
   await expect(amount).toHaveValue("1,5");
