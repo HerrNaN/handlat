@@ -37,7 +37,7 @@
       <!-- The button owns interaction; the checkbox only displays query state. -->
       <wa-checkbox {checked} defaultChecked={checked} inert aria-hidden="true"></wa-checkbox>
       <span class="label" class:checked>
-        <span class:with-quantity={Boolean(quantity)}>{item.text}</span>{#if quantity}
+        {item.text}{#if quantity}
           <span class="quantity">{` ${quantity}`}</span>{/if}
       </span>
     </button>
@@ -96,12 +96,10 @@
     }
   }
   .label {
+    font-weight: 500;
     min-width: 0;
     overflow-wrap: anywhere;
     padding-block: var(--wa-space-xs);
-  }
-  .with-quantity {
-    font-weight: 500;
   }
   .quantity {
     white-space: nowrap;
