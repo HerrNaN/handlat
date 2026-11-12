@@ -16,8 +16,18 @@ test("closes the item drawer after keyboard viewport recovery and preserves the 
 
   const add = page.getByRole("button", { name: "Add item", exact: true });
   const input = page.getByPlaceholder("t.ex. 2 kg potatis");
+  const illustration = page.locator('img[src*="empty-shopping-list"]');
+  await expect(illustration).toBeVisible();
+  const initialBounds = await illustration.boundingBox();
+  expect(initialBounds).not.toBeNull();
+  const expectIllustrationInPlace = async () => {
+    await expect
+      .poll(async () => (await illustration.boundingBox())?.y)
+      .toBeCloseTo(initialBounds!.y, 0);
+  };
   await add.click();
   await expect(input).toBeFocused();
+  await expectIllustrationInPlace();
   let additions = 0;
   page.on("request", (request) => {
     if (request.method() === "POST" && /\/api\/lists\/[^/]+\/items$/.test(request.url())) {
@@ -36,9 +46,11 @@ test("closes the item drawer after keyboard viewport recovery and preserves the 
       }),
   );
   await expect(input).toBeVisible();
+  await expectIllustrationInPlace();
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(input).not.toBeVisible();
   await expect(add).toBeVisible();
+  await expectIllustrationInPlace();
 
   await add.click();
   await expect(input).toBeFocused();

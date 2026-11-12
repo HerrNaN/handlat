@@ -29,12 +29,21 @@
 
     // The drawer finds its focus target by attribute; Svelte only sets the input property.
     input.setAttribute("autofocus", "");
+    onOpenChange?.(true);
     drawer.open = true;
     await drawer.updateComplete;
     if (drawer.open) input.focus();
   };
   onDestroy(stop);
-  let { error, onAdd }: { error?: unknown; onAdd: (item: NewItem) => Promise<unknown> } = $props();
+  let {
+    error,
+    onAdd,
+    onOpenChange,
+  }: {
+    error?: unknown;
+    onAdd: (item: NewItem) => Promise<unknown>;
+    onOpenChange?: (open: boolean) => void;
+  } = $props();
 
   const handleAdd = async () => {
     if (!input) return;
@@ -71,7 +80,10 @@
     light-dismiss
     without-header
     onwa-show={show}
-    onwa-hide={stop}
+    onwa-hide={() => {
+      stop();
+      onOpenChange?.(false);
+    }}
   >
     <wa-input
       bind:this={input}

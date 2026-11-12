@@ -65,6 +65,12 @@
     void query.refetch();
   };
   let editItemDialog = $state<WaDialog>();
+  let emptyArea = $state<HTMLDivElement>();
+  let emptyHeight = $state<number>();
+  const onAddOpenChange = (open: boolean) => {
+    // Measure before the FAB disappears or the keyboard reduces the viewport.
+    emptyHeight = open ? emptyArea?.getBoundingClientRect().height : undefined;
+  };
   let itemToEditID = $state("");
   const itemToEdit = $derived(query.data?.items.find((item) => item.id === itemToEditID));
   const onClickEditItem = (item: Item) => {
@@ -105,11 +111,18 @@
     {:else if query.data}
       {#key query.data.id}
         {#if query.data.items.length === 0 && !error}
-          <EmptyState
-            illustration={emptyShoppingList}
-            heading="What do you need to buy?"
-            description="Add your first item using the plus button."
-          />
+          <div
+            class="empty-area"
+            bind:this={emptyArea}
+            style:flex={emptyHeight === undefined ? undefined : "none"}
+            style:height={emptyHeight === undefined ? undefined : `${emptyHeight}px`}
+          >
+            <EmptyState
+              illustration={emptyShoppingList}
+              heading="What do you need to buy?"
+              description="Add your first item using the plus button."
+            />
+          </div>
         {/if}
         <ItemList
           items={query.data.items}
@@ -120,7 +133,11 @@
           onDelete={(itemID) => remove.mutateAsync({ ...target, itemID })}
           onClear={() => clear.mutate({ ...target })}
         />
-        <AddItem {error} onAdd={(item) => addition.mutateAsync({ ...target, item })} />
+        <AddItem
+          {error}
+          onOpenChange={onAddOpenChange}
+          onAdd={(item) => addition.mutateAsync({ ...target, item })}
+        />
       {/key}
     {/if}
   </div>
@@ -162,6 +179,11 @@
     flex-direction: column;
     overflow-y: auto;
     background-color: var(--wa-color-surface-lowered);
+  }
+
+  .empty-area {
+    flex: 1;
+    display: flex;
   }
 
   header {
