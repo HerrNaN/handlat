@@ -26,16 +26,19 @@ DELETE FROM lists WHERE id = @id AND NOT EXISTS (SELECT 1 FROM list_members WHER
 SELECT * FROM items WHERE list_id = @list_id AND deleted_at IS NULL ORDER BY created_at, id;
 
 -- name: AddItem :exec
-INSERT INTO items (id, list_id, text, department, created_at)
-VALUES (@id, @list_id, @text, @department, @created_at)
+INSERT INTO items (id, list_id, text, department, created_at, amount, unit)
+VALUES (@id, @list_id, @text, @department, @created_at, sqlc.narg('amount'), sqlc.narg('unit'))
 ON CONFLICT (list_id, id) DO NOTHING;
 
 -- name: UpdateItem :exec
 -- narg makes omitted PATCH fields nullable parameters despite NOT NULL columns.
--- COALESCE preserves the current value; explicit JSON null is rejected by the API.
+-- COALESCE preserves text and department; explicit null is rejected for those fields.
+-- Separate presence flags let amount and unit be explicitly cleared with null.
 UPDATE items SET
     text = COALESCE(sqlc.narg('text'), text),
     department = COALESCE(sqlc.narg('department'), department),
+    amount = CASE WHEN CAST(@set_amount AS INTEGER) THEN sqlc.narg('amount') ELSE amount END,
+    unit = CASE WHEN CAST(@set_unit AS INTEGER) THEN sqlc.narg('unit') ELSE unit END,
     checked_at = CASE WHEN CAST(@set_checked AS INTEGER) THEN
         CASE WHEN CAST(@checked AS INTEGER) THEN COALESCE(checked_at, CAST(@now AS INTEGER)) ELSE NULL END
         ELSE checked_at END

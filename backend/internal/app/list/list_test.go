@@ -432,3 +432,94 @@ func TestListSummaries(t *testing.T) {
 	require.Equal(t, "Groceries", summaries[0].Name)
 	require.EqualValues(t, 1, summaries[0].ItemCount)
 }
+
+func TestItemQuantities(t *testing.T) {
+	f := newFixture(t)
+	q := listdb.New(f.conn)
+	require.NoError(t, seedList(t.Context(), q, seedListParams{
+		ID: "list", UserID: []byte("owner"), Name: "Groceries", Now: time.Now().Unix(),
+	}))
+	request := func(t *testing.T, method, path, body string, status int) listapi.List {
+		t.Helper()
+		req := httptest.NewRequest(method, path, strings.NewReader(body))
+		req.AddCookie(&http.Cookie{Name: "laga_session", Value: f.owner})
+		response := httptest.NewRecorder()
+		f.handler.ServeHTTP(response, req)
+		require.Equal(t, status, response.Code, response.Body.String())
+		var result listapi.List
+		if status == http.StatusOK {
+			require.NoError(t, json.Unmarshal(response.Body.Bytes(), &result))
+		}
+		return result
+	}
+	id := uuid.NewString()
+	path := "/lists/list/items/" + id
+	initial := request(
+		t,
+		http.MethodPost,
+		"/lists/list/items",
+		`{"id":"`+id+`","text":"Milk","amount":"1,5","unit":"l"}`,
+		http.StatusOK,
+	)
+	require.Equal(t, "1.5", *initial.Items[0].Amount)
+	require.Equal(t, listapi.UnitLiter, *initial.Items[0].Unit)
+	for _, tc := range []struct {
+		name, body, amount string
+		unit               listapi.Unit
+	}{
+		{"amount only", `{"amount":"2.25"}`, "2.25", listapi.UnitLiter},
+		{"unit only", `{"unit":"dl"}`, "2.25", listapi.UnitDeciliter},
+		{"unrelated patch", `{"checked":true}`, "2.25", listapi.UnitDeciliter},
+		{"clear amount", `{"amount":null}`, "", listapi.UnitDeciliter},
+		{"set amount without unit change", `{"amount":"9007199254740993.123456789"}`, "9007199254740993.123456789", listapi.UnitDeciliter},
+		{"clear unit", `{"unit":null}`, "9007199254740993.123456789", ""},
+		{"clear both", `{"amount":null,"unit":null}`, "", ""},
+		{"unit without amount", `{"unit":"förp"}`, "", listapi.UnitPackage},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			result := request(t, http.MethodPatch, path, tc.body, http.StatusOK)
+			item := result.Items[0]
+			require.Equal(t, "Milk", item.Text)
+			if tc.amount == "" {
+				require.Nil(t, item.Amount)
+			} else {
+				require.Equal(t, tc.amount, *item.Amount)
+			}
+			if tc.unit == "" {
+				require.Nil(t, item.Unit)
+			} else {
+				require.Equal(t, tc.unit, *item.Unit)
+			}
+			// A fresh read verifies persisted state rather than just the mutation response.
+			require.Equal(
+				t,
+				result.Items,
+				request(t, http.MethodGet, "/lists/list", "", http.StatusOK).Items,
+			)
+		})
+	}
+	for _, body := range []string{
+		`{"amount":0}`, `{"amount":"0"}`, `{"amount":"-1"}`, `{"amount":"NaN"}`,
+		`{"amount":"1e3"}`, `{"amount":"1.2.3"}`, `{"amount":""}`,
+		`{"amount":"` + strings.Repeat("1", 101) + `"}`,
+		`{"unit":"kilogram"}`, `{"unit":"KG"}`, `{"unit":""}`, `{"unit":1}`,
+		`{"amount":"2","unit":"invalid"}`, `{"text":null}`, `{"checked":null}`,
+	} {
+		t.Run(body, func(t *testing.T) {
+			request(t, http.MethodPatch, path, body, http.StatusBadRequest)
+			result := request(t, http.MethodGet, "/lists/list", "", http.StatusOK)
+			require.Nil(t, result.Items[0].Amount)
+			require.Equal(t, listapi.UnitPackage, *result.Items[0].Unit)
+			// Creation follows the same quantity validation as patching.
+			if strings.Contains(body, `"text"`) || strings.Contains(body, `"checked"`) {
+				return
+			}
+			createBody := `{"id":"` + uuid.NewString() + `","text":"Invalid",` + body[1:]
+			request(t, http.MethodPost, "/lists/list/items", createBody, http.StatusBadRequest)
+		})
+	}
+	for _, unit := range []listapi.Unit{listapi.UnitPiece, listapi.UnitPackage, listapi.UnitKilogram, listapi.UnitGram, listapi.UnitLiter, listapi.UnitDeciliter, listapi.UnitCentiliter, listapi.UnitMilliliter} {
+		result := request(t, http.MethodPatch, path, `{"unit":"`+string(unit)+`"}`, http.StatusOK)
+		require.Equal(t, unit, *result.Items[0].Unit)
+	}
+}

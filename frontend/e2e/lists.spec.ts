@@ -290,3 +290,58 @@ test("renames a list from both actions menus and deletes it from the open list",
   await expect(page).toHaveURL(/\/lists$/);
   await expect(page.getByRole("link", { name: /Weekend groceries/ })).toHaveCount(0);
 });
+
+test("parses quantities and edits amount and unit independently", async ({ page, context }) => {
+  await context.credentials.install();
+  await page.goto("/login");
+  await page.getByRole("button", { name: "Create Account" }).click();
+  await expect(page).toHaveURL(/\/user$/);
+  await page.goto("/lists");
+  await page.getByRole("button", { name: "New list", exact: true }).click();
+  await page.getByRole("button", { name: "Add item", exact: true }).click();
+  const input = page.getByPlaceholder("t.ex. 2 kg potatis");
+  await input.fill("1,5 kg Potatoes");
+  await input.press("Enter");
+  await input.press("Escape");
+  await expect(page.getByRole("checkbox", { name: "Potatoes 1,5 kg", exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Edit Potatoes", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Edit Item", exact: true });
+  const amount = dialog.getByRole("textbox", { name: "Amount", exact: true });
+  const unit = dialog.getByRole("combobox", { name: "Unit", exact: true });
+  await expect(amount).toHaveValue("1,5");
+
+  const patch = () => page.waitForRequest((request) => request.method() === "PATCH");
+  let update = patch();
+  await amount.fill("2.25");
+  await amount.press("Tab");
+  expect((await update).postDataJSON()).toEqual({ amount: "2.25" });
+  await expect(amount).toBeEnabled();
+  await expect(page.getByRole("checkbox", { name: "Potatoes 2,25 kg", exact: true })).toHaveCount(
+    1,
+  );
+
+  update = patch();
+  await unit.click();
+  await page.getByRole("option", { name: "g", exact: true }).click();
+  expect((await update).postDataJSON()).toEqual({ unit: "g" });
+  await expect(amount).toBeEnabled();
+  await expect(amount).toHaveValue("2,25");
+
+  update = patch();
+  await amount.fill("");
+  await amount.press("Tab");
+  expect((await update).postDataJSON()).toEqual({ amount: null });
+  await expect(amount).toBeEnabled();
+  await expect(page.getByRole("checkbox", { name: "Potatoes g", exact: true })).toHaveCount(1);
+
+  update = patch();
+  await unit.click();
+  await page.getByRole("option", { name: "No unit", exact: true }).click();
+  expect((await update).postDataJSON()).toEqual({ unit: null });
+  await expect(amount).toBeEnabled();
+  await dialog.getByRole("button", { name: "Close", exact: true }).click();
+  await expect(page.getByRole("checkbox", { name: "Potatoes", exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("checkbox", { name: "Potatoes", exact: true })).toBeVisible();
+});
