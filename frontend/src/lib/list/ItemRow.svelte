@@ -38,7 +38,7 @@
       <wa-checkbox {checked} defaultChecked={checked} inert aria-hidden="true"></wa-checkbox>
       <span class="label" class:checked>
         <span class:with-quantity={Boolean(quantity)}>{item.text}</span>{#if quantity}
-          <span class="quantity">{quantity}</span>{/if}
+          <span class="quantity">{` ${quantity}`}</span>{/if}
       </span>
     </button>
     <wa-button appearance="plain" onclick={onEditItem} disabled={busy}>

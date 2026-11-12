@@ -317,9 +317,9 @@ test("parses quantities and edits amount and unit independently", async ({ page,
   await amount.press("Tab");
   expect((await update).postDataJSON()).toEqual({ amount: "2.25" });
   await expect(amount).toBeEnabled();
-  await expect(page.getByRole("checkbox", { name: "Potatoes 2,25 kg", exact: true })).toHaveCount(
-    1,
-  );
+  await expect(
+    page.getByRole("checkbox", { name: "Potatoes 2,25 kg", exact: true, includeHidden: true }),
+  ).toHaveCount(1);
 
   update = patch();
   await unit.click();
@@ -333,7 +333,9 @@ test("parses quantities and edits amount and unit independently", async ({ page,
   await amount.press("Tab");
   expect((await update).postDataJSON()).toEqual({ amount: null });
   await expect(amount).toBeEnabled();
-  await expect(page.getByRole("checkbox", { name: "Potatoes g", exact: true })).toHaveCount(1);
+  await expect(
+    page.getByRole("checkbox", { name: "Potatoes g", exact: true, includeHidden: true }),
+  ).toHaveCount(1);
 
   update = patch();
   await unit.click();
