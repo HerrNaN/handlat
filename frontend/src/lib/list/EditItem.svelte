@@ -12,11 +12,17 @@
 
   type Props = {
     item: Item;
-    busy: boolean;
     onUpdate: (itemID: string, changes: ItemChanges) => void;
   };
 
-  let { item, busy, onUpdate }: Props = $props();
+  let { item, onUpdate }: Props = $props();
+
+  // Only update a control when its own server value changes. An unrelated save
+  // must not overwrite text currently being entered in another field.
+  const text = $derived(item.text);
+  const amount = $derived(item.amount?.replace(".", ",") ?? "");
+  const unit = $derived(item.unit ?? "none");
+  const department = $derived(item.department);
 
   const onChangeAmount = (event: Event) => {
     const input = event.currentTarget as WaInput;
@@ -46,29 +52,23 @@
 </script>
 
 <section>
-  <wa-input value={item.text} label="Name" onchange={onChangeName} disabled={busy}></wa-input>
+  <wa-input value={text} label="Name" onchange={onChangeName}></wa-input>
   <div>
     <wa-input
-      value={item.amount?.replace(".", ",") ?? ""}
+      value={amount}
       label="Amount"
       inputmode="decimal"
       onchange={onChangeAmount}
       oninput={(event: Event) => (event.currentTarget as WaInput).setCustomValidity("")}
-      disabled={busy}
     ></wa-input>
-    <wa-select label="Unit" value={item.unit ?? "none"} onchange={onChangeUnit} disabled={busy}>
+    <wa-select label="Unit" value={unit} onchange={onChangeUnit}>
       <wa-option value="none">No unit</wa-option>
       {#each units as unit (unit)}
         <wa-option value={unit}>{unit}</wa-option>
       {/each}
     </wa-select>
   </div>
-  <wa-select
-    label="Departement"
-    value={item.department}
-    onchange={onChangeDepartement}
-    disabled={busy}
-  >
+  <wa-select label="Departement" value={department} onchange={onChangeDepartement}>
     {#each departments as dep (dep.id)}
       <wa-option value={dep.id}>
         {dep.name}
