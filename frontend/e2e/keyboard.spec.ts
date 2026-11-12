@@ -16,7 +16,10 @@ test("closes the item drawer after keyboard viewport recovery and preserves the 
 
   const add = page.getByRole("button", { name: "Add item", exact: true });
   const input = page.getByPlaceholder("t.ex. 2 kg potatis");
-  const illustration = page.locator('img[src*="empty-shopping-list"]');
+  const illustration = page
+    .locator("section")
+    .filter({ has: page.getByRole("heading", { name: "What do you need to buy?", exact: true }) })
+    .locator("img");
   await expect(illustration).toBeVisible();
   const initialBounds = await illustration.boundingBox();
   expect(initialBounds).not.toBeNull();
