@@ -13,7 +13,7 @@
     "test:ui": "vitest --ui"
   },
   "dependencies": {
-    "@awesome.me/webawesome": "^3.8.0",
+    "@awesome.me/webawesome": "^3.14.0",
     "@sentry/svelte": "^11.6.0",
     "@simplewebauthn/browser": "^13.3.0",
     "@tanstack/query-core": "5.104.5",
