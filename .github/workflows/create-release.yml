@@ -23,7 +23,7 @@ jobs:
           fetch-tags: true
       - uses: jdx/mise-action@v4
       - id: release
-        run: ./scripts/create-release.sh
+        run: bash scripts/create-release.sh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

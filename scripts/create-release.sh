@@ -8,7 +8,7 @@ scripts=$(dirname "$(realpath "$0")")
 tmpdir=$(mktemp -d)
 trap 'rm -rf "$tmpdir"' EXIT
 tmpfile="$tmpdir/release"
-"$scripts/release-notes.sh" > "$tmpfile"
+bash "$scripts/release-notes.sh" > "$tmpfile"
 version=$(head -1 "$tmpfile")
 
 if [[ "$version" == "No changes since last release." ]]; then
