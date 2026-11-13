@@ -3,4 +3,5 @@ run:
   allow-parallel-runners: true
 linters:
   enable:
+    - errorlint
     - wsl_v5

@@ -1,0 +1,14 @@
+{
+  "overrides": [
+    {
+      "files": ["frontend/src/**/*.test.ts"],
+      "plugins": ["typescript", "unicorn", "oxc", "vitest"],
+      "rules": {
+        "vitest/no-focused-tests": "error",
+        "vitest/valid-expect": "error",
+        "vitest/no-identical-title": "error",
+        "vitest/no-standalone-expect": "error"
+      }
+    }
+  ]
+}

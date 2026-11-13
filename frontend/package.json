@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json",
+    "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json && tsc -p tsconfig.e2e.json",
     "test": "vitest",
     "test:e2e": "playwright test",
     "test:ui": "vitest --ui"
@@ -29,6 +29,7 @@
     "@typescript-eslint/parser": "^8.72.2",
     "@vitest/ui": "^4.1.9",
     "eslint": "^10.14.0",
+    "eslint-plugin-playwright": "^2.12.2",
     "eslint-plugin-svelte": "^3.24.1",
     "oxfmt": "^0.77.0",
     "svelte": "^5.55.5",

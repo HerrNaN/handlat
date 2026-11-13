@@ -46,7 +46,7 @@ steps {
   ["web-oxlint"] = Builtins.ox_lint
   ["web-eslint"] {
     dir = "frontend"
-    glob = List("**/*.svelte", "**/*.svelte.js", "**/*.svelte.ts")
+    glob = List("**/*.svelte", "**/*.svelte.js", "**/*.svelte.ts", "e2e/**/*.ts")
     check = "pnpm exec eslint {{files}}"
     fix = "pnpm exec eslint --fix {{files}}"
   }
