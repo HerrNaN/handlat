@@ -3,5 +3,6 @@ run:
   allow-parallel-runners: true
 linters:
   enable:
+    - contextcheck
     - errorlint
     - wsl_v5

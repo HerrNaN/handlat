@@ -318,8 +318,10 @@ func (h *Handler) finishLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ctx := r.Context()
+
 	lookup := func(rawID, userHandle []byte) (webauthn.User, error) {
-		account, err := h.queries.GetUserByCredential(r.Context(), db.GetUserByCredentialParams{
+		account, err := h.queries.GetUserByCredential(ctx, db.GetUserByCredentialParams{
 			CredentialID: rawID,
 			UserID:       userHandle,
 		})
