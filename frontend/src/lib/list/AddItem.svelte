@@ -59,7 +59,7 @@
   const handleKeydown = (e: KeyboardEvent) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      handleAdd();
+      void handleAdd();
     }
   };
 </script>

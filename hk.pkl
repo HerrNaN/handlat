@@ -43,7 +43,10 @@ steps {
     prefix = List("pnpm", "exec")
     glob = Builtins.oxfmt.glob + List("**/*.svelte")
   }
-  ["web-oxlint"] = Builtins.ox_lint
+  ["web-oxlint"] = (Builtins.ox_lint) {
+    dir = "frontend"
+    prefix = List("pnpm", "exec")
+  }
   ["web-eslint"] {
     dir = "frontend"
     glob = List("**/*.svelte", "**/*.svelte.js", "**/*.svelte.ts", "e2e/**/*.ts")

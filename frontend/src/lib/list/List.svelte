@@ -28,7 +28,11 @@
   } from "./queries";
 
   const target = $derived({ account: $session?.id ?? "", listID: route.params.id ?? "" });
-  const query = createQuery(() => listQuery($session?.id, target.listID, () => navigate("/lists")));
+  const query = createQuery(() =>
+    listQuery($session?.id, target.listID, () => {
+      void navigate("/lists");
+    }),
+  );
   const loading = $derived(query.isPending && !query.data);
   const addition = createMutation(() => addItemMutation());
   const update = createMutation(() => updateItemMutation());
