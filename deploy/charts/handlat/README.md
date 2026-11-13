@@ -1,8 +1,11 @@
 # Handlat Helm chart
 
-Runs one application replica with SQLite at `/data/laga.sqlite` on a persistent
+Runs one application replica with SQLite at `/data/handlat.sqlite` on a persistent
 volume. Upgrades use `Recreate`, so brief downtime is expected. No deployment
 automation or cluster infrastructure is included in the chart.
+
+Configure backups with the same database path. Existing `/data/laga.sqlite`
+databases are not migrated; this change starts a new database.
 
 ## Install
 
