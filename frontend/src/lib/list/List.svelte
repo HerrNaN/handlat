@@ -5,6 +5,8 @@
   import "@awesome.me/webawesome/dist/components/skeleton/skeleton.js";
   import { createMutation, createQuery, useMutationState } from "@tanstack/svelte-query";
 
+  import { onMount } from "svelte";
+
   import { route, navigate } from "../../router";
   import { session } from "../user/session";
   import AddItem from "./AddItem.svelte";
@@ -64,6 +66,13 @@
     dismissListErrors();
     void query.refetch();
   };
+  let article = $state<HTMLElement>();
+  let emptyCenter = $state(0);
+  onMount(() => {
+    // Keep a pixel offset through keyboard opening and dismissal.
+    emptyCenter = (article?.clientHeight ?? 0) / 2;
+  });
+
   let editItemDialog = $state<WaDialog>();
   let itemToEditID = $state("");
   const itemToEdit = $derived(query.data?.items.find((item) => item.id === itemToEditID));
@@ -73,7 +82,7 @@
   };
 </script>
 
-<article>
+<article bind:this={article}>
   <header>
     <wa-button appearance="plain" onclick={() => navigate("/lists")}>
       <wa-icon name="arrow-left" label="Back"></wa-icon>
@@ -105,7 +114,7 @@
     {:else if query.data}
       {#key query.data.id}
         {#if query.data.items.length === 0 && !error}
-          <div class="empty-area">
+          <div class="empty-area" style:top={`${emptyCenter}px`}>
             <EmptyState
               illustration={emptyShoppingList}
               heading="What do you need to buy?"
@@ -170,8 +179,6 @@
   .empty-area {
     position: absolute;
     inset-inline: 0;
-    /* Anchor to the large viewport, with browser controls retracted. */
-    top: 50lvh;
     transform: translateY(-50%);
     display: flex;
   }
