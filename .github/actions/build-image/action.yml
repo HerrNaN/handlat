@@ -1,6 +1,9 @@
 name: Build Image
 description: Build container image
 inputs:
+  tags:
+    required: false
+    description: Space-separated image tags, overriding event-based defaults
   github-token:
     required: true
     description: Github Token
@@ -16,8 +19,12 @@ runs:
     - name: Generate Image Tags
       id: tags
       shell: bash
+      env:
+        IMAGE_TAGS: ${{ inputs.tags }}
       run: |
-        if [ "${{ github.event_name }}" == "pull_request" ]; then
+        if [ -n "$IMAGE_TAGS" ]; then
+          TAGS="$IMAGE_TAGS"
+        elif [ "${{ github.event_name }}" == "pull_request" ]; then
           TAGS="pr-${{ github.event.pull_request.number }} ${{ github.event.pull_request.head.sha }}"
         elif [ "${{ github.event_name }}" == "push" ] || [ "${{ github.ref_name }}" == "main" ]; then
           TAGS="devel ${{ github.sha }}"
