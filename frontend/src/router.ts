@@ -4,6 +4,8 @@ import { hasActiveSession } from "./lib/user/session";
 
 // Use sv-router's supported code splitting to load pages without eager
 // component/router import cycles.
+// sv-router's returned helpers are designed to be destructured and do not use `this`.
+// oxlint-disable-next-line typescript/unbound-method
 export const { p, navigate, isActive, route } = createRouter({
   "/invitations/:token": () => import("./lib/list/Invitation.svelte"),
   "/login": () => import("./lib/user/Authenticate.svelte"),

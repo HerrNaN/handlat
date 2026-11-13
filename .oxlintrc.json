@@ -1,4 +1,12 @@
 {
+  "options": {
+    "typeAware": true
+  },
+  "rules": {
+    "typescript/no-floating-promises": "error",
+    "typescript/no-misused-promises": "error",
+    "typescript/await-thenable": "error"
+  },
   "overrides": [
     {
       "files": ["frontend/src/**/*.test.ts"],

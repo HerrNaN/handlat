@@ -151,7 +151,7 @@ export const checkItemMutation = (): MutationOptions<
   ...listMutationOptions,
   mutationFn: ({ listID, itemID, checked }) => setItemChecked(listID, itemID, checked),
   onMutate: async (target) => {
-    await listMutationOptions.onMutate(target);
+    listMutationOptions.onMutate(target);
     const key = listKey(target.account, target.listID);
     const previous = queryClient
       .getQueryData<ShoppingList>(key)

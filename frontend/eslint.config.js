@@ -1,3 +1,4 @@
+import tsPlugin from "@typescript-eslint/eslint-plugin";
 import tsParser from "@typescript-eslint/parser";
 import playwright from "eslint-plugin-playwright";
 import svelte from "eslint-plugin-svelte";
@@ -9,11 +10,20 @@ export default defineConfig(
   {
     files: ["**/*.svelte", "**/*.svelte.{js,ts}"],
     extends: [svelte.configs.recommended],
+    plugins: { "@typescript-eslint": tsPlugin },
     languageOptions: {
       parserOptions: {
         parser: tsParser,
+        projectService: true,
+        extraFileExtensions: [".svelte"],
         svelteConfig,
       },
+    },
+    // Oxlint's type-aware engine does not analyze embedded Svelte scripts.
+    rules: {
+      "@typescript-eslint/no-floating-promises": "error",
+      "@typescript-eslint/no-misused-promises": "error",
+      "@typescript-eslint/await-thenable": "error",
     },
   },
   {
