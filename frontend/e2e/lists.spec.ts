@@ -26,9 +26,9 @@ test("keeps item input focused and editable while saving", async ({ page, contex
   });
   // Record even temporary focus loss; restoring focus later is insufficient on mobile.
   await input.evaluate((element) => {
-    element.setAttribute("data-blurs", "0");
+    element.dataset.blurs = "0";
     element.addEventListener("blur", () => {
-      element.setAttribute("data-blurs", String(Number(element.getAttribute("data-blurs")) + 1));
+      element.dataset.blurs = String(Number(element.dataset.blurs) + 1);
     });
   });
   try {
@@ -384,9 +384,9 @@ test("keeps focus and typed text when switching edit fields during a save", asyn
     await expect(amount).toBeFocused();
     await expect(amount).toBeEditable();
     await amount.evaluate((element) => {
-      element.setAttribute("data-blurs", "0");
+      element.dataset.blurs = "0";
       element.addEventListener("blur", () => {
-        element.setAttribute("data-blurs", String(Number(element.getAttribute("data-blurs")) + 1));
+        element.dataset.blurs = String(Number(element.dataset.blurs) + 1);
       });
     });
     // Typing directly cannot silently restore focus lost during the save.

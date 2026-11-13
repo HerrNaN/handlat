@@ -29,7 +29,7 @@ const resize = (height: number) => {
 };
 describe("observeKeyboardDismissal", () => {
   it("detects dismissal after a keyboard-sized shrink and removes listeners on cleanup", () => {
-    const dismissed = vi.fn();
+    const dismissed = vi.fn<() => void>();
     const stop = observeKeyboardDismissal(dismissed);
     resize(740); // Browser toolbar changes alone must not arm dismissal.
     resize(800);
@@ -46,7 +46,7 @@ describe("observeKeyboardDismissal", () => {
   });
 
   it("discards viewport comparisons across rotation and zoom", () => {
-    const dismissed = vi.fn();
+    const dismissed = vi.fn<() => void>();
     const stop = observeKeyboardDismissal(dismissed);
     resize(500);
     viewport.width = 800;
@@ -62,7 +62,7 @@ describe("observeKeyboardDismissal", () => {
 
   it("leaves the editor open without a software keyboard and on desktop resize", () => {
     coarse = false;
-    const dismissed = vi.fn();
+    const dismissed = vi.fn<() => void>();
     const stop = observeKeyboardDismissal(dismissed);
     resize(400);
     resize(800);
