@@ -170,8 +170,8 @@
   .empty-area {
     position: absolute;
     inset-inline: 0;
-    /* Anchor to the stable viewport, independent of the drawer and keyboard. */
-    top: 50svh;
+    /* Anchor to the large viewport, with browser controls retracted. */
+    top: 50lvh;
     transform: translateY(-50%);
     display: flex;
   }
