@@ -1,6 +1,11 @@
 name: Create Release
 on:
   workflow_dispatch:
+    inputs:
+      first-stable-release:
+        description: Promote 0.x to 1.0.0
+        type: boolean
+        default: false
 
 concurrency:
   group: create-release
@@ -26,6 +31,7 @@ jobs:
         run: bash scripts/create-release.sh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FIRST_STABLE_RELEASE: ${{ inputs.first-stable-release }}
 
   # GITHUB_TOKEN-created releases do not trigger release event workflows.
   publish-release:
