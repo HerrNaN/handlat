@@ -4,6 +4,7 @@
   import "@awesome.me/webawesome/dist/components/icon/icon.js";
   import "@awesome.me/webawesome/dist/components/skeleton/skeleton.js";
   import { createMutation, createQuery, useMutationState } from "@tanstack/svelte-query";
+  import { onMount } from "svelte";
 
   import { route, navigate } from "../../router";
   import { session } from "../user/session";
@@ -64,6 +65,13 @@
     dismissListErrors();
     void query.refetch();
   };
+  let article = $state<HTMLElement>();
+  let emptyCenter = $state(0);
+  onMount(() => {
+    // Keep a pixel offset through keyboard opening and dismissal.
+    emptyCenter = (article?.clientHeight ?? 0) / 2;
+  });
+
   let editItemDialog = $state<WaDialog>();
   let itemToEditID = $state("");
   const itemToEdit = $derived(query.data?.items.find((item) => item.id === itemToEditID));
@@ -73,7 +81,7 @@
   };
 </script>
 
-<article>
+<article bind:this={article}>
   <header>
     <wa-button appearance="plain" onclick={() => navigate("/lists")}>
       <wa-icon name="arrow-left" label="Back"></wa-icon>
@@ -105,11 +113,13 @@
     {:else if query.data}
       {#key query.data.id}
         {#if query.data.items.length === 0 && !error}
-          <EmptyState
-            illustration={emptyShoppingList}
-            heading="What do you need to buy?"
-            description="Add your first item using the plus button."
-          />
+          <div class="empty-area" style:top={`${emptyCenter}px`}>
+            <EmptyState
+              illustration={emptyShoppingList}
+              heading="What do you need to buy?"
+              description="Add your first item using the plus button."
+            />
+          </div>
         {/if}
         <ItemList
           items={query.data.items}
@@ -148,6 +158,7 @@
   }
 
   article {
+    position: relative;
     height: 100%;
     display: flex;
     flex-direction: column;
@@ -162,6 +173,13 @@
     flex-direction: column;
     overflow-y: auto;
     background-color: var(--wa-color-surface-lowered);
+  }
+
+  .empty-area {
+    position: absolute;
+    inset-inline: 0;
+    transform: translateY(-50%);
+    display: flex;
   }
 
   header {
