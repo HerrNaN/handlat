@@ -39,24 +39,15 @@ test("closes the item drawer after keyboard viewport recovery and preserves the 
   });
   await input.fill("Milk");
 
-  // A keyboard changes the visual viewport, not the stable CSS viewport units.
-  // Also constrain the app height to check that layout shrink cannot recenter it.
-  const keyboardHeight = async (height?: number) => {
-    await page.evaluate((height) => {
-      const viewport = window.visualViewport!;
-      const main = document.querySelector("main")!;
-      if (height === undefined) {
-        Reflect.deleteProperty(viewport, "height");
-        main.style.removeProperty("height");
-      } else {
-        Object.defineProperty(viewport, "height", { configurable: true, value: height });
-        main.style.height = `${height}px`;
-      }
-      viewport.dispatchEvent(new Event("resize"));
-      return new Promise<void>((resolve) => {
-        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-      });
-    }, height);
+  // resizes-content makes the keyboard shrink the layout viewport and CSS units.
+  const keyboardHeight = async (height = 844) => {
+    await page.setViewportSize({ width: 390, height });
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) => {
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+        }),
+    );
   };
   await keyboardHeight(500);
   await expect(input).toBeVisible();
