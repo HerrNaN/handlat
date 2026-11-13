@@ -8,6 +8,7 @@ set -euo pipefail
 # Usage:
 #   release-notes.sh              # uses current git repo
 #   release-notes.sh <git-url>    # clones the repo first
+# Set FIRST_STABLE_RELEASE=true to promote 0.x to 1.0.0.
 
 cleanup() {
   if [[ -n "${tmpdir:-}" ]]; then
@@ -45,9 +46,14 @@ else
   patch=0
 fi
 
+if [[ "${FIRST_STABLE_RELEASE:-false}" == "true" && "$major" -ne 0 ]]; then
+  echo "Cannot promote to 1.0.0: the latest release is already $latest_tag." >&2
+  exit 1
+fi
+
 commits=$(git log --no-merges --format="%s" "$range" | sort 2>/dev/null || true)
 
-if [[ -z "$commits" ]]; then
+if [[ -z "$commits" && "${FIRST_STABLE_RELEASE:-false}" != "true" ]]; then
   echo "No changes since last release."
   exit 0
 fi
@@ -84,7 +90,11 @@ has_feat=false
 [[ ${#breaking[@]} -gt 0 ]] && has_breaking=true
 [[ ${#features[@]} -gt 0 ]] && has_feat=true
 
-if [[ "$major" -eq 0 ]]; then
+if [[ "${FIRST_STABLE_RELEASE:-false}" == "true" ]]; then
+  major=1
+  minor=0
+  patch=0
+elif [[ "$major" -eq 0 ]]; then
   if $has_breaking || $has_feat; then
     minor=$((minor + 1))
     patch=0

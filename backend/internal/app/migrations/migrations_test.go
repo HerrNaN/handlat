@@ -64,3 +64,120 @@ func TestUpAndDown(t *testing.T) {
 
 	require.NoError(t, err)
 }
+
+func TestSharingPreservesExistingLists(t *testing.T) {
+	ctx := t.Context()
+	conn, err := database.Open(ctx, filepath.Join(t.TempDir(), "existing.sqlite"))
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, conn.Close()) })
+	goose.SetBaseFS(files)
+	require.NoError(t, goose.SetDialect("sqlite3"))
+	require.NoError(t, goose.UpTo(conn, ".", 2))
+	_, err = conn.ExecContext(
+		ctx,
+		"INSERT INTO users (id, name) VALUES (?, ?)",
+		[]byte("existing"),
+		"Existing",
+	)
+	require.NoError(t, err)
+	_, err = conn.ExecContext(
+		ctx,
+		"INSERT INTO lists (id, owner_id, name, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+		"groceries",
+		[]byte("existing"),
+		"Groceries",
+		1,
+		1,
+	)
+	require.NoError(t, err)
+	_, err = conn.ExecContext(
+		ctx,
+		"INSERT INTO items (id, list_id, text, department, created_at) VALUES (?, ?, ?, ?, ?)",
+		"milk",
+		"groceries",
+		"Milk",
+		"other",
+		1,
+	)
+	require.NoError(t, err)
+	require.NoError(t, Up(conn))
+
+	var member []byte
+	require.NoError(
+		t,
+		conn.QueryRowContext(ctx, "SELECT user_id FROM list_members WHERE list_id = ?", "groceries").
+			Scan(&member),
+	)
+	require.Equal(t, []byte("existing"), member)
+
+	var text string
+	require.NoError(
+		t,
+		conn.QueryRowContext(ctx, "SELECT text FROM items WHERE list_id = ?", "groceries").
+			Scan(&text),
+	)
+	require.Equal(t, "Milk", text)
+	require.NoError(t, goose.DownTo(conn, ".", 2))
+
+	var owner []byte
+	require.NoError(
+		t,
+		conn.QueryRowContext(ctx, "SELECT owner_id FROM lists WHERE id = ?", "groceries").
+			Scan(&owner),
+	)
+	require.Equal(t, member, owner)
+	require.NoError(
+		t,
+		conn.QueryRowContext(ctx, "SELECT text FROM items WHERE list_id = ?", "groceries").
+			Scan(&text),
+	)
+	require.Equal(t, "Milk", text)
+	require.NoError(t, Up(conn))
+}
+
+func TestQuantitiesPreserveExistingItems(t *testing.T) {
+	ctx := t.Context()
+	conn, err := database.Open(ctx, filepath.Join(t.TempDir(), "quantities.sqlite"))
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, conn.Close()) })
+	goose.SetBaseFS(files)
+	require.NoError(t, goose.SetDialect("sqlite3"))
+	require.NoError(t, goose.UpTo(conn, ".", 3))
+	_, err = conn.ExecContext(
+		ctx,
+		"INSERT INTO lists (id, name, created_at, updated_at) VALUES ('list', 'Groceries', 1, 1)",
+	)
+	require.NoError(t, err)
+	_, err = conn.ExecContext(
+		ctx,
+		"INSERT INTO items (id, list_id, text, department, created_at, checked_at) VALUES ('milk', 'list', '2 l Milk', 'dairy', 1, 2)",
+	)
+	require.NoError(t, err)
+	require.NoError(t, Up(conn))
+
+	var (
+		text, department string
+		amount, unit     *string
+		created, checked int64
+	)
+	require.NoError(
+		t,
+		conn.QueryRowContext(ctx, "SELECT text, department, created_at, checked_at, amount, unit FROM items").
+			Scan(&text, &department, &created, &checked, &amount, &unit),
+	)
+	require.Equal(t, "2 l Milk", text)
+	require.Equal(t, "dairy", department)
+	require.EqualValues(t, 1, created)
+	require.EqualValues(t, 2, checked)
+	require.Nil(t, amount)
+	require.Nil(t, unit)
+
+	_, err = conn.ExecContext(ctx, "UPDATE items SET amount = '500', unit = 'g'")
+	require.NoError(t, err)
+	_, err = conn.ExecContext(ctx, "UPDATE items SET unit = 'kilograms'")
+	require.Error(t, err)
+	require.NoError(t, goose.DownTo(conn, ".", 3))
+	require.NoError(t, conn.QueryRowContext(ctx, "SELECT text FROM items").Scan(&text))
+	require.Equal(t, "2 l Milk", text)
+	require.NoError(t, Up(conn))
+}

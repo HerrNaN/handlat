@@ -18,14 +18,26 @@ type Item struct {
 	CreatedAt  int64
 	CheckedAt  *int64
 	DeletedAt  *int64
+	Amount     *string
+	Unit       *string
 }
 
 type List struct {
 	ID        string
-	OwnerID   []byte
 	Name      string
 	CreatedAt int64
 	UpdatedAt int64
+}
+
+type ListInvitation struct {
+	TokenHash []byte
+	ListID    string
+	ExpiresAt int64
+}
+
+type ListMember struct {
+	ListID string
+	UserID []byte
 }
 
 type LoginAttempt struct {

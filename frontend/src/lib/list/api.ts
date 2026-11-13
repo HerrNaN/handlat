@@ -7,15 +7,24 @@ export const ListSchema = z.object({
   id: z.string(),
   name: z.string(),
   items: z.array(ItemSchema),
+  memberCount: z.number().int().positive(),
 });
 const SummariesSchema = z.array(
-  z.object({ id: z.string(), name: z.string(), itemCount: z.number().int() }),
+  z.object({
+    id: z.string(),
+    name: z.string(),
+    itemCount: z.number().int(),
+    memberCount: z.number().int().positive(),
+  }),
 );
 
 export type ShoppingList = z.infer<typeof ListSchema>;
 export type ListSummary = z.infer<typeof SummariesSchema>[number];
-export type NewItem = Pick<Item, "id" | "text" | "department">;
-export type ItemChanges = Partial<Pick<Item, "text" | "department">>;
+export type NewItem = Pick<Item, "id" | "text" | "department" | "amount" | "unit">;
+export type ItemChanges = Partial<Pick<Item, "text" | "department">> & {
+  amount?: string | null;
+  unit?: Item["unit"] | null;
+};
 
 export class ApiError extends Error {
   constructor(
@@ -36,7 +45,7 @@ const request = async (url: string, init?: RequestInit) => {
     throw new ApiError(
       response.status,
       response.status === 401
-        ? "Your session expired. Please sign in again."
+        ? "Your session expired. Please log in again."
         : response.status === 404
           ? "This list or item is no longer available."
           : response.status >= 500
@@ -64,7 +73,7 @@ export const createList = (name: string) =>
   requestList("/api/lists", { method: "POST", ...jsonBody({ name }) });
 export const renameList = (id: string, name: string) =>
   requestList(listURL(id), { method: "PATCH", ...jsonBody({ name }) });
-export const deleteList = async (id: string): Promise<void> => {
+export const leaveList = async (id: string): Promise<void> => {
   await request(listURL(id), { method: "DELETE" });
 };
 export const addItem = (listID: string, item: NewItem) =>
@@ -77,3 +86,24 @@ export const deleteItem = (listID: string, itemID: string) =>
   requestList(itemURL(listID, itemID), { method: "DELETE" });
 export const clearCheckedItems = (listID: string) =>
   requestList(`${listURL(listID)}/checked-items`, { method: "DELETE" });
+
+const invitationURL = (token: string) => `/api/invitations/${encodeURIComponent(token)}`;
+const invitationRequest = async (url: string, init?: RequestInit) => {
+  try {
+    return await request(url, init);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) {
+      throw new ApiError(404, "This invitation is no longer available.");
+    }
+    throw error;
+  }
+};
+
+export const createInvitation = async (listID: string) =>
+  z
+    .object({ token: z.string(), expiresAt: z.string() })
+    .parse(await request(`${listURL(listID)}/invitations`, { method: "POST" }));
+export const getInvitation = async (token: string, signal?: AbortSignal) =>
+  z.object({ name: z.string() }).parse(await invitationRequest(invitationURL(token), { signal }));
+export const acceptInvitation = async (token: string) =>
+  ListSchema.parse(await invitationRequest(`${invitationURL(token)}/accept`, { method: "POST" }));

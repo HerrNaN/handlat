@@ -1,0 +1,84 @@
+name: Publish Release
+
+on:
+  release:
+    types: [published]
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+
+concurrency:
+  group: stable-${{ inputs.tag || github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish stable image and chart
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Validate release version
+        id: release
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.event.release.tag_name }}
+        run: |
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Expected a stable release tag (vMAJOR.MINOR.PATCH): $RELEASE_TAG" >&2
+            exit 1
+          fi
+          echo "version=${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v6
+        with:
+          ref: refs/tags/${{ inputs.tag || github.event.release.tag_name }}
+      - uses: jdx/mise-action@v4
+
+      - name: Cache Go dependencies and analysis
+        uses: ./.github/actions/cache-go
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: frontend
+
+      - name: Build and publish release image
+        id: image
+        uses: ./.github/actions/build-image
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          tags: ${{ steps.release.outputs.version }}
+
+      - name: Package and publish stable chart
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+          IMAGE_DIGEST: ${{ steps.image.outputs.digest }}
+        run: |
+          package_dir="$RUNNER_TEMP/stable-charts"
+          registry="oci://${REGISTRY}/${GITHUB_REPOSITORY_OWNER,,}/charts/stable"
+
+          mise package-chart \
+            --version "$RELEASE_VERSION" --app-version "$RELEASE_VERSION" \
+            --image-repository "${REGISTRY}/${GITHUB_REPOSITORY,,}" \
+            --image-digest "$IMAGE_DIGEST" --output-dir "$package_dir"
+
+          printf '%s' "$GH_TOKEN" | helm registry login "$REGISTRY" \
+            --username "$GITHUB_ACTOR" --password-stdin
+          mise publish-chart "$package_dir/handlat-$RELEASE_VERSION.tgz" "$registry"
+
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+          ## Stable published
+          - Chart: \`$registry/handlat\`
+          - Version: \`$RELEASE_VERSION\`
+          - Commit: \`$(git rev-parse HEAD)\`
+          - Image: \`${REGISTRY}/${GITHUB_REPOSITORY,,}@$IMAGE_DIGEST\`
+          EOF

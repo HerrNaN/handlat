@@ -12,7 +12,7 @@ import {
   clearCheckedItems,
   createList,
   deleteItem,
-  deleteList,
+  leaveList,
   getLists,
   renameList,
   setItemChecked,
@@ -24,8 +24,8 @@ import {
 } from "./api";
 import { streamList } from "./stream";
 
-type Owner = { account: string };
-type ListTarget = Owner & { listID: string };
+type Account = { account: string };
+type ListTarget = Account & { listID: string };
 type ItemTarget = ListTarget & { itemID: string };
 type CheckItem = ItemTarget & { checked: boolean };
 type OptimisticCheck = { previous: Date | undefined; optimistic: Date | undefined };
@@ -78,11 +78,11 @@ export const dismissListErrors = () => {
 
 const listMutationOptions = {
   mutationKey: ["private-lists", "write"],
-  onMutate: ({ account }: Owner) => {
+  onMutate: ({ account }: Account) => {
     dismissListErrors();
     if (account !== get(session)?.id) throw new Error("The active account changed.");
   },
-  onSettled: (_data: ShoppingList | void, _error: Error | null, { account }: Owner) => {
+  onSettled: (_data: ShoppingList | void, _error: Error | null, { account }: Account) => {
     if (account !== get(session)?.id) return;
     // This mutation still counts as pending until onSettled completes.
     if (queryClient.isMutating({ mutationKey: ["private-lists"] }) === 1) {
@@ -93,7 +93,7 @@ const listMutationOptions = {
 
 export const createListMutation = () => ({
   ...listMutationOptions,
-  mutationFn: ({ name }: Owner & { name: string }) => createList(name),
+  mutationFn: ({ name }: Account & { name: string }) => createList(name),
 });
 
 export const renameListMutation = () => ({
@@ -101,15 +101,15 @@ export const renameListMutation = () => ({
   mutationFn: ({ listID, name }: ListTarget & { name: string }) => renameList(listID, name),
 });
 
-export const deleteListMutation = () => ({
+export const leaveListMutation = () => ({
   ...listMutationOptions,
   onMutate: async (target: ListTarget) => {
     await queryClient.cancelQueries({ queryKey: summariesKey(target.account) });
     listMutationOptions.onMutate(target);
   },
-  mutationFn: ({ listID }: ListTarget) => deleteList(listID),
+  mutationFn: ({ listID }: ListTarget) => leaveList(listID),
   onSettled: (data: void, error: Error | null, target: ListTarget) => {
-    // Deletion is complete when the server confirms it, not when refetching finishes.
+    // Leaving is complete when the server confirms it, not when refetching finishes.
     void listMutationOptions.onSettled(data, error, target);
   },
   onSuccess: (_data: void, { account, listID }: ListTarget) => {
@@ -151,7 +151,7 @@ export const checkItemMutation = (): MutationOptions<
   ...listMutationOptions,
   mutationFn: ({ listID, itemID, checked }) => setItemChecked(listID, itemID, checked),
   onMutate: async (target) => {
-    await listMutationOptions.onMutate(target);
+    listMutationOptions.onMutate(target);
     const key = listKey(target.account, target.listID);
     const previous = queryClient
       .getQueryData<ShoppingList>(key)

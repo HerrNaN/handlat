@@ -1,18 +1,20 @@
 import { expect, test } from "@playwright/test";
 
-test("signs up with a passkey and stays signed in after reload", async ({ page, context }) => {
+test("creates an account with a passkey and stays logged in after reload", async ({
+  page,
+  context,
+}) => {
   await context.credentials.install();
 
   await page.goto("/user");
-  await expect(page).toHaveURL(/\/sign-in$/);
-  await page.getByRole("button", { name: "Sign up", exact: true }).click();
+  await expect(page).toHaveURL(/\/login$/);
+  await expect(page.getByRole("heading", { name: "Welcome to Handlat" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Login", exact: true })).toBeVisible();
 
-  await expect(page).toHaveURL(/\/sign-up$/);
-
-  await page.getByRole("button", { name: "Create account with passkey" }).click();
+  await page.getByRole("button", { name: "Create Account" }).click();
   await expect(page).toHaveURL(/\/user$/);
 
-  const account = page.getByText(/^You are signed in as: /);
+  const account = page.getByText(/^You are logged in as: /);
   await expect(account).toBeVisible();
   const name = await account.textContent();
   expect(await context.credentials.get({ rpId: "localhost" })).toHaveLength(1);

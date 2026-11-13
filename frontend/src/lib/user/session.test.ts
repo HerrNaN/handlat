@@ -50,7 +50,7 @@ it("clears all queries and mutations when the session is cleared", () => {
   );
   queryClient.setQueryData(["session"], { id: "owner", name: "Owner" });
   queryClient.getMutationCache().build(queryClient, { mutationKey: ["private-lists", "write"] });
-  queryClient.getMutationCache().build(queryClient, { mutationKey: ["auth", "sign-in"] });
+  queryClient.getMutationCache().build(queryClient, { mutationKey: ["auth", "login"] });
 
   clearSession();
   expect(get(session)).toBeNull();

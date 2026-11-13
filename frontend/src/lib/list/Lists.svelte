@@ -1,38 +1,18 @@
 <script lang="ts">
-  import WaDialog from "@awesome.me/webawesome/dist/components/dialog/dialog.js";
   import { createMutation, createQuery } from "@tanstack/svelte-query";
 
   import { p, navigate } from "../../router";
   import { session } from "../user/session";
-  import { errorMessage, type ListSummary } from "./api";
-  import { createListMutation, deleteListMutation, summariesQuery } from "./queries";
+  import { errorMessage } from "./api";
+  import EmptyState from "./EmptyState.svelte";
+  import ListActions from "./ListActions.svelte";
+  import ListSkeleton from "./ListSkeleton.svelte";
+  import { createListMutation, summariesQuery } from "./queries";
   import "@awesome.me/webawesome/dist/components/icon/icon.js";
   import "@awesome.me/webawesome/dist/components/button/button.js";
   import "@awesome.me/webawesome/dist/components/callout/callout.js";
 
   const createList = createMutation(() => createListMutation());
-  const deletion = createMutation(() => deleteListMutation());
-  let deleteDialog = $state<WaDialog>();
-  let listToDelete = $state<ListSummary>();
-  let deleting = $state(false);
-  const confirmDelete = (list: ListSummary) => {
-    deletion.reset();
-    listToDelete = list;
-    if (deleteDialog) deleteDialog.open = true;
-  };
-  const handleDelete = async () => {
-    if (!$session || !listToDelete || deleting) return;
-    deleting = true;
-    try {
-      await deletion.mutateAsync({ account: $session.id, listID: listToDelete.id });
-    } catch {
-      // Keep the dialog open; the mutation error is displayed below.
-      return;
-    } finally {
-      deleting = false;
-    }
-    if (deleteDialog) deleteDialog.open = false;
-  };
   const query = createQuery(() => summariesQuery($session?.id));
   const handleCreateList = () => {
     if (!$session) return;
@@ -58,9 +38,6 @@
       <wa-icon name="plus" label="New list"></wa-icon>
     </wa-button>
   </header>
-  {#if query.isFetching && !query.data}
-    <p role="status">Loading…</p>
-  {/if}
   {#if createList.error ?? query.error}
     <aside role="alert">
       <wa-callout variant="danger">
@@ -69,54 +46,43 @@
       </wa-callout>
     </aside>
   {/if}
-  {#if !query.isFetching && !query.error && !createList.error && query.data?.length === 0}
-    <p>No lists yet. Create your first private list.</p>
-  {/if}
-  <ul>
-    {#each query.data ?? [] as list (list.id)}
-      <li>
-        <a href={p("/lists/:id", { params: { id: list.id } })}>
-          <wa-icon name="list-check"></wa-icon>
-          <span class="name">{list.name}</span>
-          <span class="count">{list.itemCount}</span>
-        </a>
+  <div class="content">
+    {#if query.isPending}
+      <ListSkeleton overview />
+    {:else if query.isSuccess && query.data.length === 0}
+      <EmptyState
+        icon="list-check"
+        heading="Your first list starts here"
+        description="For the weekly shop, a quick stop, or anything you don’t want to forget."
+      >
         <wa-button
-          appearance="plain"
-          variant="danger"
-          onclick={() => confirmDelete(list)}
-          disabled={deleting}
+          onclick={handleCreateList}
+          appearance="outlined"
+          disabled={!$session || query.isFetching || createList.isPending}
         >
-          <wa-icon name="trash-can" variant="regular" label={`Delete ${list.name}`}></wa-icon>
+          <wa-icon slot="start" name="plus"></wa-icon>
+          Create list
         </wa-button>
-      </li>
-    {/each}
-  </ul>
+      </EmptyState>
+    {:else}
+      <ul>
+        {#each query.data ?? [] as list (list.id)}
+          <li>
+            <a href={p("/lists/:id", { params: { id: list.id } })}>
+              <wa-icon name="list-check"></wa-icon>
+              <span class="name">{list.name}</span>
+              <span class="count">{list.itemCount}</span>
+            </a>
+            <ListActions {list} />
+          </li>
+        {/each}
+      </ul>
+    {/if}
+  </div>
 </article>
 
-<wa-dialog
-  bind:this={deleteDialog}
-  label="Delete list?"
-  onwa-hide={(event: Event) => {
-    if (deleting) event.preventDefault();
-  }}
->
-  <p>Delete “{listToDelete?.name}” and all its items? This cannot be undone.</p>
-  {#if deletion.error}
-    <p role="alert">{errorMessage(deletion.error)}</p>
-  {/if}
-  <wa-button slot="footer" data-dialog="close" disabled={deleting}>Cancel</wa-button>
-  <wa-button
-    slot="footer"
-    variant="danger"
-    onclick={handleDelete}
-    disabled={deleting}
-    loading={deleting}>Delete list</wa-button
-  >
-</wa-dialog>
-
 <style>
-  aside,
-  p[role="status"] {
+  aside {
     margin: var(--wa-space-s) var(--wa-space-m);
   }
 
@@ -130,6 +96,7 @@
 
   header {
     height: 2rem;
+    flex-shrink: 0;
     z-index: 1;
     position: sticky;
     top: 0;
@@ -146,6 +113,14 @@
     font-size: var(--wa-font-size-xl);
     font-weight: var(--wa-font-weight-normal);
     color: var(--wa-color-text-normal);
+  }
+
+  .content {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
   }
 
   ul {

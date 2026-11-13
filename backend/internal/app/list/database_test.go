@@ -29,20 +29,27 @@ func TestListSchemaConstraints(t *testing.T) {
 
 	q := db.New(conn)
 	params := db.CreateListParams{
-		ID:      "list",
-		OwnerID: []byte("owner"),
-		Name:    "Groceries",
-		Now:     1792756800,
+		ID: "list",
+
+		Name: "Groceries",
+		Now:  1792756800,
 	}
 
 	require.NoError(t, q.CreateList(ctx, params))
 
-	t.Run("foreign keys reject orphan lists", func(t *testing.T) {
-		orphan := params
-		orphan.ID = "orphan"
-		orphan.OwnerID = []byte("missing")
-
-		require.Error(t, q.CreateList(ctx, orphan))
+	require.NoError(
+		t,
+		q.AddMember(ctx, db.AddMemberParams{ListID: "list", UserID: []byte("owner")}),
+	)
+	t.Run("foreign keys reject orphan memberships", func(t *testing.T) {
+		require.Error(
+			t,
+			q.AddMember(ctx, db.AddMemberParams{ListID: "list", UserID: []byte("missing")}),
+		)
+		require.Error(
+			t,
+			q.AddMember(ctx, db.AddMemberParams{ListID: "missing", UserID: []byte("owner")}),
+		)
 	})
 
 	t.Run("deleting a list cascades to its items", func(t *testing.T) {

@@ -17,11 +17,10 @@
   const { children, to, params }: Props = $props();
 
   const onclick = () => {
-    if (params) {
-      return navigate(to, { params });
-    }
-
-    return navigate(to);
+    // Props keeps the path and params paired. Preserve that tuple when passing
+    // through sv-router's generic navigation signature.
+    const args = params ? [to, { params }] : [to];
+    return navigate(...(args as Parameters<typeof navigate>));
   };
 </script>
 

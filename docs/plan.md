@@ -64,10 +64,12 @@ All routes below are under `/api` and require a valid session.
 | POST | `/lists` | Create a list with `{name}` |
 | GET | `/lists/{id}` | Fetch a list and its items |
 | PATCH | `/lists/{id}` | Rename with `{name}` |
-| POST | `/lists/{id}/items` | Add `{id, text, department?}` using a client-generated UUID |
-| PATCH | `/lists/{id}/items/{itemID}` | Set supplied fields only: `{text?, department?, checked?}` |
+| POST | `/lists/{id}/items` | Add `{id, text, department?, amount?, unit?}` using a client-generated UUID |
+| PATCH | `/lists/{id}/items/{itemID}` | Set supplied fields only: `{text?, department?, checked?, amount?, unit?}` |
 | DELETE | `/lists/{id}/items/{itemID}` | Delete an item |
 | DELETE | `/lists/{id}/checked-items` | Clear checked items |
+
+Amounts are positive decimal strings, normalized to a dot and stored exactly (up to 100 characters). Units are `st`, `förp`, `kg`, `g`, `l`, `dl`, `cl`, or `ml`; the selected unit is preserved without conversion. Amount and unit are independent: omit either PATCH field to keep it, or send `null` to clear it. New items can omit either field. Existing item names are not parsed during migration.
 
 Writes do not require `If-Match` or a client revision. Authorization, changes,
 timestamps, and the returned list snapshot happen in one transaction. SQLite's

@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/google/uuid"
@@ -25,10 +26,12 @@ type Handler struct {
 	log     *slog.Logger
 	// Serializes subscription snapshots and publication with committed writes.
 	mu          sync.Mutex
-	subscribers map[string]map[chan listEvent]struct{}
+	subscribers map[string]map[chan listEvent]string
 }
 
 type Item struct {
+	Amount     *string    `json:"amount,omitempty"`
+	Unit       *Unit      `json:"unit,omitempty"`
 	ID         string     `json:"id"`
 	Text       string     `json:"text"`
 	Department string     `json:"department"`
@@ -37,15 +40,17 @@ type Item struct {
 }
 
 type List struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Items []Item `json:"items"`
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Items       []Item `json:"items"`
+	MemberCount int64  `json:"memberCount"`
 }
 
 type Summary struct {
-	ID        string `json:"id"`
-	Name      string `json:"name"`
-	ItemCount int64  `json:"itemCount"`
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	ItemCount   int64  `json:"itemCount"`
+	MemberCount int64  `json:"memberCount"`
 }
 
 func New(conn *sql.DB, log *slog.Logger) *Handler {
@@ -53,7 +58,7 @@ func New(conn *sql.DB, log *slog.Logger) *Handler {
 		conn:        conn,
 		queries:     db.New(conn),
 		log:         log,
-		subscribers: make(map[string]map[chan listEvent]struct{}),
+		subscribers: make(map[string]map[chan listEvent]string),
 	}
 }
 
@@ -64,7 +69,8 @@ func (h *Handler) Register(mux *http.ServeMux, requireSession func(http.Handler)
 	routes.HandleFunc("GET /lists/{id}", h.get)
 	routes.HandleFunc("GET /lists/{id}/events", h.stream)
 	routes.HandleFunc("PATCH /lists/{id}", h.rename)
-	routes.HandleFunc("DELETE /lists/{id}", h.deleteList)
+	routes.HandleFunc("DELETE /lists/{id}", h.leaveList)
+	routes.HandleFunc("POST /lists/{id}/invitations", h.createInvitation)
 	routes.HandleFunc("POST /lists/{id}/items", h.addItem)
 	routes.HandleFunc("PATCH /lists/{id}/items/{itemID}", h.updateItem)
 	routes.HandleFunc("DELETE /lists/{id}/items/{itemID}", h.deleteItem)
@@ -72,6 +78,11 @@ func (h *Handler) Register(mux *http.ServeMux, requireSession func(http.Handler)
 	protected := requireSession(routes)
 	mux.Handle("/lists", protected)
 	mux.Handle("/lists/", protected)
+	mux.HandleFunc("GET /invitations/{token}", h.getInvitation)
+	mux.Handle(
+		"POST /invitations/{token}/accept",
+		requireSession(http.HandlerFunc(h.acceptInvitation)),
+	)
 }
 
 func (h *Handler) index(w http.ResponseWriter, r *http.Request) {
@@ -83,7 +94,7 @@ func (h *Handler) index(w http.ResponseWriter, r *http.Request) {
 
 	result := make([]Summary, 0, len(rows))
 	for _, row := range rows {
-		result = append(result, Summary{row.ID, row.Name, row.ItemCount})
+		result = append(result, Summary{row.ID, row.Name, row.ItemCount, row.MemberCount})
 	}
 
 	h.respond(w, http.StatusOK, result)
@@ -109,22 +120,41 @@ func (h *Handler) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.queries.CreateList(
-		r.Context(),
-		db.CreateListParams{
-			ID:      id.String(),
-			OwnerID: auth.UserID(r.Context()),
-			Name:    body.Name,
-			Now:     now(),
-		},
-	)
+	tx, err := h.conn.BeginTx(r.Context(), nil)
 	if err != nil {
+		h.fail(w, err)
+		return
+	}
+	defer h.rollback(tx)
+
+	q := h.queries.WithTx(tx)
+	if err := q.CreateList(
+		r.Context(),
+		db.CreateListParams{ID: id.String(), Name: body.Name, Now: now()},
+	); err != nil {
+		h.fail(w, err)
+		return
+	}
+
+	if err := q.AddMember(
+		r.Context(),
+		db.AddMemberParams{ListID: id.String(), UserID: auth.UserID(r.Context())},
+	); err != nil {
+		h.fail(w, err)
+		return
+	}
+
+	if err := tx.Commit(); err != nil {
 		h.fail(w, err)
 		return
 	}
 
 	w.Header().Set("Location", "/api/lists/"+id.String())
-	h.respond(w, http.StatusCreated, List{ID: id.String(), Name: body.Name, Items: []Item{}})
+	h.respond(
+		w,
+		http.StatusCreated,
+		List{ID: id.String(), Name: body.Name, Items: []Item{}, MemberCount: 1},
+	)
 }
 
 func snapshot(ctx context.Context, q *db.Queries, value db.List) (List, error) {
@@ -133,7 +163,17 @@ func snapshot(ctx context.Context, q *db.Queries, value db.List) (List, error) {
 		return List{}, err
 	}
 
-	result := List{ID: value.ID, Name: value.Name, Items: make([]Item, 0, len(rows))}
+	members, err := q.CountMembers(ctx, value.ID)
+	if err != nil {
+		return List{}, err
+	}
+
+	result := List{
+		ID:          value.ID,
+		Name:        value.Name,
+		Items:       make([]Item, 0, len(rows)),
+		MemberCount: members,
+	}
 	for _, row := range rows {
 		var checkedAt *time.Time
 
@@ -144,7 +184,15 @@ func snapshot(ctx context.Context, q *db.Queries, value db.List) (List, error) {
 
 		result.Items = append(
 			result.Items,
-			Item{row.ID, row.Text, row.Department, time.Unix(row.CreatedAt, 0).UTC(), checkedAt},
+			Item{
+				ID:         row.ID,
+				Text:       row.Text,
+				Department: row.Department,
+				CreatedAt:  time.Unix(row.CreatedAt, 0).UTC(),
+				CheckedAt:  checkedAt,
+				Amount:     row.Amount,
+				Unit:       (*Unit)(row.Unit),
+			},
 		)
 	}
 
@@ -237,7 +285,7 @@ func (h *Handler) mutate(w http.ResponseWriter, r *http.Request, change func(*db
 	h.respond(w, http.StatusOK, result)
 }
 
-func (h *Handler) commitDeletion(r *http.Request) error {
+func (h *Handler) commitLeave(r *http.Request) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
@@ -254,21 +302,45 @@ func (h *Handler) commitDeletion(r *http.Request) error {
 		return err
 	}
 
-	if err := q.DeleteList(r.Context(), value.ID); err != nil {
+	if err := q.RemoveMember(
+		r.Context(),
+		db.RemoveMemberParams{ListID: value.ID, UserID: auth.UserID(r.Context())},
+	); err != nil {
 		return err
+	}
+
+	if err := q.DeleteEmptyList(r.Context(), value.ID); err != nil {
+		return err
+	}
+
+	members, err := q.CountMembers(r.Context(), value.ID)
+	if err != nil {
+		return err
+	}
+
+	var remaining List
+	if members > 0 {
+		remaining, err = snapshot(r.Context(), q, value)
+		if err != nil {
+			return err
+		}
 	}
 
 	if err := tx.Commit(); err != nil {
 		return err
 	}
 
-	h.publish(value.ID, listEvent{Deleted: true})
+	h.revoke(value.ID, auth.UserID(r.Context()))
+
+	if members > 0 {
+		h.publish(value.ID, listEvent{List: remaining})
+	}
 
 	return nil
 }
 
-func (h *Handler) deleteList(w http.ResponseWriter, r *http.Request) {
-	if err := h.commitDeletion(r); err != nil {
+func (h *Handler) leaveList(w http.ResponseWriter, r *http.Request) {
+	if err := h.commitLeave(r); err != nil {
 		h.fail(w, err)
 		return
 	}
@@ -300,9 +372,11 @@ func (h *Handler) rename(w http.ResponseWriter, r *http.Request) {
 }
 
 type itemInput struct {
-	ID         string `json:"id"`
-	Text       string `json:"text"`
-	Department string `json:"department"`
+	Amount     *string `json:"amount"`
+	Unit       *Unit   `json:"unit"`
+	ID         string  `json:"id"`
+	Text       string  `json:"text"`
+	Department string  `json:"department"`
 }
 
 func readItem(w http.ResponseWriter, r *http.Request) (itemInput, bool) {
@@ -333,6 +407,21 @@ func readItem(w http.ResponseWriter, r *http.Request) (itemInput, bool) {
 		return body, false
 	}
 
+	if !normalizeAmount(body.Amount) {
+		http.Error(
+			w,
+			"Amount must be a positive decimal with at most 100 characters",
+			http.StatusBadRequest,
+		)
+
+		return body, false
+	}
+
+	if body.Unit != nil && !body.Unit.valid() {
+		http.Error(w, "Unsupported unit", http.StatusBadRequest)
+		return body, false
+	}
+
 	return body, true
 }
 
@@ -340,6 +429,11 @@ func (h *Handler) addItem(w http.ResponseWriter, r *http.Request) {
 	body, ok := readItem(w, r)
 	if !ok {
 		return
+	}
+
+	first, size := utf8.DecodeRuneInString(body.Text)
+	if unicode.IsLower(first) {
+		body.Text = string(unicode.ToUpper(first)) + body.Text[size:]
 	}
 
 	h.mutate(w, r, func(q *db.Queries) error {
@@ -351,6 +445,8 @@ func (h *Handler) addItem(w http.ResponseWriter, r *http.Request) {
 				Text:       body.Text,
 				Department: body.Department,
 				CreatedAt:  now(),
+				Amount:     body.Amount,
+				Unit:       (*string)(body.Unit),
 			},
 		)
 	})
@@ -386,6 +482,8 @@ func (h *Handler) updateItem(w http.ResponseWriter, r *http.Request) {
 		Text       optional[string] `json:"text"`
 		Department optional[string] `json:"department"`
 		Checked    optional[bool]   `json:"checked"`
+		Amount     nullable[string] `json:"amount"`
+		Unit       nullable[Unit]   `json:"unit"`
 	}
 	if !decode(w, r, &body) {
 		return
@@ -395,8 +493,14 @@ func (h *Handler) updateItem(w http.ResponseWriter, r *http.Request) {
 		body.Text.value = strings.TrimSpace(body.Text.value)
 	}
 
-	if !body.Text.set && !body.Department.set && !body.Checked.set {
-		http.Error(w, "Provide text, department or checked fields", http.StatusBadRequest)
+	if !body.Text.set && !body.Department.set && !body.Checked.set && !body.Amount.set &&
+		!body.Unit.set {
+		http.Error(
+			w,
+			"Provide text, department, checked, amount or unit fields",
+			http.StatusBadRequest,
+		)
+
 		return
 	}
 
@@ -410,7 +514,31 @@ func (h *Handler) updateItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !normalizeAmount(body.Amount.value) {
+		http.Error(
+			w,
+			"Amount must be a positive decimal with at most 100 characters",
+			http.StatusBadRequest,
+		)
+
+		return
+	}
+
+	if body.Unit.value != nil && !body.Unit.value.valid() {
+		http.Error(w, "Unsupported unit", http.StatusBadRequest)
+		return
+	}
+
 	h.mutate(w, r, func(q *db.Queries) error {
+		var setAmount, setUnit int64
+		if body.Amount.set {
+			setAmount = 1
+		}
+
+		if body.Unit.set {
+			setUnit = 1
+		}
+
 		var setChecked, checked int64
 		if body.Checked.set {
 			setChecked = 1
@@ -428,6 +556,10 @@ func (h *Handler) updateItem(w http.ResponseWriter, r *http.Request) {
 				Text:       body.Text.pointer(),
 				Department: body.Department.pointer(),
 				SetChecked: setChecked,
+				SetAmount:  setAmount,
+				Amount:     body.Amount.value,
+				SetUnit:    setUnit,
+				Unit:       (*string)(body.Unit.value),
 				Checked:    checked,
 				Now:        now(),
 			},

@@ -1,6 +1,15 @@
 name: Create Release
 on:
   workflow_dispatch:
+    inputs:
+      first-stable-release:
+        description: Promote 0.x to 1.0.0
+        type: boolean
+        default: false
+
+concurrency:
+  group: create-release
+  cancel-in-progress: false
 
 jobs:
   create-release:
@@ -8,13 +17,29 @@ jobs:
     permissions:
       contents: write
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.release.outputs.tag }}
 
     steps:
       - uses: actions/checkout@v6
         with:
+          ref: main
           fetch-depth: 0
           fetch-tags: true
       - uses: jdx/mise-action@v4
-      - run: ./scripts/create-release.sh
+      - id: release
+        run: bash scripts/create-release.sh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FIRST_STABLE_RELEASE: ${{ inputs.first-stable-release }}
+
+  # GITHUB_TOKEN-created releases do not trigger release event workflows.
+  publish-release:
+    needs: create-release
+    if: needs.create-release.outputs.tag != ''
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/publish-release.yml
+    with:
+      tag: ${{ needs.create-release.outputs.tag }}

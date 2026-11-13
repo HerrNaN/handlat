@@ -16,8 +16,12 @@
   let { children }: { children?: Snippet } = $props();
 
   $effect(() => {
-    if ($session === null && route.pathname !== "/sign-in" && route.pathname !== "/sign-up") {
-      void navigate("/sign-in", { replace: true });
+    if (
+      $session === null &&
+      route.pathname !== "/login" &&
+      !route.pathname.startsWith("/invitations/")
+    ) {
+      void navigate("/login", { replace: true });
     }
   });
 </script>
@@ -66,6 +70,7 @@
 <style>
   :global(body) {
     margin: 0;
+    -webkit-tap-highlight-color: transparent;
   }
 
   main {
@@ -85,9 +90,22 @@
 
     #recipes-nav {
       display: inline-flex;
+      width: 100%;
+      height: 100%;
 
       wa-button {
         pointer-events: none;
+      }
+    }
+
+    wa-button {
+      width: 100%;
+      height: 100%;
+
+      &::part(base) {
+        width: 100%;
+        height: 100%;
+        background-color: transparent;
       }
     }
 

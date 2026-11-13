@@ -10,8 +10,8 @@ import (
 )
 
 const addItem = `-- name: AddItem :exec
-INSERT INTO items (id, list_id, text, department, created_at)
-VALUES (?1, ?2, ?3, ?4, ?5)
+INSERT INTO items (id, list_id, text, department, created_at, amount, unit)
+VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
 ON CONFLICT (list_id, id) DO NOTHING
 `
 
@@ -21,6 +21,8 @@ type AddItemParams struct {
 	Text       string
 	Department string
 	CreatedAt  int64
+	Amount     *string
+	Unit       *string
 }
 
 func (q *Queries) AddItem(ctx context.Context, arg AddItemParams) error {
@@ -30,29 +32,84 @@ func (q *Queries) AddItem(ctx context.Context, arg AddItemParams) error {
 		arg.Text,
 		arg.Department,
 		arg.CreatedAt,
+		arg.Amount,
+		arg.Unit,
 	)
 	return err
 }
 
+const addMember = `-- name: AddMember :exec
+INSERT INTO list_members (list_id, user_id) VALUES (?1, ?2)
+ON CONFLICT (list_id, user_id) DO NOTHING
+`
+
+type AddMemberParams struct {
+	ListID string
+	UserID []byte
+}
+
+func (q *Queries) AddMember(ctx context.Context, arg AddMemberParams) error {
+	_, err := q.db.ExecContext(ctx, addMember, arg.ListID, arg.UserID)
+	return err
+}
+
+const consumeInvitation = `-- name: ConsumeInvitation :one
+DELETE FROM list_invitations WHERE token_hash = ?1 AND expires_at > ?2
+RETURNING list_id
+`
+
+type ConsumeInvitationParams struct {
+	TokenHash []byte
+	Now       int64
+}
+
+func (q *Queries) ConsumeInvitation(ctx context.Context, arg ConsumeInvitationParams) (string, error) {
+	row := q.db.QueryRowContext(ctx, consumeInvitation, arg.TokenHash, arg.Now)
+	var list_id string
+	err := row.Scan(&list_id)
+	return list_id, err
+}
+
+const countMembers = `-- name: CountMembers :one
+SELECT count(*) FROM list_members WHERE list_id = ?1
+`
+
+func (q *Queries) CountMembers(ctx context.Context, listID string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countMembers, listID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const createInvitation = `-- name: CreateInvitation :exec
+INSERT INTO list_invitations (token_hash, list_id, expires_at)
+VALUES (?1, ?2, ?3)
+`
+
+type CreateInvitationParams struct {
+	TokenHash []byte
+	ListID    string
+	ExpiresAt int64
+}
+
+func (q *Queries) CreateInvitation(ctx context.Context, arg CreateInvitationParams) error {
+	_, err := q.db.ExecContext(ctx, createInvitation, arg.TokenHash, arg.ListID, arg.ExpiresAt)
+	return err
+}
+
 const createList = `-- name: CreateList :exec
-INSERT INTO lists (id, owner_id, name, created_at, updated_at)
-VALUES (?1, ?2, ?3, ?4, ?4)
+INSERT INTO lists (id, name, created_at, updated_at)
+VALUES (?1, ?2, ?3, ?3)
 `
 
 type CreateListParams struct {
-	ID      string
-	OwnerID []byte
-	Name    string
-	Now     int64
+	ID   string
+	Name string
+	Now  int64
 }
 
 func (q *Queries) CreateList(ctx context.Context, arg CreateListParams) error {
-	_, err := q.db.ExecContext(ctx, createList,
-		arg.ID,
-		arg.OwnerID,
-		arg.Name,
-		arg.Now,
-	)
+	_, err := q.db.ExecContext(ctx, createList, arg.ID, arg.Name, arg.Now)
 	return err
 }
 
@@ -68,6 +125,24 @@ type DeleteCheckedItemsParams struct {
 
 func (q *Queries) DeleteCheckedItems(ctx context.Context, arg DeleteCheckedItemsParams) error {
 	_, err := q.db.ExecContext(ctx, deleteCheckedItems, arg.Now, arg.ListID)
+	return err
+}
+
+const deleteEmptyList = `-- name: DeleteEmptyList :exec
+DELETE FROM lists WHERE id = ?1 AND NOT EXISTS (SELECT 1 FROM list_members WHERE list_id = lists.id)
+`
+
+func (q *Queries) DeleteEmptyList(ctx context.Context, id string) error {
+	_, err := q.db.ExecContext(ctx, deleteEmptyList, id)
+	return err
+}
+
+const deleteExpiredInvitations = `-- name: DeleteExpiredInvitations :exec
+DELETE FROM list_invitations WHERE expires_at <= ?1
+`
+
+func (q *Queries) DeleteExpiredInvitations(ctx context.Context, now int64) error {
+	_, err := q.db.ExecContext(ctx, deleteExpiredInvitations, now)
 	return err
 }
 
@@ -87,17 +162,31 @@ func (q *Queries) DeleteItem(ctx context.Context, arg DeleteItemParams) error {
 	return err
 }
 
-const deleteList = `-- name: DeleteList :exec
-DELETE FROM lists WHERE id = ?1
+const getInvitation = `-- name: GetInvitation :one
+SELECT lists.id, lists.name FROM list_invitations
+JOIN lists ON lists.id = list_invitations.list_id
+WHERE token_hash = ?1 AND expires_at > ?2
 `
 
-func (q *Queries) DeleteList(ctx context.Context, id string) error {
-	_, err := q.db.ExecContext(ctx, deleteList, id)
-	return err
+type GetInvitationParams struct {
+	TokenHash []byte
+	Now       int64
+}
+
+type GetInvitationRow struct {
+	ID   string
+	Name string
+}
+
+func (q *Queries) GetInvitation(ctx context.Context, arg GetInvitationParams) (GetInvitationRow, error) {
+	row := q.db.QueryRowContext(ctx, getInvitation, arg.TokenHash, arg.Now)
+	var i GetInvitationRow
+	err := row.Scan(&i.ID, &i.Name)
+	return i, err
 }
 
 const getList = `-- name: GetList :one
-SELECT id, owner_id, name, created_at, updated_at FROM lists WHERE id = ?1
+SELECT id, name, created_at, updated_at FROM lists WHERE id = ?1
 `
 
 func (q *Queries) GetList(ctx context.Context, id string) (List, error) {
@@ -105,7 +194,29 @@ func (q *Queries) GetList(ctx context.Context, id string) (List, error) {
 	var i List
 	err := row.Scan(
 		&i.ID,
-		&i.OwnerID,
+		&i.Name,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getMemberList = `-- name: GetMemberList :one
+SELECT lists.id, lists.name, lists.created_at, lists.updated_at FROM lists
+JOIN list_members ON list_members.list_id = lists.id
+WHERE lists.id = ?1 AND list_members.user_id = ?2
+`
+
+type GetMemberListParams struct {
+	ID     string
+	UserID []byte
+}
+
+func (q *Queries) GetMemberList(ctx context.Context, arg GetMemberListParams) (List, error) {
+	row := q.db.QueryRowContext(ctx, getMemberList, arg.ID, arg.UserID)
+	var i List
+	err := row.Scan(
+		&i.ID,
 		&i.Name,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -114,7 +225,7 @@ func (q *Queries) GetList(ctx context.Context, id string) (List, error) {
 }
 
 const listItems = `-- name: ListItems :many
-SELECT id, list_id, text, department, created_at, checked_at, deleted_at FROM items WHERE list_id = ?1 AND deleted_at IS NULL ORDER BY created_at, id
+SELECT id, list_id, text, department, created_at, checked_at, deleted_at, amount, unit FROM items WHERE list_id = ?1 AND deleted_at IS NULL ORDER BY created_at, id
 `
 
 func (q *Queries) ListItems(ctx context.Context, listID string) ([]Item, error) {
@@ -134,6 +245,8 @@ func (q *Queries) ListItems(ctx context.Context, listID string) ([]Item, error) 
 			&i.CreatedAt,
 			&i.CheckedAt,
 			&i.DeletedAt,
+			&i.Amount,
+			&i.Unit,
 		); err != nil {
 			return nil, err
 		}
@@ -149,20 +262,22 @@ func (q *Queries) ListItems(ctx context.Context, listID string) ([]Item, error) 
 }
 
 const listLists = `-- name: ListLists :many
-SELECT lists.id, lists.name, count(items.id) AS item_count
+SELECT lists.id, lists.name, count(items.id) AS item_count,
+    (SELECT count(*) FROM list_members WHERE list_id = lists.id) AS member_count
 FROM lists LEFT JOIN items ON items.list_id = lists.id AND items.deleted_at IS NULL
-WHERE lists.owner_id = ?1
+WHERE EXISTS (SELECT 1 FROM list_members WHERE list_members.list_id = lists.id AND list_members.user_id = ?1)
 GROUP BY lists.id ORDER BY lists.created_at, lists.id
 `
 
 type ListListsRow struct {
-	ID        string
-	Name      string
-	ItemCount int64
+	ID          string
+	Name        string
+	ItemCount   int64
+	MemberCount int64
 }
 
-func (q *Queries) ListLists(ctx context.Context, ownerID []byte) ([]ListListsRow, error) {
-	rows, err := q.db.QueryContext(ctx, listLists, ownerID)
+func (q *Queries) ListLists(ctx context.Context, userID []byte) ([]ListListsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listLists, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +285,12 @@ func (q *Queries) ListLists(ctx context.Context, ownerID []byte) ([]ListListsRow
 	var items []ListListsRow
 	for rows.Next() {
 		var i ListListsRow
-		if err := rows.Scan(&i.ID, &i.Name, &i.ItemCount); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.ItemCount,
+			&i.MemberCount,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -182,6 +302,20 @@ func (q *Queries) ListLists(ctx context.Context, ownerID []byte) ([]ListListsRow
 		return nil, err
 	}
 	return items, nil
+}
+
+const removeMember = `-- name: RemoveMember :exec
+DELETE FROM list_members WHERE list_id = ?1 AND user_id = ?2
+`
+
+type RemoveMemberParams struct {
+	ListID string
+	UserID []byte
+}
+
+func (q *Queries) RemoveMember(ctx context.Context, arg RemoveMemberParams) error {
+	_, err := q.db.ExecContext(ctx, removeMember, arg.ListID, arg.UserID)
+	return err
 }
 
 const renameList = `-- name: RenameList :exec
@@ -217,15 +351,21 @@ const updateItem = `-- name: UpdateItem :exec
 UPDATE items SET
     text = COALESCE(?1, text),
     department = COALESCE(?2, department),
-    checked_at = CASE WHEN CAST(?3 AS INTEGER) THEN
-        CASE WHEN CAST(?4 AS INTEGER) THEN COALESCE(checked_at, CAST(?5 AS INTEGER)) ELSE NULL END
+    amount = CASE WHEN CAST(?3 AS INTEGER) THEN ?4 ELSE amount END,
+    unit = CASE WHEN CAST(?5 AS INTEGER) THEN ?6 ELSE unit END,
+    checked_at = CASE WHEN CAST(?7 AS INTEGER) THEN
+        CASE WHEN CAST(?8 AS INTEGER) THEN COALESCE(checked_at, CAST(?9 AS INTEGER)) ELSE NULL END
         ELSE checked_at END
-WHERE id = ?6 AND list_id = ?7 AND deleted_at IS NULL
+WHERE id = ?10 AND list_id = ?11 AND deleted_at IS NULL
 `
 
 type UpdateItemParams struct {
 	Text       *string
 	Department *string
+	SetAmount  int64
+	Amount     *string
+	SetUnit    int64
+	Unit       *string
 	SetChecked int64
 	Checked    int64
 	Now        int64
@@ -234,11 +374,16 @@ type UpdateItemParams struct {
 }
 
 // narg makes omitted PATCH fields nullable parameters despite NOT NULL columns.
-// COALESCE preserves the current value; explicit JSON null is rejected by the API.
+// COALESCE preserves text and department; explicit null is rejected for those fields.
+// Separate presence flags let amount and unit be explicitly cleared with null.
 func (q *Queries) UpdateItem(ctx context.Context, arg UpdateItemParams) error {
 	_, err := q.db.ExecContext(ctx, updateItem,
 		arg.Text,
 		arg.Department,
+		arg.SetAmount,
+		arg.Amount,
+		arg.SetUnit,
+		arg.Unit,
 		arg.SetChecked,
 		arg.Checked,
 		arg.Now,

@@ -54,8 +54,8 @@ func readSnapshot(t *testing.T, reader *bufio.Reader) listapi.List {
 
 func TestStreamSnapshotsAndReconnect(t *testing.T) {
 	f := newFixture(t)
-	require.NoError(t, listdb.New(f.conn).CreateList(t.Context(), listdb.CreateListParams{
-		ID: "list", OwnerID: []byte("owner"), Name: "Groceries", Now: time.Now().Unix(),
+	require.NoError(t, seedList(t.Context(), listdb.New(f.conn), seedListParams{
+		ID: "list", UserID: []byte("owner"), Name: "Groceries", Now: time.Now().Unix(),
 	}))
 
 	server := httptest.NewServer(f.handler)
@@ -115,8 +115,8 @@ func TestStreamAuthorization(t *testing.T) {
 		"Other",
 	)
 	require.NoError(t, err)
-	require.NoError(t, listdb.New(f.conn).CreateList(t.Context(), listdb.CreateListParams{
-		ID: "private", OwnerID: []byte("other"), Name: "Private", Now: time.Now().Unix(),
+	require.NoError(t, seedList(t.Context(), listdb.New(f.conn), seedListParams{
+		ID: "private", UserID: []byte("other"), Name: "Private", Now: time.Now().Unix(),
 	}))
 
 	server := httptest.NewServer(f.handler)
