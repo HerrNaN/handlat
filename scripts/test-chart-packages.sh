@@ -18,6 +18,7 @@ helm template handlat "$chart" --namespace handlat-labs "${values[@]}" > "$test_
 [[ $(helm show values "$chart" | yq '.persistence.retain') == true ]]
 [[ $(helm show values "$chart" | yq '.persistence.storageClass') == '' ]]
 [[ $(yq 'select(.kind == "Deployment") | .spec.template.spec.containers[0].image' "$test_dir/default.yaml") == "$usage_image_repository@$usage_image_digest" ]]
+[[ $(yq 'select(.kind == "Deployment") | .spec.template.spec.containers[0].env[] | select(.name == "DATABASE_PATH") | .value' "$test_dir/default.yaml") == /data/handlat.sqlite ]]
 
 helm template handlat "$chart" "${values[@]}" --set persistence.retain=true > "$test_dir/retained.yaml"
 [[ $(yq 'select(.kind == "PersistentVolumeClaim") | .metadata.annotations."helm.sh/resource-policy"' "$test_dir/retained.yaml") == keep ]]

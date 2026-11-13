@@ -48,7 +48,7 @@ dir = "backend"
 run = "go run ./cmd/handlat"
 env.EXTERNAL_WEB_SERVER_ADDRESS = "http://localhost:5173"
 env.PORT = 8080
-env.DATABASE_PATH = "../_data/laga.sqlite"
+env.DATABASE_PATH = "../_data/handlat.sqlite"
 env.WEBAUTHN_RP_ID = "localhost"
 env.WEBAUTHN_ORIGIN = "http://localhost:8080"
 hide = true
@@ -73,7 +73,7 @@ depends = ["build-fe", "generate"]
 dir = "backend/cmd/handlat"
 run = "go run ."
 env.PORT = 9090
-env.DATABASE_PATH = "../../../_data/laga.sqlite"
+env.DATABASE_PATH = "../../../_data/handlat.sqlite"
 env.WEBAUTHN_RP_ID = "localhost"
 env.WEBAUTHN_ORIGIN = "http://localhost:9090"
 
