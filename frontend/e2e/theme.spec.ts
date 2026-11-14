@@ -9,6 +9,14 @@ test.beforeEach(async ({ page }) => {
 const expectScheme = async (page: Page, scheme: "light" | "dark") => {
   await expect(page.locator("html")).toHaveCSS("color-scheme", scheme);
   await expect(page.locator("html")).toHaveClass(`wa-${scheme}`);
+  const background = await page
+    .locator("html")
+    .evaluate((root) => getComputedStyle(root).backgroundColor);
+  const themeColors = page.locator('meta[name="theme-color"]');
+  await expect(themeColors).toHaveCount(2);
+  for (const meta of await themeColors.all()) {
+    await expect(meta).toHaveAttribute("content", background);
+  }
 };
 
 const selectTheme = async (page: Page, theme: "Light" | "Dark" | "System") => {
@@ -28,10 +36,6 @@ test("defaults to System and follows device appearance changes", async ({ page }
   await page.emulateMedia({ colorScheme: "dark" });
   await expectScheme(page, "dark");
   await expect(page.locator("html")).not.toHaveCSS("background-color", lightBackground);
-  const darkBackground = await page
-    .locator("html")
-    .evaluate((root) => getComputedStyle(root).backgroundColor);
-  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute("content", darkBackground);
 
   await page.emulateMedia({ colorScheme: "light" });
   await expectScheme(page, "light");
@@ -103,8 +107,12 @@ test("updates the empty-list illustration when the theme changes", async ({ page
 
   await page.emulateMedia({ colorScheme: "dark" });
   await expectScheme(page, "dark");
-  for (let index = 0; index < lightColors.length; index++) {
+  // Adapt the backdrop and blue tints without turning the slate basket pale.
+  for (const index of [0, 1, 4, 5]) {
     await expect(stops.nth(index)).not.toHaveCSS("stop-color", lightColors[index]!);
+  }
+  for (const index of [2, 3]) {
+    await expect(stops.nth(index)).toHaveCSS("stop-color", lightColors[index]!);
   }
 
   await page.emulateMedia({ colorScheme: "light" });

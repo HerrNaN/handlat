@@ -37,9 +37,10 @@ export const initializeTheme = () => {
     root.classList.toggle("wa-dark", dark);
     root.classList.toggle("wa-light", !dark);
     root.style.colorScheme = dark ? "dark" : "light";
-    document
-      .querySelector('meta[name="theme-color"]')
-      ?.setAttribute("content", getComputedStyle(root).backgroundColor);
+    const background = getComputedStyle(root).backgroundColor;
+    document.querySelectorAll('meta[name="theme-color"]').forEach((meta) => {
+      meta.setAttribute("content", background);
+    });
   };
   const onStorage = (event: StorageEvent) => {
     if (event.key === storageKey || event.key === null) {
