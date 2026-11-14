@@ -1,5 +1,8 @@
 <script lang="ts">
+  import { flip } from "svelte/animate";
+  import { cubicOut } from "svelte/easing";
   import "@awesome.me/webawesome/dist/components/button/button.js";
+
   import { departmentOrder, getDepartment } from "./classifier";
   import ItemRow from "./ItemRow.svelte";
   import type { Item } from "./list";
@@ -19,60 +22,105 @@
       .filter((item): item is Item & { checkedAt: Date } => item.checkedAt !== undefined)
       .sort((a, b) => b.checkedAt.getTime() - a.checkedAt.getTime()),
   );
+  type Row =
+    | { key: string; kind: "heading"; name: string; checked: boolean }
+    | { key: string; kind: "item"; item: Item };
+
+  // One keyed block preserves item identity when moving between sections.
+  const rows = $derived.by(() => {
+    const result: Row[] = [];
+    for (const deptId of departmentOrder) {
+      const items = itemList.filter(
+        (item) => item.checkedAt === undefined && (item.department ?? "other") === deptId,
+      );
+      if (items.length === 0) continue;
+      result.push({
+        key: `heading:${deptId}`,
+        kind: "heading",
+        name: getDepartment(deptId).name,
+        checked: false,
+      });
+      result.push(...items.map((item): Row => ({ key: item.id, kind: "item", item })));
+    }
+    if (checkedItems.length > 0) {
+      result.push({ key: "heading:checked", kind: "heading", name: "Handlat", checked: true });
+      result.push(...checkedItems.map((item): Row => ({ key: item.id, kind: "item", item })));
+    }
+    return result;
+  });
+
+  let previousChecked = new Map<string, boolean>();
+  let animateMovement = false;
+  $effect.pre(() => {
+    const checked = new Map(itemList.map((item) => [item.id, item.checkedAt !== undefined]));
+    // Observe data changes, so local optimistic updates, remote updates and rollbacks
+    // all animate. Initial loading, additions and removals do not trigger movement.
+    animateMovement = [...checked].some(
+      ([id, value]) => previousChecked.has(id) && previousChecked.get(id) !== value,
+    );
+    previousChecked = checked;
+  });
+
+  const movementEnds = new WeakMap<HTMLElement, number>();
+  const move = (node: HTMLElement, positions: { from: DOMRect; to: DOMRect }) => {
+    const now = performance.now();
+    // A confirming server snapshot can arrive mid-animation. Continue from the
+    // current position for the remaining time instead of snapping to the end.
+    const duration = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      ? 0
+      : animateMovement
+        ? 250
+        : Math.max(0, (movementEnds.get(node) ?? 0) - now);
+    movementEnds.set(node, now + duration);
+    const animation = flip(node, positions, { duration, easing: cubicOut });
+    return { ...animation, css: (t: number, u: number) => `${animation.css?.(t, u)} z-index: 1;` };
+  };
 </script>
 
-{#each departmentOrder as deptId (deptId)}
-  {@const deptItems = itemList.filter(
-    (item) => item.checkedAt === undefined && (item.department ?? "other") === deptId,
-  )}
-  {#if deptItems.length > 0}
-    <h2>{getDepartment(deptId).name}</h2>
-    <ul>
-      {#each deptItems as item (item.id)}
-        <li>
-          <ItemRow {item} {onCheck} {onDelete} onEditItem={() => onClickEditItem(item)} />
-        </li>
-      {/each}
-    </ul>
-  {/if}
-{/each}
-
-{#if checkedItems.length > 0}
-  <div class="checked-section">
-    <h2>
-      Handlat
-      <wa-button size="s" variant="brand" appearance="plain" onclick={onClear}> Clear </wa-button>
-    </h2>
-    <ul>
-      {#each checkedItems as item (item.id)}
-        <li>
-          <ItemRow {item} {onCheck} {onDelete} onEditItem={() => onClickEditItem(item)} />
-        </li>
-      {/each}
-    </ul>
-  </div>
-{/if}
+<ul>
+  {#each rows as row (row.key)}
+    <li
+      animate:move
+      class:heading={row.kind === "heading"}
+      role={row.kind === "heading" ? "presentation" : undefined}
+    >
+      {#if row.kind === "heading"}
+        <h2>
+          {row.name}
+          {#if row.checked}
+            <wa-button size="s" variant="brand" appearance="plain" onclick={onClear}>
+              Clear
+            </wa-button>
+          {/if}
+        </h2>
+      {:else}
+        <ItemRow
+          item={row.item}
+          {onCheck}
+          {onDelete}
+          onEditItem={() => onClickEditItem(row.item)}
+        />
+      {/if}
+    </li>
+  {/each}
+</ul>
 
 <style>
   ul {
     list-style: none;
     margin: 0;
     padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: var(--wa-space-2xs);
-    padding-block: var(--wa-space-2xs);
   }
 
   li {
+    position: relative;
     min-height: 3rem;
-    margin-inline: var(--wa-space-2xs);
+    margin: var(--wa-space-2xs);
   }
 
-  .checked-section {
-    display: flex;
-    flex-direction: column;
-    gap: var(--wa-space-2xs);
+  .heading {
+    min-height: 0;
+    margin: 0;
   }
 
   h2 {
