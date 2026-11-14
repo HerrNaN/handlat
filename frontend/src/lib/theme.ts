@@ -47,13 +47,7 @@ export const initializeTheme = () => {
     }
   };
 
-  const unsubscribe = current.subscribe(applyTheme);
+  current.subscribe(applyTheme);
   system.addEventListener("change", applyTheme);
   window.addEventListener("storage", onStorage);
-
-  return () => {
-    unsubscribe();
-    system.removeEventListener("change", applyTheme);
-    window.removeEventListener("storage", onStorage);
-  };
 };

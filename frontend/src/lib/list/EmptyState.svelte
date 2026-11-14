@@ -10,7 +10,7 @@
     children,
   }: {
     icon?: string;
-    illustration?: string;
+    illustration?: Snippet;
     heading: string;
     description: string;
     children?: Snippet;
@@ -20,7 +20,7 @@
 <section>
   <div>
     {#if illustration}
-      <img src={illustration} alt="" width="320" height="320" />
+      {@render illustration()}
     {:else}
       <span aria-hidden="true">
         <wa-icon name={icon} variant="solid"></wa-icon>
@@ -66,14 +66,6 @@
 
   wa-icon {
     font-size: 2.5rem;
-  }
-
-  img {
-    display: block;
-    width: 12rem;
-    max-width: 100%;
-    height: auto;
-    margin: 0 auto var(--wa-space-l);
   }
 
   .badge {

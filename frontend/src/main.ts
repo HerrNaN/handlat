@@ -8,8 +8,7 @@ import { initializeTheme } from "./lib/theme";
 
 import "./theme.css";
 
-const cleanupTheme = initializeTheme();
-import.meta.hot?.dispose(cleanupTheme);
+initializeTheme();
 
 export const observer = Sentry.init({
   dsn: "https://66db7a76007a4546ba6f1c5675959347@app.glitchtip.com/28832",
