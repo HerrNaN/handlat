@@ -107,11 +107,11 @@ test("updates the empty-list illustration when the theme changes", async ({ page
 
   await page.emulateMedia({ colorScheme: "dark" });
   await expectScheme(page, "dark");
-  // Adapt the backdrop and blue tints without turning the slate basket pale.
-  for (const index of [0, 1, 4, 5]) {
+  // Only the background circle changes; the artwork retains its light-theme colors.
+  for (const index of [0, 1]) {
     await expect(stops.nth(index)).not.toHaveCSS("stop-color", lightColors[index]!);
   }
-  for (const index of [2, 3]) {
+  for (const index of [2, 3, 4, 5]) {
     await expect(stops.nth(index)).toHaveCSS("stop-color", lightColors[index]!);
   }
 

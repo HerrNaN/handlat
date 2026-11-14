@@ -21,8 +21,8 @@
       <stop offset="1" stop-color="var(--wa-color-neutral-40)" />
     </linearGradient>
     <linearGradient id={`${id}-carton`} x2="0.35" y2="1">
-      <stop stop-color="var(--carton-start)" />
-      <stop offset="1" stop-color="var(--carton-shade)" />
+      <stop stop-color="var(--wa-color-brand-80)" />
+      <stop offset="1" stop-color="var(--wa-color-brand-70)" />
     </linearGradient>
     <mask id={`${id}-slots`} maskUnits="userSpaceOnUse" x="0" y="0" width="320" height="320">
       <!-- Mask luminance controls cutouts; these are not visible artwork colors. -->
@@ -65,15 +65,15 @@
     </svg>
   </g>
   <g transform="translate(178 67) rotate(12 29 49) scale(0.86)">
-    <rect x="11" width="46" height="10" rx="3" fill="var(--carton-shade)" />
-    <path d="M11 10h46l11 22H0z" fill="var(--carton-top)" />
-    <path d="M57 10l11 22H52z" fill="var(--carton-shade)" />
+    <rect x="11" width="46" height="10" rx="3" fill="var(--wa-color-brand-70)" />
+    <path d="M11 10h46l11 22H0z" fill="var(--wa-color-brand-90)" />
+    <path d="M57 10l11 22H52z" fill="var(--wa-color-brand-70)" />
     <path d="M0 32h68v78a4 4 0 0 1-4 4H4a4 4 0 0 1-4-4z" fill={`url(#${id}-carton)`} />
-    <path d="M52 32h16v78a4 4 0 0 1-4 4H52z" fill="var(--carton-shade)" />
+    <path d="M52 32h16v78a4 4 0 0 1-4 4H52z" fill="var(--wa-color-brand-70)" />
     <rect x="12" y="56" width="31" height="26" rx="3" fill="var(--wa-color-neutral-95)" />
   </g>
   <!-- Three equal rays on a regular fan, with a shared origin beside the carton. -->
-  <g fill="none" stroke="var(--wa-color-brand-fill-loud)" stroke-width="4" stroke-linecap="round">
+  <g fill="none" stroke="var(--wa-color-brand-50)" stroke-width="4" stroke-linecap="round">
     <path d="M248.78 110.24L250.86 98.43" />
     <path d="M258.26 115.72L267.45 108.00" />
     <path d="M262.00 126.00L274.00 126.00" />
@@ -86,7 +86,7 @@
   <path
     d="M73 170h174l-13 68q-3 15-18 15H104q-15 0-18-15z"
     fill="none"
-    stroke="var(--basket-highlight)"
+    stroke="var(--wa-color-neutral-95)"
     stroke-opacity="0.65"
     stroke-width="1.25"
   />
@@ -97,7 +97,7 @@
     height="23"
     rx="11.5"
     fill={`url(#${id}-basket)`}
-    stroke="var(--basket-highlight)"
+    stroke="var(--wa-color-neutral-95)"
     stroke-opacity="0.65"
     stroke-width="1.25"
   />
@@ -105,12 +105,6 @@
 
 <style>
   .illustration {
-    /* Keep material colors recognizable; only the backdrop and blue tints adapt. */
-    --carton-start: light-dark(var(--wa-color-brand-80), var(--wa-color-brand-70));
-    --carton-shade: light-dark(var(--wa-color-brand-70), var(--wa-color-brand-60));
-    --carton-top: light-dark(var(--wa-color-brand-90), var(--wa-color-brand-80));
-    --basket-highlight: light-dark(var(--wa-color-neutral-95), var(--wa-color-neutral-40));
-
     display: block;
     width: 12rem;
     max-width: 100%;
