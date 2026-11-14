@@ -76,12 +76,14 @@
   const movementEnds = new WeakMap<HTMLElement, number>();
   const move = (node: HTMLElement, positions: { from: DOMRect; to: DOMRect }) => {
     const now = performance.now();
+    const normalDuration = getComputedStyle(node).getPropertyValue("--wa-transition-normal").trim();
+    const durationMs = parseFloat(normalDuration) * (normalDuration.endsWith("ms") ? 1 : 1000);
     // A confirming server snapshot can arrive mid-animation. Continue from the
     // current position for the remaining time instead of snapping to the end.
     const duration = window.matchMedia("(prefers-reduced-motion: reduce)").matches
       ? 0
       : animateMovement
-        ? 250
+        ? durationMs
         : Math.max(0, (movementEnds.get(node) ?? 0) - now);
     movementEnds.set(node, now + duration);
     const animation = flip(node, positions, { duration, easing: cubicOut });
