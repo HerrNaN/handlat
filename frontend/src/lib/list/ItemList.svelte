@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { tick } from "svelte";
   import { flip } from "svelte/animate";
   import { cubicOut } from "svelte/easing";
   import "@awesome.me/webawesome/dist/components/button/button.js";
@@ -49,6 +50,7 @@
     return result;
   });
 
+  let list = $state<HTMLUListElement>();
   let previousChecked = new Map<string, boolean>();
   let animateMovement = false;
   $effect.pre(() => {
@@ -59,6 +61,16 @@
       ([id, value]) => previousChecked.has(id) && previousChecked.get(id) !== value,
     );
     previousChecked = checked;
+
+    // Moving an existing DOM node can still blur its focused descendant.
+    const focused = document.activeElement;
+    if (animateMovement && focused instanceof HTMLElement && list?.contains(focused)) {
+      void tick().then(() => {
+        if (focused.isConnected && document.activeElement === document.body) {
+          focused.focus({ preventScroll: true });
+        }
+      });
+    }
   });
 
   const movementEnds = new WeakMap<HTMLElement, number>();
@@ -77,7 +89,7 @@
   };
 </script>
 
-<ul>
+<ul bind:this={list}>
   {#each rows as row (row.key)}
     <li
       animate:move
