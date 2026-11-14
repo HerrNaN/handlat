@@ -11,6 +11,7 @@
   import "@awesome.me/webawesome/dist/components/icon/icon.js";
   import "@awesome.me/webawesome/dist/components/button/button.js";
   import "@awesome.me/webawesome/dist/components/callout/callout.js";
+  import "@awesome.me/webawesome/dist/components/badge/badge.js";
 
   const createList = createMutation(() => createListMutation());
   const query = createQuery(() => summariesQuery($session?.id));
@@ -73,7 +74,9 @@
               <span class="name">
                 <span>{list.name}</span>
                 {#if list.memberCount > 1}
-                  <small>Shared ({list.memberCount - 1})</small>
+                  <wa-badge variant="neutral" appearance="filled">
+                    Shared ({list.memberCount - 1})
+                  </wa-badge>
                 {/if}
               </span>
               <span class="count">{list.itemCount}</span>
@@ -169,9 +172,8 @@
     overflow-wrap: anywhere;
   }
 
-  small {
-    color: var(--wa-color-neutral-on-quiet);
-    font-size: var(--wa-font-size-s);
+  wa-badge {
+    align-self: flex-start;
   }
 
   .count {
