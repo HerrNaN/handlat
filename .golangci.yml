@@ -5,4 +5,15 @@ linters:
   enable:
     - contextcheck
     - errorlint
+    - testifylint
     - wsl_v5
+  settings:
+    testifylint:
+      # Focus on assertion correctness rather than stylistic rewrites.
+      disable-all: true
+      enable:
+        - error-is-as
+        - error-nil
+        - expected-actual
+        - go-require
+        - require-error

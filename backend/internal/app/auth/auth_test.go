@@ -130,7 +130,7 @@ func TestAuthHandler(t *testing.T) {
 
 				handler, err := New(nil, "example.com", test.origin, slog.Default())
 
-				assert.Error(t, err)
+				require.Error(t, err)
 				assert.Nil(t, handler)
 			})
 		}

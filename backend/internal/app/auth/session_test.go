@@ -13,6 +13,7 @@ import (
 	"github.com/herrnan/handlat/internal/app/auth/db"
 	"github.com/herrnan/handlat/internal/app/database"
 	"github.com/herrnan/handlat/internal/app/migrations"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -46,7 +47,7 @@ func TestRequireSession(t *testing.T) {
 	require.NoError(t, err)
 
 	protected := h.RequireSession(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		require.Equal(t, []byte("user"), auth.UserID(r.Context()))
+		assert.Equal(t, []byte("user"), auth.UserID(r.Context()))
 		w.WriteHeader(http.StatusNoContent)
 	}))
 
