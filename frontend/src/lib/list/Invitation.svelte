@@ -44,8 +44,6 @@
         <wa-button
           variant="brand"
           onclick={() => $session && acceptance.mutate({ token, account: $session.id })}
-          disabled={acceptance.isPending}
-          loading={acceptance.isPending}
         >
           Accept invitation
         </wa-button>
@@ -58,9 +56,7 @@
           <p>This browser does not support passkeys.</p>
         {/if}
       {/if}
-      <wa-button appearance="plain" onclick={cancel} disabled={pending || acceptance.isPending}
-        >Cancel</wa-button
-      >
+      <wa-button appearance="plain" onclick={cancel}>Cancel</wa-button>
     </div>
   {:else if invitation.isPending}
     <p role="status">Loading invitation…</p>

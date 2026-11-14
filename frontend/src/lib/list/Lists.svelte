@@ -30,11 +30,7 @@
 <article>
   <header>
     <h2>Lists</h2>
-    <wa-button
-      onclick={handleCreateList}
-      appearance="plain"
-      disabled={!$session || query.isFetching || createList.isPending}
-    >
+    <wa-button onclick={handleCreateList} appearance="plain" disabled={!$session}>
       <wa-icon name="plus" label="New list"></wa-icon>
     </wa-button>
   </header>
@@ -55,11 +51,7 @@
         heading="Your first list starts here"
         description="For the weekly shop, a quick stop, or anything you don’t want to forget."
       >
-        <wa-button
-          onclick={handleCreateList}
-          appearance="outlined"
-          disabled={!$session || query.isFetching || createList.isPending}
-        >
+        <wa-button onclick={handleCreateList} appearance="outlined" disabled={!$session}>
           <wa-icon slot="start" name="plus"></wa-icon>
           Create list
         </wa-button>

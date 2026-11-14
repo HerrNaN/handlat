@@ -57,9 +57,6 @@
     ),
   );
   const pending = $derived(listWrites.filter((write) => write.status === "pending"));
-  const pendingItems = $derived(
-    new Set(pending.map((write) => write.variables?.itemID).filter((id) => id !== undefined)),
-  );
   const error = $derived(
     listWrites.findLast((write) => write.status === "error")?.error ?? query.error,
   );
@@ -128,8 +125,6 @@
         <ItemList
           items={query.data.items}
           {onClickEditItem}
-          {pendingItems}
-          clearing={clear.isPending}
           onCheck={(itemID, checked) => check.mutate({ ...target, itemID, checked })}
           onDelete={(itemID) => remove.mutateAsync({ ...target, itemID })}
           onClear={() => clear.mutate({ ...target })}

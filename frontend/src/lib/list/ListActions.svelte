@@ -67,7 +67,7 @@
 </script>
 
 <ShareList listID={list.id} name={list.name}>
-  {#snippet children(share, sharing)}
+  {#snippet children(share)}
     <wa-dropdown
       placement="bottom-end"
       onwa-select={(event: WaSelectEvent) => {
@@ -77,7 +77,7 @@
         if (action === "leave") confirmLeave();
       }}
     >
-      <wa-button slot="trigger" appearance="plain" disabled={sharing || departure.isPending}>
+      <wa-button slot="trigger" appearance="plain">
         <wa-icon name="ellipsis-vertical" label={`Actions for ${list.name}`}></wa-icon>
       </wa-button>
       <wa-dropdown-item value="rename">
@@ -107,9 +107,6 @@
     nameInput?.focus();
     nameInput?.select();
   }}
-  onwa-hide={(event: Event) => {
-    if (saving) event.preventDefault();
-  }}
 >
   <form onsubmit={saveName}>
     <wa-input
@@ -120,25 +117,16 @@
         name = nameInput?.value ?? "";
       }}
       required
-      disabled={saving}
     ></wa-input>
     {#if rename.error}<p role="alert">{errorMessage(rename.error)}</p>{/if}
     <footer>
-      <wa-button data-dialog="close" disabled={saving}>Cancel</wa-button>
-      <wa-button type="submit" variant="brand" disabled={saving || !name.trim()} loading={saving}
-        >Save</wa-button
-      >
+      <wa-button data-dialog="close">Cancel</wa-button>
+      <wa-button type="submit" variant="brand" disabled={!name.trim()}>Save</wa-button>
     </footer>
   </form>
 </wa-dialog>
 
-<wa-dialog
-  bind:this={leaveDialog}
-  label={shared ? "Leave list?" : "Delete list?"}
-  onwa-hide={(event: Event) => {
-    if (departure.isPending) event.preventDefault();
-  }}
->
+<wa-dialog bind:this={leaveDialog} label={shared ? "Leave list?" : "Delete list?"}>
   {#if shared}
     <p>Leave “{list.name}”? Other members will keep the list.</p>
   {:else}
@@ -148,13 +136,9 @@
     </p>
   {/if}
   {#if departure.error}<p role="alert">{errorMessage(departure.error)}</p>{/if}
-  <wa-button slot="footer" data-dialog="close" disabled={departure.isPending}>Cancel</wa-button>
-  <wa-button
-    slot="footer"
-    variant="danger"
-    onclick={leave}
-    disabled={departure.isPending}
-    loading={departure.isPending}>{shared ? "Leave list" : "Delete list"}</wa-button
+  <wa-button slot="footer" data-dialog="close">Cancel</wa-button>
+  <wa-button slot="footer" variant="danger" onclick={leave}
+    >{shared ? "Leave list" : "Delete list"}</wa-button
   >
 </wa-dialog>
 
