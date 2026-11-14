@@ -14,7 +14,8 @@ const recordMovement = async (checkbox: Locator) => {
   });
 };
 const moves = (checkbox: Locator) => checkbox.locator("xpath=ancestor::li");
-const order = (page: Page) => page.getByRole("checkbox").allTextContents();
+const order = async (page: Page) =>
+  (await page.getByRole("checkbox").allTextContents()).map((text) => text.trim());
 const settled = async (page: Page) => {
   await expect
     .poll(() =>
