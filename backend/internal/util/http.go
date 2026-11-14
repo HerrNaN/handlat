@@ -16,7 +16,8 @@ func ListenAndServe(ctx context.Context, server *http.Server, shutdownTimeout ti
 	eg.Go(func() error {
 		<-ctx.Done()
 
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+		// Shutdown must outlive cancellation while retaining the parent context values.
+		shutdownCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), shutdownTimeout)
 		defer cancel()
 
 		return server.Shutdown(shutdownCtx)

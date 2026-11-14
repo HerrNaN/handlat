@@ -363,9 +363,11 @@ func (h *Handler) rename(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ctx := r.Context()
+
 	h.mutate(w, r, func(q *db.Queries) error {
 		return q.RenameList(
-			r.Context(),
+			ctx,
 			db.RenameListParams{ID: r.PathValue("id"), Name: body.Name},
 		)
 	})
@@ -436,9 +438,11 @@ func (h *Handler) addItem(w http.ResponseWriter, r *http.Request) {
 		body.Text = string(unicode.ToUpper(first)) + body.Text[size:]
 	}
 
+	ctx := r.Context()
+
 	h.mutate(w, r, func(q *db.Queries) error {
 		return q.AddItem(
-			r.Context(),
+			ctx,
 			db.AddItemParams{
 				ID:         body.ID,
 				ListID:     r.PathValue("id"),
@@ -529,6 +533,8 @@ func (h *Handler) updateItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ctx := r.Context()
+
 	h.mutate(w, r, func(q *db.Queries) error {
 		var setAmount, setUnit int64
 		if body.Amount.set {
@@ -549,7 +555,7 @@ func (h *Handler) updateItem(w http.ResponseWriter, r *http.Request) {
 		}
 
 		return q.UpdateItem(
-			r.Context(),
+			ctx,
 			db.UpdateItemParams{
 				ID:         r.PathValue("itemID"),
 				ListID:     r.PathValue("id"),
@@ -568,18 +574,22 @@ func (h *Handler) updateItem(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) deleteItem(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	h.mutate(w, r, func(q *db.Queries) error {
 		return q.DeleteItem(
-			r.Context(),
+			ctx,
 			db.DeleteItemParams{ID: r.PathValue("itemID"), ListID: r.PathValue("id"), Now: now()},
 		)
 	})
 }
 
 func (h *Handler) deleteChecked(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	h.mutate(w, r, func(q *db.Queries) error {
 		return q.DeleteCheckedItems(
-			r.Context(),
+			ctx,
 			db.DeleteCheckedItemsParams{ListID: r.PathValue("id"), Now: now()},
 		)
 	})
