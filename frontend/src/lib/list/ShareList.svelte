@@ -14,7 +14,7 @@
   }: {
     listID: string;
     name: string;
-    children: Snippet<[() => Promise<void>, boolean]>;
+    children: Snippet<[() => Promise<void>]>;
   } = $props();
   let dialog = $state<WaDialog>();
   let pending = $state(false);
@@ -76,7 +76,7 @@
   };
 </script>
 
-{@render children(share, pending)}
+{@render children(share)}
 
 <wa-dialog bind:this={dialog} label="Share list" light-dismiss>
   {#if link}

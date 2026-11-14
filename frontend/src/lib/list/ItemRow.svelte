@@ -7,12 +7,11 @@
 
   type Props = {
     item: Item;
-    busy: boolean;
     onEditItem: () => void;
     onCheck: (itemID: string, checked: boolean) => void;
     onDelete: (itemID: string) => Promise<unknown>;
   };
-  let { item, busy, onEditItem, onCheck, onDelete }: Props = $props();
+  let { item, onEditItem, onCheck, onDelete }: Props = $props();
   const quantity = $derived([item.amount?.replace(".", ","), item.unit].filter(Boolean).join(" "));
   const checked = $derived(item.checkedAt !== undefined);
   let swipe = $state<SwipeAction>();
@@ -22,7 +21,7 @@
   };
 </script>
 
-<SwipeAction bind:this={swipe} ontrigger={remove} disabled={busy}>
+<SwipeAction bind:this={swipe} ontrigger={remove}>
   {#snippet underlay()}
     <div class="underlay"><wa-icon name="trash"></wa-icon></div>
   {/snippet}
@@ -31,7 +30,6 @@
       type="button"
       role="checkbox"
       aria-checked={checked}
-      disabled={busy}
       onclick={() => onCheck(item.id, !checked)}
     >
       <!-- The button owns interaction; the checkbox only displays query state. -->
@@ -41,7 +39,7 @@
           <span class="quantity">{` ${quantity}`}</span>{/if}
       </span>
     </button>
-    <wa-button appearance="plain" onclick={onEditItem} disabled={busy}>
+    <wa-button appearance="plain" onclick={onEditItem}>
       <wa-icon name="pen" label="Edit {item.text}"></wa-icon>
     </wa-button>
   </div>

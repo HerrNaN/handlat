@@ -7,22 +7,12 @@
   interface Props {
     items: Item[];
     onClickEditItem: (item: Item) => void;
-    pendingItems: Set<string>;
-    clearing: boolean;
     onCheck: (itemID: string, checked: boolean) => void;
     onDelete: (itemID: string) => Promise<unknown>;
     onClear: () => void;
   }
 
-  let {
-    items: itemList,
-    onClickEditItem,
-    pendingItems,
-    clearing,
-    onCheck,
-    onDelete,
-    onClear,
-  }: Props = $props();
+  let { items: itemList, onClickEditItem, onCheck, onDelete, onClear }: Props = $props();
 
   const checkedItems = $derived(
     itemList
@@ -40,13 +30,7 @@
     <ul>
       {#each deptItems as item (item.id)}
         <li>
-          <ItemRow
-            {item}
-            busy={pendingItems.has(item.id)}
-            {onCheck}
-            {onDelete}
-            onEditItem={() => onClickEditItem(item)}
-          />
+          <ItemRow {item} {onCheck} {onDelete} onEditItem={() => onClickEditItem(item)} />
         </li>
       {/each}
     </ul>
@@ -57,20 +41,12 @@
   <div class="checked-section">
     <h2>
       Handlat
-      <wa-button size="s" variant="brand" appearance="plain" onclick={onClear} disabled={clearing}>
-        Clear
-      </wa-button>
+      <wa-button size="s" variant="brand" appearance="plain" onclick={onClear}> Clear </wa-button>
     </h2>
     <ul>
       {#each checkedItems as item (item.id)}
         <li>
-          <ItemRow
-            {item}
-            busy={pendingItems.has(item.id)}
-            {onCheck}
-            {onDelete}
-            onEditItem={() => onClickEditItem(item)}
-          />
+          <ItemRow {item} {onCheck} {onDelete} onEditItem={() => onClickEditItem(item)} />
         </li>
       {/each}
     </ul>

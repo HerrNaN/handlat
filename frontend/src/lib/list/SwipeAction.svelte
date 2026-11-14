@@ -8,12 +8,11 @@
 
   type Props = {
     ontrigger: () => void;
-    disabled?: boolean;
     underlay?: Snippet;
     children: Snippet;
   };
 
-  let { ontrigger, disabled = false, underlay, children }: Props = $props();
+  let { ontrigger, underlay, children }: Props = $props();
 
   let isDragging = $state(false);
   let startX = 0;
@@ -26,7 +25,6 @@
   };
 
   const handlePointerDown = (e: PointerEvent) => {
-    if (disabled) return;
     startX = e.clientX;
     isDragging = true;
   };
