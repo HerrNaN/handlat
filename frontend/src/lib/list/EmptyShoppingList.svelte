@@ -44,7 +44,12 @@
       />
     </mask>
   </defs>
-  <circle cx="160" cy="160" r="140" fill="var(--wa-color-neutral-fill-quiet)" />
+  <circle
+    cx="160"
+    cy="160"
+    r="140"
+    fill="light-dark(var(--wa-color-neutral-90), var(--wa-color-neutral-fill-quiet))"
+  />
   <g transform="translate(8 15) scale(0.92) rotate(-8 111 117)">
     <path
       d="M111 102c1-8-3-13-9-17"
