@@ -19,7 +19,7 @@ test("closes the item drawer after keyboard viewport recovery and preserves the 
   const illustration = page
     .locator("section")
     .filter({ has: page.getByRole("heading", { name: "What do you need to buy?", exact: true }) })
-    .locator("img");
+    .locator("svg.illustration");
   await expect(illustration).toBeVisible();
   const initialBounds = await illustration.boundingBox();
   expect(initialBounds).not.toBeNull();
