@@ -2,7 +2,6 @@ package auth
 
 import (
 	"database/sql"
-	"errors"
 	"log/slog"
 	"path/filepath"
 	"sync"
@@ -250,7 +249,7 @@ func TestSQLiteQueries(t *testing.T) {
 			if err == nil {
 				successes++
 			} else {
-				assert.True(t, errors.Is(err, sql.ErrNoRows), "unexpected error: %v", err)
+				require.ErrorIs(t, err, sql.ErrNoRows)
 			}
 		}
 
