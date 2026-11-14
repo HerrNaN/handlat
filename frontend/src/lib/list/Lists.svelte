@@ -71,14 +71,12 @@
           <li>
             <a href={p("/lists/:id", { params: { id: list.id } })}>
               <wa-icon name="list-check"></wa-icon>
-              <span class="name">
-                <span>{list.name}</span>
-                {#if list.memberCount > 1}
-                  <wa-badge variant="neutral" appearance="filled">
-                    Shared ({list.memberCount - 1})
-                  </wa-badge>
-                {/if}
-              </span>
+              <span class="name">{list.name}</span>
+              {#if list.memberCount > 1}
+                <wa-badge variant="neutral" appearance="filled">
+                  Shared ({list.memberCount - 1})
+                </wa-badge>
+              {/if}
               <span class="count">{list.itemCount}</span>
             </a>
             <ListActions {list} />
@@ -166,14 +164,15 @@
   .name {
     flex: 1;
     min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: var(--wa-space-2xs);
-    overflow-wrap: anywhere;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
-  wa-badge {
-    align-self: flex-start;
+  a > wa-icon,
+  wa-badge,
+  .count {
+    flex-shrink: 0;
   }
 
   .count {
