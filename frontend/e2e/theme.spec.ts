@@ -99,8 +99,10 @@ test("updates the empty-list illustration when the theme changes", async ({ page
   await page.goto("/lists/theme-list");
   const illustration = page.locator("svg.illustration");
   await expect(illustration).toBeVisible();
+  const circle = illustration.locator("circle");
+  const lightBackground = await circle.evaluate((element) => getComputedStyle(element).fill);
   const stops = illustration.locator("stop");
-  await expect(stops).toHaveCount(6);
+  await expect(stops).toHaveCount(4);
   const lightColors = await stops.evaluateAll((elements) =>
     elements.map((element) => getComputedStyle(element).stopColor),
   );
@@ -108,15 +110,14 @@ test("updates the empty-list illustration when the theme changes", async ({ page
   await page.emulateMedia({ colorScheme: "dark" });
   await expectScheme(page, "dark");
   // Only the background circle changes; the artwork retains its light-theme colors.
-  for (const index of [0, 1]) {
-    await expect(stops.nth(index)).not.toHaveCSS("stop-color", lightColors[index]!);
-  }
-  for (const index of [2, 3, 4, 5]) {
+  await expect(circle).not.toHaveCSS("fill", lightBackground);
+  for (let index = 0; index < lightColors.length; index++) {
     await expect(stops.nth(index)).toHaveCSS("stop-color", lightColors[index]!);
   }
 
   await page.emulateMedia({ colorScheme: "light" });
   await expectScheme(page, "light");
+  await expect(circle).toHaveCSS("fill", lightBackground);
   for (let index = 0; index < lightColors.length; index++) {
     await expect(stops.nth(index)).toHaveCSS("stop-color", lightColors[index]!);
   }
