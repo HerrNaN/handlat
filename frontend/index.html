@@ -9,6 +9,20 @@
       content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content"
     />
     <meta name="theme-color" content="#ffffff" />
+    <script>
+      // Apply the saved appearance before the app loads to avoid a light flash.
+      let theme = "system";
+      try {
+        theme = localStorage.getItem("handlat-theme") || "system";
+      } catch {
+        // Storage can be unavailable in private or restricted browsers.
+      }
+      const dark =
+        theme === "dark" ||
+        (theme !== "light" && matchMedia("(prefers-color-scheme: dark)").matches);
+      document.documentElement.classList.add(dark ? "wa-dark" : "wa-light");
+      document.documentElement.style.colorScheme = dark ? "dark" : "light";
+    </script>
     <title>Handlat</title>
   </head>
   <body>
