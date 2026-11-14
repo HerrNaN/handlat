@@ -70,7 +70,12 @@
           <li>
             <a href={p("/lists/:id", { params: { id: list.id } })}>
               <wa-icon name="list-check"></wa-icon>
-              <span class="name">{list.name}</span>
+              <span class="name">
+                <span>{list.name}</span>
+                {#if list.memberCount > 1}
+                  <small>Shared ({list.memberCount - 1})</small>
+                {/if}
+              </span>
               <span class="count">{list.itemCount}</span>
             </a>
             <ListActions {list} />
@@ -157,6 +162,16 @@
 
   .name {
     flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--wa-space-2xs);
+    overflow-wrap: anywhere;
+  }
+
+  small {
+    color: var(--wa-color-neutral-on-quiet);
+    font-size: var(--wa-font-size-s);
   }
 
   .count {
