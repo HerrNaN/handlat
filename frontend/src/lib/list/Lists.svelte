@@ -73,9 +73,7 @@
               <wa-icon name="list-check"></wa-icon>
               <span class="name">{list.name}</span>
               {#if list.memberCount > 1}
-                <wa-badge variant="neutral" appearance="filled">
-                  Shared ({list.memberCount - 1})
-                </wa-badge>
+                <wa-badge variant="neutral" appearance="filled">Shared</wa-badge>
               {/if}
               <span class="count">{list.itemCount}</span>
             </a>
