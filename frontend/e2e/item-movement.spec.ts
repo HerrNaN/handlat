@@ -64,7 +64,11 @@ test("preserves focus and ordering when checking and immediately unchecking", as
   await expect(page.getByRole("heading", { name: "Handlat", exact: true })).toHaveCount(0);
 });
 
-test("applies checked state and ordering from another client", async ({ page, context, browser }) => {
+test("applies checked state and ordering from another client", async ({
+  page,
+  context,
+  browser,
+}) => {
   const apple = page.getByRole("checkbox", { name: "Apple", exact: true });
   const otherContext = await browser.newContext({ storageState: await context.storageState() });
   try {
