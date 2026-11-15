@@ -1,7 +1,5 @@
 <script lang="ts">
   import { tick } from "svelte";
-  import { flip } from "svelte/animate";
-  import { cubicOut } from "svelte/easing";
   import "@awesome.me/webawesome/dist/components/button/button.js";
 
   import { departmentOrder, getDepartment } from "./classifier";
@@ -73,21 +71,20 @@
     }
   });
 
-  const movementEnds = new WeakMap<HTMLElement, number>();
-  const move = (node: HTMLElement, positions: { from: DOMRect; to: DOMRect }) => {
-    const now = performance.now();
-    const normalDuration = getComputedStyle(node).getPropertyValue("--wa-transition-normal").trim();
-    const durationMs = parseFloat(normalDuration) * (normalDuration.endsWith("ms") ? 1 : 1000);
-    // A confirming server snapshot can arrive mid-animation. Continue from the
-    // current position for the remaining time instead of snapping to the end.
-    const duration = window.matchMedia("(prefers-reduced-motion: reduce)").matches
-      ? 0
-      : animateMovement
-        ? durationMs
-        : Math.max(0, (movementEnds.get(node) ?? 0) - now);
-    movementEnds.set(node, now + duration);
-    const animation = flip(node, positions, { duration, easing: cubicOut });
-    return { ...animation, css: (t: number, u: number) => `${animation.css?.(t, u)} z-index: 1;` };
+  const move = (node: HTMLElement, { from }: { from: DOMRect; to: DOMRect }) => {
+    if (animateMovement) {
+      // Measure the destination without an in-progress transition, then let CSS
+      // transition from the previous visual position to the new layout position.
+      node.style.transition = "none";
+      node.style.translate = "none";
+      const to = node.getBoundingClientRect();
+      node.style.translate = `${from.left - to.left}px ${from.top - to.top}px`;
+      node.getBoundingClientRect();
+      node.style.transition = "";
+      node.style.translate = "";
+    }
+    // CSS owns playback; Svelte only measures and reconciles the keyed rows.
+    return { duration: 0 };
   };
 </script>
 
@@ -128,8 +125,15 @@
 
   li {
     position: relative;
+    transition: translate var(--wa-transition-normal) var(--wa-transition-easing);
     min-height: 3rem;
     margin: var(--wa-space-2xs);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    li {
+      transition: none;
+    }
   }
 
   .heading {

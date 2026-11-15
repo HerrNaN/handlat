@@ -32,8 +32,8 @@ test.beforeEach(async ({ page, context }) => {
 });
 
 test("animates the moved item and surrounding rows", async ({ page }) => {
-  // Leave enough time to observe native animations without racing the default duration.
-  await page.addStyleTag({ content: ":root { --wa-transition-normal: 2s; }" });
+  // Keep transitions observable until the test explicitly finishes them.
+  await page.addStyleTag({ content: ":root { --wa-transition-normal: 3600s; }" });
   const apple = page.getByRole("checkbox", { name: "Apple", exact: true });
   const milk = page.getByRole("checkbox", { name: "Milk", exact: true });
   await apple.click();
@@ -43,6 +43,11 @@ test("animates the moved item and surrounding rows", async ({ page }) => {
       .poll(() => item.evaluate((element) => element.closest("li")!.getAnimations().length))
       .toBeGreaterThan(0);
   }
+  await page.locator("li").evaluateAll((rows) => {
+    for (const row of rows) {
+      for (const animation of row.getAnimations()) animation.finish();
+    }
+  });
   await settled(page);
   await expect.poll(() => order(page)).toEqual(["Milk", "Bread", "Apple"]);
 });
@@ -112,7 +117,7 @@ test("restores checked state and ordering after a failed save", async ({ page })
 
 test("moves instantly when reduced motion is preferred", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.addStyleTag({ content: ":root { --wa-transition-normal: 2s; }" });
+  await page.addStyleTag({ content: ":root { --wa-transition-normal: 3600s; }" });
   const apple = page.getByRole("checkbox", { name: "Apple", exact: true });
   await apple.click();
   await expect(apple).toBeChecked();
