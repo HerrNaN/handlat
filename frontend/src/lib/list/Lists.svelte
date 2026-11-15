@@ -11,6 +11,7 @@
   import "@awesome.me/webawesome/dist/components/icon/icon.js";
   import "@awesome.me/webawesome/dist/components/button/button.js";
   import "@awesome.me/webawesome/dist/components/callout/callout.js";
+  import "@awesome.me/webawesome/dist/components/badge/badge.js";
 
   const createList = createMutation(() => createListMutation());
   const query = createQuery(() => summariesQuery($session?.id));
@@ -63,6 +64,9 @@
             <a href={p("/lists/:id", { params: { id: list.id } })}>
               <wa-icon name="list-check"></wa-icon>
               <span class="name">{list.name}</span>
+              {#if list.memberCount > 1}
+                <wa-badge variant="neutral" appearance="filled" pill>Shared</wa-badge>
+              {/if}
               <span class="count">{list.itemCount}</span>
             </a>
             <ListActions {list} />
@@ -149,6 +153,16 @@
 
   .name {
     flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  a > wa-icon,
+  wa-badge,
+  .count {
+    flex-shrink: 0;
   }
 
   .count {
