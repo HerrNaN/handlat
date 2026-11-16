@@ -101,6 +101,10 @@ test("updates the empty-list illustration when the theme changes", async ({ page
   await expect(illustration).toBeVisible();
   const circle = illustration.locator("circle");
   const lightBackground = await circle.evaluate((element) => getComputedStyle(element).fill);
+  const listBackground = await page
+    .locator(".list-area")
+    .evaluate((element) => getComputedStyle(element).backgroundColor);
+  await expect(circle).not.toHaveCSS("fill", listBackground);
   const stops = illustration.locator("stop");
   await expect(stops).toHaveCount(4);
   const lightColors = await stops.evaluateAll((elements) =>
