@@ -17,8 +17,8 @@
       <stop offset="1" stop-color="var(--wa-color-neutral-fill-quiet)" />
     </linearGradient>
     <linearGradient id={`${id}-basket`} x2="0.6" y2="1">
-      <stop stop-color="var(--wa-color-neutral-40)" />
-      <stop offset="1" stop-color="var(--wa-color-neutral-30)" />
+      <stop stop-color="var(--wa-color-neutral-50)" />
+      <stop offset="1" stop-color="var(--wa-color-neutral-40)" />
     </linearGradient>
     <linearGradient id={`${id}-carton`} x2="0.35" y2="1">
       <stop stop-color="var(--carton-start)" />
@@ -53,7 +53,7 @@
     <path
       d="M111 102c1-8-3-13-9-17"
       fill="none"
-      stroke="var(--wa-color-neutral-30)"
+      stroke="var(--wa-color-neutral-40)"
       stroke-width="4"
       stroke-linecap="round"
     />
