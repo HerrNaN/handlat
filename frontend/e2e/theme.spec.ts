@@ -86,16 +86,17 @@ test("allows theme changes when browser storage is unavailable", async ({ page }
 
 test("updates the empty-list illustration when the theme changes", async ({ page }) => {
   await page.route("**/api/lists/theme-list/events", (route) =>
-    route.fulfill({ contentType: "text/event-stream", body: ": connected\n\n" }),
-  );
-  await page.route("**/api/lists/theme-list", (route) =>
-    route.fulfill({ json: { id: "theme-list", name: "Shopping List", items: [], memberCount: 1 } }),
+    route.fulfill({
+      contentType: "text/event-stream",
+      body: `data: ${JSON.stringify({ id: "theme-list", name: "Shopping List", items: [], memberCount: 1 })}\n\n`,
+    }),
   );
   await page.emulateMedia({ colorScheme: "light" });
   await page.goto("/lists/theme-list");
   const illustration = page.locator("svg.illustration");
   await expect(illustration).toBeVisible();
   const stops = illustration.locator("stop");
+  await expect(stops).toHaveCount(6);
   const lightColors = await stops.evaluateAll((elements) =>
     elements.map((element) => getComputedStyle(element).stopColor),
   );
