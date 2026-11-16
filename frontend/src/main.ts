@@ -4,6 +4,12 @@ import { mount } from "svelte";
 import "@awesome.me/webawesome/dist/styles/themes/default.css";
 
 import App from "./App.svelte";
+import { initializeTheme } from "./lib/theme";
+
+import "./theme.css";
+
+const cleanupTheme = initializeTheme();
+import.meta.hot?.dispose(cleanupTheme);
 
 export const observer = Sentry.init({
   dsn: "https://66db7a76007a4546ba6f1c5675959347@app.glitchtip.com/28832",
