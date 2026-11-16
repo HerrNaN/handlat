@@ -12,10 +12,6 @@
 >
   <!-- Apple adapted from Font Awesome Free 7.3.1, Copyright 2026 Fonticons, Inc. CC BY 4.0: https://fontawesome.com/license/free -->
   <defs>
-    <linearGradient id={`${id}-circle`} x2="0.8" y2="1">
-      <stop stop-color="var(--wa-color-neutral-fill-normal)" />
-      <stop offset="1" stop-color="var(--wa-color-neutral-fill-quiet)" />
-    </linearGradient>
     <linearGradient id={`${id}-basket`} x2="0.6" y2="1">
       <stop stop-color="var(--wa-color-neutral-50)" />
       <stop offset="1" stop-color="var(--wa-color-neutral-40)" />
@@ -48,7 +44,7 @@
       />
     </mask>
   </defs>
-  <circle cx="160" cy="160" r="140" fill={`url(#${id}-circle)`} />
+  <circle cx="160" cy="160" r="140" fill="var(--wa-color-neutral-fill-quiet)" />
   <g transform="translate(8 15) scale(0.92) rotate(-8 111 117)">
     <path
       d="M111 102c1-8-3-13-9-17"
