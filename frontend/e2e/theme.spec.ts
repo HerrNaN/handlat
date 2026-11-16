@@ -20,14 +20,15 @@ const expectScheme = async (page: Page, scheme: "light" | "dark") => {
 };
 
 const selectTheme = async (page: Page, theme: "Light" | "Dark" | "System") => {
-  await page.getByRole("combobox", { name: "Theme" }).click();
-  await page.getByRole("option", { name: theme, exact: true }).click();
+  const radio = page.getByRole("radio", { name: theme, exact: true });
+  await radio.click();
+  await expect(radio).toBeChecked();
 };
 
 test("defaults to System and follows device appearance changes", async ({ page }) => {
   await page.emulateMedia({ colorScheme: "light" });
   await page.goto("/user");
-  await expect(page.locator("wa-select")).toHaveJSProperty("value", "system");
+  await expect(page.getByRole("radio", { name: "System", exact: true })).toBeChecked();
   await expectScheme(page, "light");
   const lightBackground = await page
     .locator("html")
@@ -47,20 +48,20 @@ test("remembers explicit choices and can return to System", async ({ page }) => 
   await selectTheme(page, "Dark");
   await expectScheme(page, "dark");
   await page.reload();
-  await expect(page.locator("wa-select")).toHaveJSProperty("value", "dark");
+  await expect(page.getByRole("radio", { name: "Dark", exact: true })).toBeChecked();
   await expectScheme(page, "dark");
 
   await page.emulateMedia({ colorScheme: "dark" });
   await selectTheme(page, "Light");
   await expectScheme(page, "light");
   await page.reload();
-  await expect(page.locator("wa-select")).toHaveJSProperty("value", "light");
+  await expect(page.getByRole("radio", { name: "Light", exact: true })).toBeChecked();
   await expectScheme(page, "light");
 
   await selectTheme(page, "System");
   await expectScheme(page, "dark");
   await page.reload();
-  await expect(page.locator("wa-select")).toHaveJSProperty("value", "system");
+  await expect(page.getByRole("radio", { name: "System", exact: true })).toBeChecked();
   await page.emulateMedia({ colorScheme: "light" });
   await expectScheme(page, "light");
 });
@@ -69,8 +70,24 @@ test("falls back to System for an invalid stored preference", async ({ page }) =
   await page.addInitScript(() => localStorage.setItem("handlat-theme", "invalid"));
   await page.emulateMedia({ colorScheme: "dark" });
   await page.goto("/user");
-  await expect(page.locator("wa-select")).toHaveJSProperty("value", "system");
+  await expect(page.getByRole("radio", { name: "System", exact: true })).toBeChecked();
   await expectScheme(page, "dark");
+});
+
+test("changes theme using the segmented control's arrow keys", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.goto("/user");
+  await expect(page.getByRole("radiogroup", { name: "Theme" })).toBeVisible();
+  const system = page.getByRole("radio", { name: "System", exact: true });
+  await expect(system).toBeChecked();
+  await system.press("ArrowLeft");
+  const dark = page.getByRole("radio", { name: "Dark", exact: true });
+  await expect(dark).toBeChecked();
+  await expect(dark).toBeFocused();
+  await expectScheme(page, "dark");
+  await dark.press("ArrowLeft");
+  await expect(page.getByRole("radio", { name: "Light", exact: true })).toBeChecked();
+  await expectScheme(page, "light");
 });
 
 test("allows theme changes when browser storage is unavailable", async ({ page }) => {
