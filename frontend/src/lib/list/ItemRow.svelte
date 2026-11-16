@@ -54,7 +54,7 @@
     align-items: center;
     padding-inline: var(--wa-space-2xs);
     background-color: var(--wa-color-surface-default);
-    border-radius: var(--wa-border-width-l);
+    border-radius: var(--wa-border-radius-s);
   }
   button {
     flex: 1;
@@ -76,7 +76,7 @@
     pointer-events: none;
     -webkit-tap-highlight-color: transparent;
     padding: 0.675rem;
-    border-radius: var(--wa-border-width-l);
+    border-radius: var(--wa-border-radius-s);
     background-color: var(--wa-color-neutral-fill-quiet);
 
     &:state(checked) {
@@ -94,19 +94,19 @@
     }
   }
   .label {
-    font-weight: 500;
+    font-weight: var(--wa-font-weight-semibold);
     min-width: 0;
     overflow-wrap: anywhere;
     padding-block: var(--wa-space-xs);
   }
   .quantity {
     white-space: nowrap;
-    color: var(--wa-color-neutral-on-quiet);
-    font-weight: 400;
+    color: var(--wa-color-text-quiet);
+    font-weight: var(--wa-font-weight-normal);
   }
   .checked {
     text-decoration: line-through;
-    color: var(--wa-color-neutral-on-quiet);
+    color: var(--wa-color-text-quiet);
   }
   .underlay {
     position: absolute;
@@ -116,8 +116,8 @@
     justify-content: end;
     padding: var(--wa-space-s) var(--wa-space-m);
     background-color: var(--wa-color-danger-fill-loud);
-    color: var(--wa-color-brand-on-loud);
-    border-radius: var(--wa-border-width-l);
+    color: var(--wa-color-danger-on-loud);
+    border-radius: var(--wa-border-radius-s);
     border-style: var(--wa-border-style);
     border-width: var(--wa-border-width-s);
   }

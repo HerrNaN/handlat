@@ -149,7 +149,7 @@
     padding: 0 var(--wa-space-m);
     font-size: var(--wa-font-size-xs);
     text-transform: uppercase;
-    color: var(--wa-color-neutral-on-normal);
+    color: var(--wa-color-text-quiet);
   }
 
   wa-button {
