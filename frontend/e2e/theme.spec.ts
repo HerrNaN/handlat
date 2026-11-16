@@ -83,3 +83,32 @@ test("allows theme changes when browser storage is unavailable", async ({ page }
   await selectTheme(page, "Light");
   await expectScheme(page, "light");
 });
+
+test("updates the empty-list illustration when the theme changes", async ({ page }) => {
+  await page.route("**/api/lists/theme-list/events", (route) =>
+    route.fulfill({ contentType: "text/event-stream", body: ": connected\n\n" }),
+  );
+  await page.route("**/api/lists/theme-list", (route) =>
+    route.fulfill({ json: { id: "theme-list", name: "Shopping List", items: [], memberCount: 1 } }),
+  );
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.goto("/lists/theme-list");
+  const illustration = page.locator("svg.illustration");
+  await expect(illustration).toBeVisible();
+  const stops = illustration.locator("stop");
+  const lightColors = await stops.evaluateAll((elements) =>
+    elements.map((element) => getComputedStyle(element).stopColor),
+  );
+
+  await page.emulateMedia({ colorScheme: "dark" });
+  await expectScheme(page, "dark");
+  for (let index = 0; index < lightColors.length; index++) {
+    await expect(stops.nth(index)).not.toHaveCSS("stop-color", lightColors[index]!);
+  }
+
+  await page.emulateMedia({ colorScheme: "light" });
+  await expectScheme(page, "light");
+  for (let index = 0; index < lightColors.length; index++) {
+    await expect(stops.nth(index)).toHaveCSS("stop-color", lightColors[index]!);
+  }
+});
