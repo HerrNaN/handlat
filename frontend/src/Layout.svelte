@@ -127,8 +127,8 @@
 
         &.active {
           wa-icon {
-            color: var(--wa-color-brand);
-            padding: 1rem 2rem;
+            color: var(--wa-color-brand-on-normal);
+            padding: var(--wa-space-m) var(--wa-space-xl);
             border-radius: var(--wa-border-radius-l);
             background-color: var(--wa-color-brand-fill-normal);
           }

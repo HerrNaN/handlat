@@ -60,13 +60,13 @@
     height: 3rem;
     padding-inline: var(--wa-space-m);
     background-color: var(--wa-color-surface-default);
-    border-radius: var(--wa-border-width-l);
+    border-radius: var(--wa-border-radius-s);
   }
 
   .overview .row {
     height: auto;
     padding-block: var(--wa-space-m);
-    background-color: var(--wa-color-surface-lowered);
+    background-color: var(--wa-color-neutral-fill-quiet);
   }
 
   .icon {
@@ -85,7 +85,7 @@
     width: 3.5rem;
     height: 3.5rem;
     border-radius: var(--wa-border-radius-m);
-    margin: auto 1rem 1rem;
+    margin: auto var(--wa-space-m) var(--wa-space-m);
     align-self: flex-end;
   }
 </style>

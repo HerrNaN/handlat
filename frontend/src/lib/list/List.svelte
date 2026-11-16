@@ -191,7 +191,7 @@
     align-items: center;
     padding: var(--wa-space-m);
     background-color: var(--wa-color-surface-raised);
-    box-shadow: 0 var(--wa-shadow-offset-x-m) var(--wa-shadow-offset-y-m) var(--wa-color-shadow);
+    box-shadow: var(--wa-shadow-m);
   }
 
   h2 {

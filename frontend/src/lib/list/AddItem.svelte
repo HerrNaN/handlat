@@ -101,7 +101,7 @@
   }
 
   wa-button {
-    margin: 1rem;
+    margin: var(--wa-space-m);
   }
 
   wa-drawer {

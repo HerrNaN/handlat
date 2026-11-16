@@ -121,7 +121,7 @@
     align-items: center;
 
     &.snapping {
-      transition: transform var(--wa-transition-normal) ease;
+      transition: transform var(--wa-transition-normal) var(--wa-transition-easing);
     }
 
     &.off-screen {
