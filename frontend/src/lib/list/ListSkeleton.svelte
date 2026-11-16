@@ -66,7 +66,7 @@
   .overview .row {
     height: auto;
     padding-block: var(--wa-space-m);
-    background-color: var(--wa-color-surface-lowered);
+    background-color: var(--wa-color-surface-raised);
   }
 
   .icon {
