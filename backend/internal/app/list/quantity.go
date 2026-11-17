@@ -36,6 +36,8 @@ func (unit Unit) valid() bool {
 	}
 }
 
+const maxAmountLength = 100
+
 var decimalAmount = regexp.MustCompile(`^[0-9]+([.][0-9]+)?$`)
 
 // Keep decimals exact instead of rounding them through a floating-point value.
@@ -46,7 +48,7 @@ func normalizeAmount(amount *string) bool {
 
 	*amount = strings.ReplaceAll(strings.TrimSpace(*amount), ",", ".")
 
-	return len(*amount) <= 100 && decimalAmount.MatchString(*amount) &&
+	return len(*amount) <= maxAmountLength && decimalAmount.MatchString(*amount) &&
 		strings.Trim(*amount, "0.") != ""
 }
 

@@ -15,7 +15,7 @@ test("closes the item drawer after keyboard viewport recovery and preserves the 
   await expect(page.getByRole("heading", { name: "Shopping List", exact: true })).toBeVisible();
 
   const add = page.getByRole("button", { name: "Add item", exact: true });
-  const input = page.getByPlaceholder("t.ex. 2 kg potatis");
+  const input = page.getByRole("textbox", { name: "Add item", exact: true });
   const illustration = page
     .locator("section")
     .filter({ has: page.getByRole("heading", { name: "What do you need to buy?", exact: true }) })

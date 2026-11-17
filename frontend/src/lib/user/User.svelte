@@ -4,6 +4,8 @@
   import { p } from "../../router";
   import { post } from "../api";
   import PageHeader from "../components/PageHeader.svelte";
+  import { languagePreference, messages, setLanguage } from "../i18n";
+  import { errorMessage } from "../i18n/errors";
   import { setTheme, theme } from "../theme";
   import type { ChangeEvent } from "../utils/events";
   import { session, clearSession } from "./session";
@@ -24,7 +26,7 @@
 </script>
 
 <article>
-  <PageHeader title="Profile">
+  <PageHeader title={$messages.profile.title}>
     {#snippet actions()}
       {#if $session}
         <wa-button
@@ -33,42 +35,55 @@
           onclick={() => logout.mutate()}
           disabled={logout.isPending}
         >
-          <wa-icon name="arrow-right-from-bracket" label="Log out"></wa-icon>
+          <wa-icon name="arrow-right-from-bracket" label={$messages.profile.logout}></wa-icon>
         </wa-button>
-        <wa-tooltip for="logout-button">Log out</wa-tooltip>
+        <wa-tooltip for="logout-button">{$messages.profile.logout}</wa-tooltip>
       {/if}
     {/snippet}
   </PageHeader>
   <div class="content">
     <div>
       {#if $session}
-        <p>You are logged in as: <span class="username">{$session.name}</span>.</p>
+        <p>{$messages.profile.signedInAs($session.name)}</p>
       {:else}
-        <p>You are not logged in.</p>
-        <p><a href={p("/login")}>Login or Create Account</a></p>
+        <p>{$messages.profile.signedOut}</p>
+        <p><a href={p("/login")}>{$messages.profile.loginOrCreate}</a></p>
       {/if}
     </div>
     {#if logout.isError}
-      <p role="alert">Could not log out. Check your connection and try again.</p>
+      <p role="alert">{errorMessage(logout.error, $messages, $messages.errors.logout)}</p>
     {/if}
     <section aria-labelledby="appearance-heading">
-      <h2 id="appearance-heading">Appearance</h2>
+      <h2 id="appearance-heading">{$messages.profile.appearance}</h2>
       <wa-radio-group
-        label="Theme"
+        label={$messages.profile.theme}
         name="theme"
         orientation="horizontal"
         value={$theme}
         onchange={(event: ChangeEvent) => setTheme(event.target.value)}
       >
         <wa-radio appearance="button" value="light">
-          <span><wa-icon name="sun" aria-hidden="true"></wa-icon>Light</span>
+          <span><wa-icon name="sun" aria-hidden="true"></wa-icon>{$messages.profile.light}</span>
         </wa-radio>
         <wa-radio appearance="button" value="dark">
-          <span><wa-icon name="moon" aria-hidden="true"></wa-icon>Dark</span>
+          <span><wa-icon name="moon" aria-hidden="true"></wa-icon>{$messages.profile.dark}</span>
         </wa-radio>
         <wa-radio appearance="button" value="system">
-          <span><wa-icon name="desktop" aria-hidden="true"></wa-icon>System</span>
+          <span
+            ><wa-icon name="desktop" aria-hidden="true"></wa-icon>{$messages.profile.system}</span
+          >
         </wa-radio>
+      </wa-radio-group>
+      <wa-radio-group
+        label={$messages.profile.language}
+        name="language"
+        orientation="horizontal"
+        value={$languagePreference}
+        onchange={(event: ChangeEvent) => setLanguage(event.target.value)}
+      >
+        <wa-radio appearance="button" value="browser">{$messages.profile.browserLanguage}</wa-radio>
+        <wa-radio appearance="button" value="en"><span lang="en">English</span></wa-radio>
+        <wa-radio appearance="button" value="sv"><span lang="sv">Svenska</span></wa-radio>
       </wa-radio-group>
     </section>
   </div>
@@ -101,9 +116,12 @@
     margin: 0;
   }
 
-  .username {
-    font-weight: var(--wa-font-weight-bold);
+  .content p {
     overflow-wrap: anywhere;
+  }
+
+  section > wa-radio-group + wa-radio-group {
+    margin-top: var(--wa-space-m);
   }
 
   wa-radio-group {

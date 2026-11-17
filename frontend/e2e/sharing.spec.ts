@@ -52,7 +52,7 @@ test("shares a list with a logged-out invitee who creates an account and accepts
 
     // Both independent users can collaborate through the existing stream.
     await invitee.getByRole("button", { name: "Add item", exact: true }).click();
-    const input = invitee.getByPlaceholder("t.ex. 2 kg potatis");
+    const input = invitee.getByRole("textbox", { name: "Add item", exact: true });
     await input.fill("Milk");
     await input.press("Enter");
     await input.press("Escape");

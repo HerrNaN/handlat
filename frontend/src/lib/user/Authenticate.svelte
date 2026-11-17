@@ -2,6 +2,7 @@
   import { browserSupportsWebAuthn } from "@simplewebauthn/browser";
 
   import { navigate } from "../../router";
+  import { messages } from "../i18n";
   import CreateAccountButton from "./CreateAccountButton.svelte";
   import LoginButton from "./LoginButton.svelte";
 
@@ -12,15 +13,15 @@
 </script>
 
 <section>
-  <h1>Welcome to Handlat</h1>
-  <p>Use a passkey to log in or create an account.</p>
+  <h1>{$messages.auth.welcome}</h1>
+  <p>{$messages.auth.passkeyPrompt}</p>
   {#if browserSupportsWebAuthn()}
     <div>
       <LoginButton bind:pending onsuccess={onSuccess} />
       <CreateAccountButton bind:pending onsuccess={onSuccess} />
     </div>
   {:else}
-    <p>This browser does not support passkeys.</p>
+    <p>{$messages.auth.passkeysUnsupported}</p>
   {/if}
 </section>
 

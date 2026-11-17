@@ -3,8 +3,9 @@
 
   import { p, navigate } from "../../router";
   import PageHeader from "../components/PageHeader.svelte";
+  import { messages } from "../i18n";
+  import { errorMessage } from "../i18n/errors";
   import { session } from "../user/session";
-  import { errorMessage } from "./api";
   import EmptyState from "./EmptyState.svelte";
   import ListActions from "./ListActions.svelte";
   import ListSkeleton from "./ListSkeleton.svelte";
@@ -19,7 +20,7 @@
   const handleCreateList = () => {
     if (!$session) return;
     createList.mutate(
-      { account: $session.id, name: "Shopping List" },
+      { account: $session.id, name: $messages.lists.defaultName },
       {
         onSuccess: (list, { account }) => {
           if (account === $session?.id) void navigate("/lists/:id", { params: { id: list.id } });
@@ -30,10 +31,10 @@
 </script>
 
 <article>
-  <PageHeader title="Lists">
+  <PageHeader title={$messages.lists.title}>
     {#snippet actions()}
       <wa-button onclick={handleCreateList} appearance="plain" disabled={!$session}>
-        <wa-icon name="plus" label="New list"></wa-icon>
+        <wa-icon name="plus" label={$messages.lists.newList}></wa-icon>
       </wa-button>
     {/snippet}
   </PageHeader>
@@ -41,7 +42,11 @@
     <aside role="alert">
       <wa-callout variant="danger">
         <wa-icon slot="icon" name="circle-exclamation"></wa-icon>
-        {errorMessage(createList.error ?? query.error)}
+        {errorMessage(
+          createList.error ?? query.error,
+          $messages,
+          createList.error ? $messages.errors.createList : $messages.errors.loadLists,
+        )}
       </wa-callout>
     </aside>
   {/if}
@@ -51,12 +56,12 @@
     {:else if query.isSuccess && query.data.length === 0}
       <EmptyState
         icon="list-check"
-        heading="Your first list starts here"
-        description="For the weekly shop, a quick stop, or anything you don’t want to forget."
+        heading={$messages.lists.emptyTitle}
+        description={$messages.lists.emptyDescription}
       >
         <wa-button onclick={handleCreateList} appearance="outlined" disabled={!$session}>
           <wa-icon slot="start" name="plus"></wa-icon>
-          Create list
+          {$messages.lists.create}
         </wa-button>
       </EmptyState>
     {:else}
@@ -67,7 +72,9 @@
               <wa-icon name="list-check"></wa-icon>
               <span class="name">{list.name}</span>
               {#if list.memberCount > 1}
-                <wa-badge variant="neutral" appearance="filled" pill>Shared</wa-badge>
+                <wa-badge variant="neutral" appearance="filled" pill
+                  >{$messages.lists.shared}</wa-badge
+                >
               {/if}
               <span class="count">{list.itemCount}</span>
             </a>

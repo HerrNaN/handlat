@@ -9,7 +9,7 @@ test("keeps item input focused and editable while saving", async ({ page, contex
   await page.getByRole("button", { name: "New list", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Shopping List" })).toBeVisible();
   await page.getByRole("button", { name: "Add item", exact: true }).click();
-  const input = page.getByPlaceholder("t.ex. 2 kg potatis");
+  const input = page.getByRole("textbox", { name: "Add item", exact: true });
   await input.fill("Milk");
 
   let releaseSave!: () => void;
@@ -84,7 +84,7 @@ test("creates a list, adds an item, and keeps its checked state after reload", a
   await expect(emptyList).toBeVisible();
 
   await page.getByRole("button", { name: "Add item", exact: true }).click();
-  const input = page.getByPlaceholder("t.ex. 2 kg potatis");
+  const input = page.getByRole("textbox", { name: "Add item", exact: true });
   await input.fill("Milk");
   await input.press("Enter");
   await expect(input).toHaveValue("");
@@ -234,7 +234,7 @@ test("streams list changes between independent clients without refreshing", asyn
     await expect(other.getByRole("heading", { name: "Shopping List" })).toBeVisible();
 
     await page.getByRole("button", { name: "Add item", exact: true }).click();
-    const input = page.getByPlaceholder("t.ex. 2 kg potatis");
+    const input = page.getByRole("textbox", { name: "Add item", exact: true });
     await input.fill("Milk");
     await input.press("Enter");
     await input.press("Escape");
@@ -299,17 +299,17 @@ test("parses quantities and edits amount and unit independently", async ({ page,
   await page.goto("/lists");
   await page.getByRole("button", { name: "New list", exact: true }).click();
   await page.getByRole("button", { name: "Add item", exact: true }).click();
-  const input = page.getByPlaceholder("t.ex. 2 kg potatis");
+  const input = page.getByRole("textbox", { name: "Add item", exact: true });
   await input.fill("1,5kg potatoes");
   await input.press("Enter");
   await input.press("Escape");
-  await expect(page.getByRole("checkbox", { name: "Potatoes 1,5 kg", exact: true })).toBeVisible();
+  await expect(page.getByRole("checkbox", { name: "Potatoes 1.5 kg", exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "Edit Potatoes", exact: true }).click();
   const dialog = page.locator('wa-dialog[label="Edit Item"]');
   const amount = dialog.getByRole("textbox", { name: "Amount", exact: true });
   const unit = dialog.getByRole("combobox", { name: "Unit", exact: true });
-  await expect(amount).toHaveValue("1,5");
+  await expect(amount).toHaveValue("1.5");
 
   const patch = () => page.waitForRequest((request) => request.method() === "PATCH");
   let update = patch();
@@ -318,7 +318,7 @@ test("parses quantities and edits amount and unit independently", async ({ page,
   expect((await update).postDataJSON()).toEqual({ amount: "2.25" });
   await expect(amount).toBeEnabled();
   await expect(
-    page.getByRole("checkbox", { name: "Potatoes 2,25 kg", exact: true, includeHidden: true }),
+    page.getByRole("checkbox", { name: "Potatoes 2.25 kg", exact: true, includeHidden: true }),
   ).toHaveCount(1);
 
   update = patch();
@@ -326,7 +326,7 @@ test("parses quantities and edits amount and unit independently", async ({ page,
   await page.getByRole("option", { name: "g", exact: true }).click();
   expect((await update).postDataJSON()).toEqual({ unit: "g" });
   await expect(amount).toBeEnabled();
-  await expect(amount).toHaveValue("2,25");
+  await expect(amount).toHaveValue("2.25");
 
   update = patch();
   await amount.fill("");
@@ -359,7 +359,7 @@ test("keeps focus and typed text when switching edit fields during a save", asyn
   await page.goto("/lists");
   await page.getByRole("button", { name: "New list", exact: true }).click();
   await page.getByRole("button", { name: "Add item", exact: true }).click();
-  const input = page.getByPlaceholder("t.ex. 2 kg potatis");
+  const input = page.getByRole("textbox", { name: "Add item", exact: true });
   await input.fill("Milk");
   await input.press("Enter");
   await input.press("Escape");

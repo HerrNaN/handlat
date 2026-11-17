@@ -1,16 +1,18 @@
 <script lang="ts">
   import WaDialog from "@awesome.me/webawesome/dist/components/dialog/dialog.js";
   import WaDropdownItem from "@awesome.me/webawesome/dist/components/dropdown-item/dropdown-item.js";
+  import WaInput from "@awesome.me/webawesome/dist/components/input/input.js";
+  import type { WaSelectEvent } from "@awesome.me/webawesome/dist/events/select.js";
   import "@awesome.me/webawesome/dist/components/button/button.js";
   import "@awesome.me/webawesome/dist/components/icon/icon.js";
   import "@awesome.me/webawesome/dist/components/dropdown/dropdown.js";
-  import WaInput from "@awesome.me/webawesome/dist/components/input/input.js";
-  import type { WaSelectEvent } from "@awesome.me/webawesome/dist/events/select.js";
   import { createMutation } from "@tanstack/svelte-query";
   import { tick } from "svelte";
 
+  import { messages } from "../i18n";
+  import { errorMessage } from "../i18n/errors";
   import { session } from "../user/session";
-  import { errorMessage, type ListSummary } from "./api";
+  import type { ListSummary } from "./api";
   import { leaveListMutation, renameListMutation } from "./queries";
   import ShareList from "./ShareList.svelte";
 
@@ -78,15 +80,15 @@
       }}
     >
       <wa-button slot="trigger" appearance="plain">
-        <wa-icon name="ellipsis-vertical" label={`Actions for ${list.name}`}></wa-icon>
+        <wa-icon name="ellipsis-vertical" label={$messages.lists.actionsFor(list.name)}></wa-icon>
       </wa-button>
       <wa-dropdown-item value="rename">
         <wa-icon slot="icon" name="pen"></wa-icon>
-        Rename
+        {$messages.lists.rename}
       </wa-dropdown-item>
       <wa-dropdown-item value="share">
         <wa-icon slot="icon" name="share-nodes"></wa-icon>
-        Share
+        {$messages.lists.share}
       </wa-dropdown-item>
       <wa-dropdown-item value="leave" variant="danger">
         <wa-icon
@@ -94,7 +96,7 @@
           name={shared ? "arrow-right-from-bracket" : "trash-can"}
           variant="solid"
         ></wa-icon>
-        {shared ? "Leave list" : "Delete list"}
+        {shared ? $messages.lists.leave : $messages.lists.delete}
       </wa-dropdown-item>
     </wa-dropdown>
   {/snippet}
@@ -102,7 +104,7 @@
 
 <wa-dialog
   bind:this={renameDialog}
-  label="Rename list"
+  label={$messages.lists.renameList}
   onwa-after-show={() => {
     nameInput?.focus();
     nameInput?.select();
@@ -111,34 +113,44 @@
   <form onsubmit={saveName}>
     <wa-input
       bind:this={nameInput}
-      label="List name"
+      label={$messages.lists.name}
       value={name}
       oninput={() => {
         name = nameInput?.value ?? "";
       }}
       required
     ></wa-input>
-    {#if rename.error}<p role="alert">{errorMessage(rename.error)}</p>{/if}
+    {#if rename.error}<p role="alert">
+        {errorMessage(rename.error, $messages, $messages.errors.renameList)}
+      </p>{/if}
     <footer>
-      <wa-button data-dialog="close">Cancel</wa-button>
-      <wa-button type="submit" variant="brand" disabled={!name.trim()}>Save</wa-button>
+      <wa-button data-dialog="close">{$messages.common.cancel}</wa-button>
+      <wa-button type="submit" variant="brand" disabled={!name.trim()}
+        >{$messages.common.save}</wa-button
+      >
     </footer>
   </form>
 </wa-dialog>
 
-<wa-dialog bind:this={leaveDialog} label={shared ? "Leave list?" : "Delete list?"}>
-  {#if shared}
-    <p>Leave “{list.name}”? Other members will keep the list.</p>
-  {:else}
-    <p>
-      You're the only member. Leaving will delete “{list.name}” and all its items. This cannot be
-      undone.
-    </p>
-  {/if}
-  {#if departure.error}<p role="alert">{errorMessage(departure.error)}</p>{/if}
-  <wa-button slot="footer" data-dialog="close">Cancel</wa-button>
+<wa-dialog
+  bind:this={leaveDialog}
+  label={shared ? $messages.lists.confirmLeave : $messages.lists.confirmDelete}
+>
+  <p>
+    {shared
+      ? $messages.lists.leaveDescription(list.name)
+      : $messages.lists.deleteDescription(list.name)}
+  </p>
+  {#if departure.error}<p role="alert">
+      {errorMessage(
+        departure.error,
+        $messages,
+        shared ? $messages.errors.leaveList : $messages.errors.deleteList,
+      )}
+    </p>{/if}
+  <wa-button slot="footer" data-dialog="close">{$messages.common.cancel}</wa-button>
   <wa-button slot="footer" variant="danger" onclick={leave}
-    >{shared ? "Leave list" : "Delete list"}</wa-button
+    >{shared ? $messages.lists.leave : $messages.lists.delete}</wa-button
   >
 </wa-dialog>
 

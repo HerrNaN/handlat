@@ -1,14 +1,18 @@
 <script lang="ts">
   import { browserSupportsWebAuthn } from "@simplewebauthn/browser";
   import { createMutation, createQuery } from "@tanstack/svelte-query";
-  import "@awesome.me/webawesome/dist/components/button/button.js";
 
   import { navigate, route } from "../../router";
+  import { ApiError } from "../api";
+  import { messages } from "../i18n";
+  import "@awesome.me/webawesome/dist/components/button/button.js";
+
+  import { errorMessage } from "../i18n/errors";
   import { queryClient } from "../query";
   import CreateAccountButton from "../user/CreateAccountButton.svelte";
   import LoginButton from "../user/LoginButton.svelte";
   import { session } from "../user/session";
-  import { acceptInvitation, ApiError, errorMessage, getInvitation } from "./api";
+  import { acceptInvitation, getInvitation } from "./api";
   import { listKey, summariesKey } from "./queries";
 
   const token = $derived(route.params.token ?? "");
@@ -33,37 +37,45 @@
 </script>
 
 <section>
-  <h1>Invitation</h1>
+  <h1>{$messages.invitations.title}</h1>
   {#if unavailable}
-    <p>This invitation is no longer available.</p>
-    <wa-button onclick={cancel}>Go back</wa-button>
+    <p>{$messages.errors.invitationUnavailable}</p>
+    <wa-button onclick={cancel}>{$messages.invitations.goBack}</wa-button>
   {:else if invitation.data}
-    <p>You've been invited to join <strong>{invitation.data.name}</strong>.</p>
+    <p>{$messages.invitations.inviteToJoin(invitation.data.name)}</p>
     <div>
       {#if $session}
         <wa-button
           variant="brand"
           onclick={() => $session && acceptance.mutate({ token, account: $session.id })}
         >
-          Accept invitation
+          {$messages.invitations.accept}
         </wa-button>
       {:else}
-        <p>To accept, log in or create an account.</p>
+        <p>{$messages.invitations.signInToAccept}</p>
         {#if browserSupportsWebAuthn()}
           <LoginButton bind:pending />
           <CreateAccountButton bind:pending />
         {:else}
-          <p>This browser does not support passkeys.</p>
+          <p>{$messages.auth.passkeysUnsupported}</p>
         {/if}
       {/if}
-      <wa-button appearance="plain" onclick={cancel}>Cancel</wa-button>
+      <wa-button appearance="plain" onclick={cancel}>{$messages.common.cancel}</wa-button>
     </div>
   {:else if invitation.isPending}
-    <p role="status">Loading invitation…</p>
+    <p role="status">{$messages.invitations.loading}</p>
   {/if}
   {#if error && !unavailable}
-    <p role="alert">{errorMessage(error)}</p>
-    {#if !invitation.data}<wa-button onclick={() => invitation.refetch()}>Try again</wa-button>{/if}
+    <p role="alert">
+      {errorMessage(
+        error,
+        $messages,
+        acceptance.error ? $messages.errors.acceptInvitation : $messages.errors.loadInvitation,
+      )}
+    </p>
+    {#if !invitation.data}<wa-button onclick={() => invitation.refetch()}
+        >{$messages.common.tryAgain}</wa-button
+      >{/if}
   {/if}
 </section>
 

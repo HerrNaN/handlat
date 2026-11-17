@@ -1,5 +1,7 @@
 <script lang="ts">
+  import { language, messages } from "../i18n";
   import type { Item } from "./list";
+  import { formatAmount } from "./quantity";
   import SwipeAction from "./SwipeAction.svelte";
   import "@awesome.me/webawesome/dist/components/checkbox/checkbox.js";
   import "@awesome.me/webawesome/dist/components/icon/icon.js";
@@ -12,7 +14,11 @@
     onDelete: (itemID: string) => Promise<unknown>;
   };
   let { item, onEditItem, onCheck, onDelete }: Props = $props();
-  const quantity = $derived([item.amount?.replace(".", ","), item.unit].filter(Boolean).join(" "));
+  const quantity = $derived(
+    [formatAmount(item.amount, $language), item.unit && $messages.units[item.unit]]
+      .filter(Boolean)
+      .join(" "),
+  );
   const checked = $derived(item.checkedAt !== undefined);
   let swipe = $state<SwipeAction>();
   const remove = async () => {
@@ -40,7 +46,7 @@
       </span>
     </button>
     <wa-button appearance="plain" onclick={onEditItem}>
-      <wa-icon name="pen" label="Edit {item.text}"></wa-icon>
+      <wa-icon name="pen" label={$messages.items.editNamed(item.text)}></wa-icon>
     </wa-button>
   </div>
 </SwipeAction>

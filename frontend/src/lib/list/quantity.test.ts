@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { parseItemInput, units } from "./quantity";
+import { formatAmount, parseItemInput, units } from "./quantity";
 
 describe("item quantities", () => {
   it.each([
     ["milk", { text: "milk" }],
     ["  1,5 kg potatoes  ", { text: "potatoes", amount: "1.5", unit: "kg" }],
     ["1.25 l milk", { text: "milk", amount: "1.25", unit: "l" }],
+    ["2 pcs apples", { text: "apples", amount: "2", unit: "st" }],
+    ["2pk coffee", { text: "coffee", amount: "2", unit: "förp" }],
     ["1kg potatis", { text: "potatis", amount: "1", unit: "kg" }],
     ["1,5kg potatis", { text: "potatis", amount: "1.5", unit: "kg" }],
     ["1.25l milk", { text: "milk", amount: "1.25", unit: "l" }],
@@ -30,6 +32,11 @@ describe("item quantities", () => {
     ],
   ])("parses %s without losing name text or decimal precision", (input, expected) => {
     expect(parseItemInput(input)).toEqual(expected);
+  });
+
+  it("localizes decimals without rounding or dropping trailing zeroes", () => {
+    expect(formatAmount("9007199254740993.123450", "sv")).toBe("9007199254740993,123450");
+    expect(formatAmount("9007199254740993.123450", "en")).toBe("9007199254740993.123450");
   });
 
   it.each(units)("recognizes the exact unit %s", (unit) => {

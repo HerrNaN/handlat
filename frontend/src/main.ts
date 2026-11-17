@@ -3,12 +3,16 @@ import { mount } from "svelte";
 
 import "@awesome.me/webawesome/dist/styles/themes/default.css";
 
+import "@awesome.me/webawesome/dist/translations/sv.js";
+
 import App from "./App.svelte";
+import { initializeLanguage } from "./lib/i18n";
 import { initializeTheme } from "./lib/theme";
 
 import "./theme.css";
 
 initializeTheme();
+initializeLanguage();
 
 export const observer = Sentry.init({
   dsn: "https://66db7a76007a4546ba6f1c5675959347@app.glitchtip.com/28832",

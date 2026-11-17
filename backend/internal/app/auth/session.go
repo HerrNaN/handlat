@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/herrnan/handlat/internal/app/auth/db"
+	"github.com/herrnan/handlat/internal/util"
 )
 
 type accountKey struct{}
@@ -37,7 +38,7 @@ func (h *Handler) RequireSession(next http.Handler) http.Handler {
 		account, err := h.sessionAccount(r)
 		if errors.Is(err, sql.ErrNoRows) {
 			w.Header().Set("Cache-Control", "no-store")
-			http.Error(w, "Not signed in", http.StatusUnauthorized)
+			util.WriteAPIError(w, http.StatusUnauthorized, "not_signed_in", nil)
 
 			return
 		}
