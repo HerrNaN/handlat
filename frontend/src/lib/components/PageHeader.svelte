@@ -42,7 +42,7 @@
     align-items: center;
     gap: var(--wa-space-xs);
     padding: var(--wa-space-m) var(--wa-space-l);
-    background-color: var(--wa-color-surface-raised);
+    background-color: var(--wa-color-surface-default);
     border-block-end: 1px solid var(--wa-color-surface-border);
   }
 
