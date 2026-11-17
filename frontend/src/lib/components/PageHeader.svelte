@@ -43,7 +43,6 @@
     gap: var(--wa-space-xs);
     padding: var(--wa-space-m) var(--wa-space-l);
     background-color: var(--wa-color-surface-raised);
-    box-shadow: var(--wa-shadow-m);
   }
 
   h1 {
