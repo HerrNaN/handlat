@@ -495,7 +495,7 @@ func TestItemQuantities(t *testing.T) {
 		{"set amount without unit change", `{"amount":"9007199254740993.123456789"}`, "9007199254740993.123456789", listapi.UnitDeciliter},
 		{"clear unit", `{"unit":null}`, "9007199254740993.123456789", ""},
 		{"clear both", `{"amount":null,"unit":null}`, "", ""},
-		{"unit without amount", `{"unit":"förp"}`, "", listapi.UnitPackage},
+		{"unit without amount", `{"unit":"pkt"}`, "", listapi.UnitPackage},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			result := request(t, http.MethodPatch, path, tc.body, http.StatusOK)

@@ -2,7 +2,7 @@ import z from "zod";
 
 export const UnitSchema = z.enum([
   "st",
-  "förp",
+  "pkt",
   "kg",
   "g",
   "l",

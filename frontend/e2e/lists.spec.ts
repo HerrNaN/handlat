@@ -323,8 +323,8 @@ test("parses quantities and edits amount and unit independently", async ({ page,
 
   update = patch();
   await unit.click();
-  await page.getByRole("option", { name: "krm", exact: true }).click();
-  expect((await update).postDataJSON()).toEqual({ unit: "krm" });
+  await page.getByRole("option", { name: "pkt", exact: true }).click();
+  expect((await update).postDataJSON()).toEqual({ unit: "pkt" });
   await expect(amount).toBeEnabled();
   await expect(amount).toHaveValue("2,25");
 
@@ -334,7 +334,7 @@ test("parses quantities and edits amount and unit independently", async ({ page,
   expect((await update).postDataJSON()).toEqual({ amount: null });
   await expect(amount).toBeEnabled();
   await expect(
-    page.getByRole("checkbox", { name: "Salt krm", exact: true, includeHidden: true }),
+    page.getByRole("checkbox", { name: "Salt pkt", exact: true, includeHidden: true }),
   ).toHaveCount(1);
 
   update = patch();

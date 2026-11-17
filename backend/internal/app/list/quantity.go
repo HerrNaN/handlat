@@ -11,7 +11,7 @@ type Unit string
 
 const (
 	UnitPiece      Unit = "st"
-	UnitPackage    Unit = "förp"
+	UnitPackage    Unit = "pkt"
 	UnitKilogram   Unit = "kg"
 	UnitGram       Unit = "g"
 	UnitLiter      Unit = "l"
