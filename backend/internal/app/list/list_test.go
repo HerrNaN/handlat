@@ -544,7 +544,19 @@ func TestItemQuantities(t *testing.T) {
 		})
 	}
 
-	for _, unit := range []listapi.Unit{listapi.UnitPiece, listapi.UnitPackage, listapi.UnitKilogram, listapi.UnitGram, listapi.UnitLiter, listapi.UnitDeciliter, listapi.UnitCentiliter, listapi.UnitMilliliter} {
+	for _, unit := range []listapi.Unit{
+		listapi.UnitPiece,
+		listapi.UnitPackage,
+		listapi.UnitKilogram,
+		listapi.UnitGram,
+		listapi.UnitLiter,
+		listapi.UnitDeciliter,
+		listapi.UnitCentiliter,
+		listapi.UnitMilliliter,
+		listapi.UnitTablespoon,
+		listapi.UnitTeaspoon,
+		listapi.UnitKryddmått,
+	} {
 		result := request(t, http.MethodPatch, path, `{"unit":"`+string(unit)+`"}`, http.StatusOK)
 		require.Equal(t, unit, *result.Items[0].Unit)
 	}

@@ -7,6 +7,7 @@ describe("item quantities", () => {
     ["milk", { text: "milk" }],
     ["  1,5 kg potatoes  ", { text: "potatoes", amount: "1.5", unit: "kg" }],
     ["1.25 l milk", { text: "milk", amount: "1.25", unit: "l" }],
+    ["1,5 tsk salt", { text: "salt", amount: "1.5", unit: "tsk" }],
     ["1kg potatis", { text: "potatis", amount: "1", unit: "kg" }],
     ["1,5kg potatis", { text: "potatis", amount: "1.5", unit: "kg" }],
     ["1.25l milk", { text: "milk", amount: "1.25", unit: "l" }],
