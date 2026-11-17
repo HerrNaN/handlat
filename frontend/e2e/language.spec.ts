@@ -45,9 +45,11 @@ test("retranslates a visible API error without resubmitting or clearing the draf
 
   await page.getByRole("button", { name: "Actions for Shopping List", exact: true }).click();
   await page.getByRole("menuitem", { name: "Rename", exact: true }).click();
-  const dialog = page.getByRole("dialog");
+  const dialog = page.locator(
+    'wa-dialog[label="Rename list"], wa-dialog[label="Byt namn på listan"]',
+  );
   const draft = "x".repeat(201);
-  await dialog.getByRole("textbox", { name: "List name", exact: true }).fill(draft);
+  await dialog.getByRole("textbox", { name: /^List name/ }).fill(draft);
   let saves = 0;
   page.on("request", (request) => {
     if (request.method() === "PATCH") saves += 1;
@@ -63,9 +65,7 @@ test("retranslates a visible API error without resubmitting or clearing the draf
   await expect(dialog.getByRole("alert")).toHaveText(
     "Listans namn måste innehålla mellan 1 och 200 tecken.",
   );
-  await expect(dialog.getByRole("textbox", { name: "Listans namn", exact: true })).toHaveValue(
-    draft,
-  );
+  await expect(dialog.getByRole("textbox", { name: /^Listans namn/ })).toHaveValue(draft);
   expect(saves).toBe(1);
   await expect(dialog.getByRole("button", { name: "Stäng", exact: true })).toBeVisible();
   await dialog.getByRole("button", { name: "Avbryt", exact: true }).click();

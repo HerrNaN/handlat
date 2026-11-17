@@ -117,7 +117,13 @@ func (h *Handler) create(w http.ResponseWriter, r *http.Request) {
 
 	body.Name = strings.TrimSpace(body.Name)
 	if !validText(body.Name, maxListNameLength) {
-		util.WriteAPIError(w, http.StatusBadRequest, "invalid_list_name", map[string]int{"min": 1, "max": maxListNameLength})
+		util.WriteAPIError(
+			w,
+			http.StatusBadRequest,
+			"invalid_list_name",
+			map[string]int{"min": 1, "max": maxListNameLength},
+		)
+
 		return
 	}
 
@@ -366,7 +372,13 @@ func (h *Handler) rename(w http.ResponseWriter, r *http.Request) {
 
 	body.Name = strings.TrimSpace(body.Name)
 	if !validText(body.Name, maxListNameLength) {
-		util.WriteAPIError(w, http.StatusBadRequest, "invalid_list_name", map[string]int{"min": 1, "max": maxListNameLength})
+		util.WriteAPIError(
+			w,
+			http.StatusBadRequest,
+			"invalid_list_name",
+			map[string]int{"min": 1, "max": maxListNameLength},
+		)
+
 		return
 	}
 
@@ -407,17 +419,34 @@ func readItem(w http.ResponseWriter, r *http.Request) (itemInput, bool) {
 
 	body.ID = id.String()
 	if !validText(body.Text, maxItemTextLength) {
-		util.WriteAPIError(w, http.StatusBadRequest, "invalid_item_text", map[string]int{"min": 1, "max": maxItemTextLength})
+		util.WriteAPIError(
+			w,
+			http.StatusBadRequest,
+			"invalid_item_text",
+			map[string]int{"min": 1, "max": maxItemTextLength},
+		)
+
 		return body, false
 	}
 
 	if !validText(body.Department, maxDepartmentLength) {
-		util.WriteAPIError(w, http.StatusBadRequest, "invalid_department", map[string]int{"min": 1, "max": maxDepartmentLength})
+		util.WriteAPIError(
+			w,
+			http.StatusBadRequest,
+			"invalid_department",
+			map[string]int{"min": 1, "max": maxDepartmentLength},
+		)
+
 		return body, false
 	}
 
 	if !normalizeAmount(body.Amount) {
-		util.WriteAPIError(w, http.StatusBadRequest, "invalid_amount", map[string]int{"max": maxAmountLength})
+		util.WriteAPIError(
+			w,
+			http.StatusBadRequest,
+			"invalid_amount",
+			map[string]int{"max": maxAmountLength},
+		)
 
 		return body, false
 	}
@@ -508,17 +537,34 @@ func (h *Handler) updateItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if body.Text.set && !validText(body.Text.value, maxItemTextLength) {
-		util.WriteAPIError(w, http.StatusBadRequest, "invalid_item_text", map[string]int{"min": 1, "max": maxItemTextLength})
+		util.WriteAPIError(
+			w,
+			http.StatusBadRequest,
+			"invalid_item_text",
+			map[string]int{"min": 1, "max": maxItemTextLength},
+		)
+
 		return
 	}
 
 	if body.Department.set && !validText(body.Department.value, maxDepartmentLength) {
-		util.WriteAPIError(w, http.StatusBadRequest, "invalid_department", map[string]int{"min": 1, "max": maxDepartmentLength})
+		util.WriteAPIError(
+			w,
+			http.StatusBadRequest,
+			"invalid_department",
+			map[string]int{"min": 1, "max": maxDepartmentLength},
+		)
+
 		return
 	}
 
 	if !normalizeAmount(body.Amount.value) {
-		util.WriteAPIError(w, http.StatusBadRequest, "invalid_amount", map[string]int{"max": maxAmountLength})
+		util.WriteAPIError(
+			w,
+			http.StatusBadRequest,
+			"invalid_amount",
+			map[string]int{"max": maxAmountLength},
+		)
 
 		return
 	}
