@@ -2,6 +2,7 @@
   import { createMutation, createQuery } from "@tanstack/svelte-query";
 
   import { p, navigate } from "../../router";
+  import PageHeader from "../components/PageHeader.svelte";
   import { session } from "../user/session";
   import { errorMessage } from "./api";
   import EmptyState from "./EmptyState.svelte";
@@ -29,12 +30,13 @@
 </script>
 
 <article>
-  <header>
-    <h2>Lists</h2>
-    <wa-button onclick={handleCreateList} appearance="plain" disabled={!$session}>
-      <wa-icon name="plus" label="New list"></wa-icon>
-    </wa-button>
-  </header>
+  <PageHeader title="Lists">
+    {#snippet actions()}
+      <wa-button onclick={handleCreateList} appearance="plain" disabled={!$session}>
+        <wa-icon name="plus" label="New list"></wa-icon>
+      </wa-button>
+    {/snippet}
+  </PageHeader>
   {#if createList.error ?? query.error}
     <aside role="alert">
       <wa-callout variant="danger">
@@ -88,27 +90,6 @@
     flex-direction: column;
     background-color: var(--wa-color-surface-default);
     overflow-y: hidden;
-  }
-
-  header {
-    height: 2rem;
-    flex-shrink: 0;
-    z-index: 1;
-    position: sticky;
-    top: 0;
-    padding: var(--wa-space-m) var(--wa-space-l);
-    background-color: var(--wa-color-surface-raised);
-    box-shadow: var(--wa-shadow-m);
-    display: flex;
-    align-items: center;
-  }
-
-  h2 {
-    flex: 1;
-    margin: 0;
-    font-size: var(--wa-font-size-xl);
-    font-weight: var(--wa-font-weight-normal);
-    color: var(--wa-color-text-normal);
   }
 
   .content {

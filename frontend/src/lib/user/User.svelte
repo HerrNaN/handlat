@@ -3,6 +3,7 @@
 
   import { p } from "../../router";
   import { post } from "../api";
+  import PageHeader from "../components/PageHeader.svelte";
   import { setTheme, theme } from "../theme";
   import type { ChangeEvent } from "../utils/events";
   import { session, clearSession } from "./session";
@@ -23,9 +24,23 @@
 </script>
 
 <article>
-  <header>
+  <PageHeader title="Profile">
+    {#snippet actions()}
+      {#if $session}
+        <wa-button
+          id="logout-button"
+          appearance="plain"
+          onclick={() => logout.mutate()}
+          disabled={logout.isPending}
+        >
+          <wa-icon name="arrow-right-from-bracket" label="Log out"></wa-icon>
+        </wa-button>
+        <wa-tooltip for="logout-button">Log out</wa-tooltip>
+      {/if}
+    {/snippet}
+  </PageHeader>
+  <div class="content">
     <div>
-      <h1>Profile</h1>
       {#if $session}
         <p>You are logged in as: <span class="username">{$session.name}</span>.</p>
       {:else}
@@ -33,78 +48,56 @@
         <p><a href={p("/login")}>Login or Create Account</a></p>
       {/if}
     </div>
-    {#if $session}
-      <wa-button
-        id="logout-button"
-        appearance="plain"
-        size="l"
-        onclick={() => logout.mutate()}
-        disabled={logout.isPending}
-      >
-        <wa-icon name="arrow-right-from-bracket" label="Log out"></wa-icon>
-      </wa-button>
-      <wa-tooltip for="logout-button">Log out</wa-tooltip>
+    {#if logout.isError}
+      <p role="alert">Could not log out. Check your connection and try again.</p>
     {/if}
-  </header>
-  {#if logout.isError}
-    <p role="alert">Could not log out. Check your connection and try again.</p>
-  {/if}
-  <section aria-labelledby="appearance-heading">
-    <h2 id="appearance-heading">Appearance</h2>
-    <wa-radio-group
-      label="Theme"
-      name="theme"
-      orientation="horizontal"
-      value={$theme}
-      onchange={(event: ChangeEvent) => setTheme(event.target.value)}
-    >
-      <wa-radio appearance="button" value="light">
-        <span><wa-icon name="sun" aria-hidden="true"></wa-icon>Light</span>
-      </wa-radio>
-      <wa-radio appearance="button" value="dark">
-        <span><wa-icon name="moon" aria-hidden="true"></wa-icon>Dark</span>
-      </wa-radio>
-      <wa-radio appearance="button" value="system">
-        <span><wa-icon name="desktop" aria-hidden="true"></wa-icon>System</span>
-      </wa-radio>
-    </wa-radio-group>
-  </section>
+    <section aria-labelledby="appearance-heading">
+      <h2 id="appearance-heading">Appearance</h2>
+      <wa-radio-group
+        label="Theme"
+        name="theme"
+        orientation="horizontal"
+        value={$theme}
+        onchange={(event: ChangeEvent) => setTheme(event.target.value)}
+      >
+        <wa-radio appearance="button" value="light">
+          <span><wa-icon name="sun" aria-hidden="true"></wa-icon>Light</span>
+        </wa-radio>
+        <wa-radio appearance="button" value="dark">
+          <span><wa-icon name="moon" aria-hidden="true"></wa-icon>Dark</span>
+        </wa-radio>
+        <wa-radio appearance="button" value="system">
+          <span><wa-icon name="desktop" aria-hidden="true"></wa-icon>System</span>
+        </wa-radio>
+      </wa-radio-group>
+    </section>
+  </div>
 </article>
 
 <style>
   article {
-    padding: var(--wa-space-l);
-    box-sizing: border-box;
-    min-height: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--wa-color-surface-default);
+    overflow-y: hidden;
+  }
+
+  .content {
+    flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     gap: var(--wa-space-xl);
-  }
-
-  header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: var(--wa-space-m);
-  }
-
-  header div {
-    min-width: 0;
-  }
-
-  header wa-button {
-    flex-shrink: 0;
-  }
-
-  h1 {
-    margin: 0 0 var(--wa-space-s);
+    padding: var(--wa-space-l);
+    overflow-y: auto;
   }
 
   h2 {
     margin: 0 0 var(--wa-space-m);
   }
 
-  header p {
+  p {
     margin: 0;
   }
 

@@ -7,6 +7,7 @@
   import { onMount } from "svelte";
 
   import { route, navigate } from "../../router";
+  import PageHeader from "../components/PageHeader.svelte";
   import { session } from "../user/session";
   import AddItem from "./AddItem.svelte";
   import { errorMessage } from "./api";
@@ -83,25 +84,29 @@
 </script>
 
 <article bind:this={article}>
-  <header>
-    <wa-button appearance="plain" onclick={() => navigate("/lists")}>
-      <wa-icon name="arrow-left" label="Back"></wa-icon>
-    </wa-button>
-    <h2>
+  <PageHeader title={query.data?.name ?? ""}>
+    {#snippet leading()}
+      <wa-button appearance="plain" onclick={() => navigate("/lists")}>
+        <wa-icon name="arrow-left" label="Back"></wa-icon>
+      </wa-button>
+    {/snippet}
+    {#snippet titleContent()}
       {#if loading}
         <wa-skeleton class="title" effect="none" aria-hidden="true"></wa-skeleton>
       {:else}
         {query.data?.name ?? ""}
       {/if}
-    </h2>
-    {#if query.data}
-      <ListActions list={query.data} onleave={() => navigate("/lists")} />
-    {:else if loading}
-      <wa-button class="loading-actions" appearance="plain" disabled aria-label="List actions">
-        <wa-icon name="ellipsis-vertical"></wa-icon>
-      </wa-button>
-    {/if}
-  </header>
+    {/snippet}
+    {#snippet actions()}
+      {#if query.data}
+        <ListActions list={query.data} onleave={() => navigate("/lists")} />
+      {:else if loading}
+        <wa-button class="loading-actions" appearance="plain" disabled aria-label="List actions">
+          <wa-icon name="ellipsis-vertical"></wa-icon>
+        </wa-button>
+      {/if}
+    {/snippet}
+  </PageHeader>
   {#if error}
     <aside role="alert">
       <p>{errorMessage(error)}</p>
@@ -182,29 +187,6 @@
     inset-inline: 0;
     transform: translateY(-50%);
     display: flex;
-  }
-
-  header {
-    height: 2rem;
-    flex-shrink: 0;
-    z-index: 1;
-    position: sticky;
-    top: 0;
-    display: flex;
-    align-items: center;
-    padding: var(--wa-space-m);
-    background-color: var(--wa-color-surface-raised);
-    box-shadow: var(--wa-shadow-m);
-  }
-
-  h2 {
-    flex: 1;
-    min-width: 0;
-    margin: 0;
-    margin-inline-start: var(--wa-space-xs);
-    font-size: var(--wa-font-size-xl);
-    font-weight: var(--wa-font-weight-normal);
-    color: var(--wa-color-text-normal);
   }
 
   .title {
