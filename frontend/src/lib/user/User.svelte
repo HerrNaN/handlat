@@ -36,13 +36,12 @@
     {#if $session}
       <wa-button
         id="logout-button"
-        aria-label="Log out"
         appearance="plain"
         size="l"
         onclick={() => logout.mutate()}
         disabled={logout.isPending}
       >
-        <wa-icon name="arrow-right-from-bracket" aria-hidden="true"></wa-icon>
+        <wa-icon name="arrow-right-from-bracket" label="Log out"></wa-icon>
       </wa-button>
       <wa-tooltip for="logout-button">Log out</wa-tooltip>
     {/if}
