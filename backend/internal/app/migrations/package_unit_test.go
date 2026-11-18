@@ -34,12 +34,18 @@ func TestPackageUnitMigration(t *testing.T) {
 
 	checkItem := func(id, expectedAmount, expectedUnit string) {
 		t.Helper()
+
 		var amount, unit sql.NullString
 		require.NoError(
 			t,
-			db.QueryRowContext(ctx, "SELECT amount, unit FROM items WHERE id = ?", id).Scan(&amount, &unit),
+			db.QueryRowContext(ctx, "SELECT amount, unit FROM items WHERE id = ?", id).
+				Scan(&amount, &unit),
 		)
-		require.Equal(t, sql.NullString{String: expectedAmount, Valid: expectedAmount != ""}, amount)
+		require.Equal(
+			t,
+			sql.NullString{String: expectedAmount, Valid: expectedAmount != ""},
+			amount,
+		)
 		require.Equal(t, sql.NullString{String: expectedUnit, Valid: expectedUnit != ""}, unit)
 	}
 
