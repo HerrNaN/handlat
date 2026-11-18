@@ -139,12 +139,15 @@ export const sv: Messages = {
   },
   units: {
     st: "st",
-    förp: "förp",
+    pkt: "pkt",
     kg: "kg",
     g: "g",
     l: "l",
     dl: "dl",
     cl: "cl",
     ml: "ml",
+    msk: "msk",
+    tsk: "tsk",
+    krm: "krm",
   },
 };

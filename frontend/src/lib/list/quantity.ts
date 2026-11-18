@@ -3,7 +3,19 @@ import z from "zod";
 import type { Language } from "../i18n";
 import { en } from "../i18n/en";
 
-export const UnitSchema = z.enum(["st", "förp", "kg", "g", "l", "dl", "cl", "ml"]);
+export const UnitSchema = z.enum([
+  "st",
+  "pkt",
+  "kg",
+  "g",
+  "l",
+  "dl",
+  "cl",
+  "ml",
+  "msk",
+  "tsk",
+  "krm",
+]);
 export type Unit = z.infer<typeof UnitSchema>;
 export const units = UnitSchema.options;
 

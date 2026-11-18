@@ -144,13 +144,16 @@ export const en = {
   } satisfies Record<DepartmentId, string>,
   units: {
     st: "pcs",
-    förp: "pk",
+    pkt: "pk",
     kg: "kg",
     g: "g",
     l: "l",
     dl: "dl",
     cl: "cl",
     ml: "ml",
+    msk: "tbsp",
+    tsk: "tsp",
+    krm: "krm",
   } satisfies Record<Unit, string>,
 };
 

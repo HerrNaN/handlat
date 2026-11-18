@@ -495,7 +495,7 @@ func TestItemQuantities(t *testing.T) {
 		{"set amount without unit change", `{"amount":"9007199254740993.123456789"}`, "9007199254740993.123456789", listapi.UnitDeciliter},
 		{"clear unit", `{"unit":null}`, "9007199254740993.123456789", ""},
 		{"clear both", `{"amount":null,"unit":null}`, "", ""},
-		{"unit without amount", `{"unit":"förp"}`, "", listapi.UnitPackage},
+		{"unit without amount", `{"unit":"pkt"}`, "", listapi.UnitPackage},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			result := request(t, http.MethodPatch, path, tc.body, http.StatusOK)
@@ -544,7 +544,19 @@ func TestItemQuantities(t *testing.T) {
 		})
 	}
 
-	for _, unit := range []listapi.Unit{listapi.UnitPiece, listapi.UnitPackage, listapi.UnitKilogram, listapi.UnitGram, listapi.UnitLiter, listapi.UnitDeciliter, listapi.UnitCentiliter, listapi.UnitMilliliter} {
+	for _, unit := range []listapi.Unit{
+		listapi.UnitPiece,
+		listapi.UnitPackage,
+		listapi.UnitKilogram,
+		listapi.UnitGram,
+		listapi.UnitLiter,
+		listapi.UnitDeciliter,
+		listapi.UnitCentiliter,
+		listapi.UnitMilliliter,
+		listapi.UnitTablespoon,
+		listapi.UnitTeaspoon,
+		listapi.UnitKryddmått,
+	} {
 		result := request(t, http.MethodPatch, path, `{"unit":"`+string(unit)+`"}`, http.StatusOK)
 		require.Equal(t, unit, *result.Items[0].Unit)
 	}
