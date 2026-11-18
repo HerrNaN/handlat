@@ -11,13 +11,16 @@ type Unit string
 
 const (
 	UnitPiece      Unit = "st"
-	UnitPackage    Unit = "förp"
+	UnitPackage    Unit = "pkt"
 	UnitKilogram   Unit = "kg"
 	UnitGram       Unit = "g"
 	UnitLiter      Unit = "l"
 	UnitDeciliter  Unit = "dl"
 	UnitCentiliter Unit = "cl"
 	UnitMilliliter Unit = "ml"
+	UnitTablespoon Unit = "msk"
+	UnitTeaspoon   Unit = "tsk"
+	UnitKryddmått  Unit = "krm"
 )
 
 func (unit Unit) valid() bool {
@@ -29,7 +32,10 @@ func (unit Unit) valid() bool {
 		UnitLiter,
 		UnitDeciliter,
 		UnitCentiliter,
-		UnitMilliliter:
+		UnitMilliliter,
+		UnitTablespoon,
+		UnitTeaspoon,
+		UnitKryddmått:
 		return true
 	default:
 		return false

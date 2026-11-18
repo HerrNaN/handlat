@@ -306,12 +306,12 @@ test("parses quantities and edits amount and unit independently", async ({ page,
   await page.getByRole("button", { name: "New list", exact: true }).click();
   await page.getByRole("button", { name: "Add item", exact: true }).click();
   const input = page.getByPlaceholder("t.ex. 2 kg potatis");
-  await input.fill("1,5kg potatoes");
+  await input.fill("1,5tsk salt");
   await input.press("Enter");
   await input.press("Escape");
-  await expect(page.getByRole("checkbox", { name: "Potatoes 1,5 kg", exact: true })).toBeVisible();
+  await expect(page.getByRole("checkbox", { name: "Salt 1,5 tsk", exact: true })).toBeVisible();
 
-  await page.getByText("Potatoes 1,5 kg", { exact: true }).click();
+  await page.getByText("Salt 1,5 tsk", { exact: true }).click();
   const dialog = page.locator('wa-dialog[label="Edit Item"]');
   const amount = dialog.getByRole("textbox", { name: "Amount", exact: true });
   const unit = dialog.getByRole("combobox", { name: "Unit", exact: true });
@@ -324,13 +324,13 @@ test("parses quantities and edits amount and unit independently", async ({ page,
   expect((await update).postDataJSON()).toEqual({ amount: "2.25" });
   await expect(amount).toBeEnabled();
   await expect(
-    page.getByRole("checkbox", { name: "Potatoes 2,25 kg", exact: true, includeHidden: true }),
+    page.getByRole("checkbox", { name: "Salt 2,25 tsk", exact: true, includeHidden: true }),
   ).toHaveCount(1);
 
   update = patch();
   await unit.click();
-  await page.getByRole("option", { name: "g", exact: true }).click();
-  expect((await update).postDataJSON()).toEqual({ unit: "g" });
+  await page.getByRole("option", { name: "pkt", exact: true }).click();
+  expect((await update).postDataJSON()).toEqual({ unit: "pkt" });
   await expect(amount).toBeEnabled();
   await expect(amount).toHaveValue("2,25");
 
@@ -340,7 +340,7 @@ test("parses quantities and edits amount and unit independently", async ({ page,
   expect((await update).postDataJSON()).toEqual({ amount: null });
   await expect(amount).toBeEnabled();
   await expect(
-    page.getByRole("checkbox", { name: "Potatoes g", exact: true, includeHidden: true }),
+    page.getByRole("checkbox", { name: "Salt pkt", exact: true, includeHidden: true }),
   ).toHaveCount(1);
 
   update = patch();
@@ -349,9 +349,9 @@ test("parses quantities and edits amount and unit independently", async ({ page,
   expect((await update).postDataJSON()).toEqual({ unit: null });
   await expect(amount).toBeEnabled();
   await dialog.getByRole("button", { name: "Close", exact: true }).click();
-  await expect(page.getByRole("checkbox", { name: "Potatoes", exact: true })).toBeVisible();
+  await expect(page.getByRole("checkbox", { name: "Salt", exact: true })).toBeVisible();
   await page.reload();
-  await expect(page.getByRole("checkbox", { name: "Potatoes", exact: true })).toBeVisible();
+  await expect(page.getByRole("checkbox", { name: "Salt", exact: true })).toBeVisible();
 });
 
 test("keeps focus and typed text when switching edit fields during a save", async ({
