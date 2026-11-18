@@ -17,7 +17,7 @@ export const sv: Messages = {
   profile: {
     title: "Profil",
     logout: "Logga ut",
-    signedInAs: (name) => `Du är inloggad som ${name}.`,
+    signedInAs: { beforeName: "Du är inloggad som ", afterName: "." },
     signedOut: "Du är inte inloggad.",
     loginOrCreate: "Logga in eller skapa konto",
     appearance: "Utseende",
@@ -73,11 +73,12 @@ export const sv: Messages = {
     amount: "Mängd",
     unit: "Enhet",
     department: "Avdelning",
+    checked: "Handlat",
     clear: "Rensa",
   },
   invitations: {
     title: "Inbjudan",
-    inviteToJoin: (name) => `Du har blivit inbjuden till ”${name}”.`,
+    inviteToJoin: { beforeName: "Du har blivit inbjuden till ", afterName: "." },
     accept: "Acceptera inbjudan",
     signInToAccept: "Logga in eller skapa ett konto för att acceptera.",
     goBack: "Gå tillbaka",

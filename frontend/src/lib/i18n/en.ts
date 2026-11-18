@@ -18,7 +18,7 @@ export const en = {
   profile: {
     title: "Profile",
     logout: "Log out",
-    signedInAs: (name: string) => `You are logged in as: ${name}.`,
+    signedInAs: { beforeName: "You are logged in as: ", afterName: "." },
     signedOut: "You are not logged in.",
     loginOrCreate: "Login or Create Account",
     appearance: "Appearance",
@@ -74,11 +74,12 @@ export const en = {
     amount: "Amount",
     unit: "Unit",
     department: "Department",
+    checked: "Bought",
     clear: "Clear",
   },
   invitations: {
     title: "Invitation",
-    inviteToJoin: (name: string) => `You've been invited to join “${name}”.`,
+    inviteToJoin: { beforeName: "You've been invited to join ", afterName: "." },
     accept: "Accept invitation",
     signInToAccept: "To accept, log in or create an account.",
     goBack: "Go back",

@@ -62,7 +62,7 @@ test("preserves focus and ordering when checking and immediately unchecking", as
     0,
   );
   await expect.poll(() => order(page)).toEqual(["Milk", "Bread", "Apple"]);
-  const checkedHeading = page.getByRole("heading", { name: /^Handlat/ });
+  const checkedHeading = page.getByRole("heading", { name: /^Bought/ });
   await expect(checkedHeading).toBeVisible();
   // Keyboard activation can reverse a row while it is still moving.
   await page.keyboard.press("Space");

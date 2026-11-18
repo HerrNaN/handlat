@@ -44,7 +44,10 @@
   <div class="content">
     <div>
       {#if $session}
-        <p>{$messages.profile.signedInAs($session.name)}</p>
+        <p>
+          {$messages.profile.signedInAs.beforeName}<span class="username">{$session.name}</span
+          >{$messages.profile.signedInAs.afterName}
+        </p>
       {:else}
         <p>{$messages.profile.signedOut}</p>
         <p><a href={p("/login")}>{$messages.profile.loginOrCreate}</a></p>
@@ -116,7 +119,8 @@
     margin: 0;
   }
 
-  .content p {
+  .username {
+    font-weight: var(--wa-font-weight-bold);
     overflow-wrap: anywhere;
   }
 

@@ -42,7 +42,10 @@
     <p>{$messages.errors.invitationUnavailable}</p>
     <wa-button onclick={cancel}>{$messages.invitations.goBack}</wa-button>
   {:else if invitation.data}
-    <p>{$messages.invitations.inviteToJoin(invitation.data.name)}</p>
+    <p>
+      {$messages.invitations.inviteToJoin.beforeName}<strong>{invitation.data.name}</strong
+      >{$messages.invitations.inviteToJoin.afterName}
+    </p>
     <div>
       {#if $session}
         <wa-button
