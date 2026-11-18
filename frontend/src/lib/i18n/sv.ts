@@ -1,3 +1,4 @@
+import { appName } from "../brand";
 import type { Messages } from "./en";
 
 export const sv: Messages = {
@@ -28,7 +29,7 @@ export const sv: Messages = {
     browserLanguage: "Webbläsarens språk",
   },
   auth: {
-    welcome: "Välkommen till Handlat",
+    welcome: `Välkommen till ${appName}`,
     passkeyPrompt: "Använd en inloggningsnyckel för att logga in eller skapa ett konto.",
     passkeysUnsupported: "Den här webbläsaren har inte stöd för inloggningsnycklar.",
     login: "Logga in",
@@ -72,7 +73,6 @@ export const sv: Messages = {
     amount: "Mängd",
     unit: "Enhet",
     department: "Avdelning",
-    checked: "Handlat",
     clear: "Rensa",
   },
   invitations: {
@@ -85,7 +85,7 @@ export const sv: Messages = {
     shareList: "Dela lista",
     shareInvitation: "Dela inbjudan",
     shareText: (name) =>
-      `Du har blivit inbjuden till ”${name}” på Handlat. Inbjudan gäller i 24 timmar.`,
+      `Du har blivit inbjuden till ”${name}” på ${appName}. Inbjudan gäller i 24 timmar.`,
     shareDescription:
       "Skicka inbjudan till en person. Den gäller i 24 timmar och kan bara accepteras en gång.",
     link: "Inbjudningslänk",

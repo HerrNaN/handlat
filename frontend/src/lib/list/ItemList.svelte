@@ -1,6 +1,7 @@
 <script lang="ts">
   import { tick } from "svelte";
 
+  import { appName } from "../brand";
   import { messages } from "../i18n";
   import "@awesome.me/webawesome/dist/components/button/button.js";
 
@@ -47,7 +48,7 @@
       result.push({
         key: "heading:checked",
         kind: "heading",
-        name: $messages.items.checked,
+        name: appName,
         checked: true,
       });
       result.push(...checkedItems.map((item): Row => ({ key: item.id, kind: "item", item })));
@@ -104,7 +105,7 @@
     >
       {#if row.kind === "heading"}
         <h2>
-          {row.name}
+          <span translate={row.checked ? "no" : undefined}>{row.name}</span>
           {#if row.checked}
             <wa-button size="s" variant="brand" appearance="plain" onclick={onClear}>
               {$messages.items.clear}

@@ -1,3 +1,4 @@
+import { appName } from "../brand";
 import type { DepartmentId } from "../list/classifier";
 import type { Unit } from "../list/quantity";
 
@@ -29,7 +30,7 @@ export const en = {
     browserLanguage: "Browser default",
   },
   auth: {
-    welcome: "Welcome to Handlat",
+    welcome: `Welcome to ${appName}`,
     passkeyPrompt: "Use a passkey to log in or create an account.",
     passkeysUnsupported: "This browser does not support passkeys.",
     login: "Login",
@@ -73,7 +74,6 @@ export const en = {
     amount: "Amount",
     unit: "Unit",
     department: "Department",
-    checked: "Bought",
     clear: "Clear",
   },
   invitations: {
@@ -86,7 +86,7 @@ export const en = {
     shareList: "Share list",
     shareInvitation: "Share invitation",
     shareText: (name: string) =>
-      `You're invited to join “${name}” on Handlat. This invitation is valid for 24 hours.`,
+      `You're invited to join “${name}” on ${appName}. This invitation is valid for 24 hours.`,
     shareDescription:
       "Send this invitation to one person. It expires 24 hours after creation and can be accepted once.",
     link: "Invitation link",

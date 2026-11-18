@@ -72,4 +72,6 @@ test("retranslates a visible API error without resubmitting or clearing the draf
   await expect(page.getByRole("checkbox", { name: "Mjölk 1,50 st", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Mejeri", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Shopping List", exact: true })).toBeVisible();
+  await page.getByRole("checkbox", { name: "Mjölk 1,50 st", exact: true }).click();
+  await expect(page.getByRole("heading", { name: /^Handlat/ })).toBeVisible();
 });
