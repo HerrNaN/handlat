@@ -17,7 +17,7 @@ export const sv: Messages = {
   profile: {
     title: "Profil",
     logout: "Logga ut",
-    signedInAs: { beforeName: "Du är inloggad som ", afterName: "." },
+    signedInAs: { beforeName: "Du är inloggad som: ", afterName: "." },
     signedOut: "Du är inte inloggad.",
     loginOrCreate: "Logga in eller skapa konto",
     appearance: "Utseende",
