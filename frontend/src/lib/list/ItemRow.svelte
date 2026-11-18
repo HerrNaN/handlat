@@ -41,7 +41,6 @@
         {item.text}{#if quantity}
           <span class="quantity">{` ${quantity}`}</span>{/if}
       </span>
-      <wa-icon name="pen" aria-hidden="true"></wa-icon>
     </button>
   </div>
 </SwipeAction>
@@ -52,7 +51,7 @@
     width: 100%;
     min-height: 3rem;
     display: grid;
-    grid-template-columns: var(--wa-space-2xs) auto minmax(0, 1fr) auto;
+    grid-template-columns: var(--wa-space-2xs) auto minmax(0, 1fr);
     background-color: var(--wa-color-surface-default);
     border-radius: var(--wa-border-radius-s);
   }
@@ -77,10 +76,6 @@
     grid-area: 1 / 1 / 2 / -1;
     display: grid;
     grid-template-columns: subgrid;
-  }
-  .edit wa-icon {
-    grid-column: 4;
-    margin-inline-end: var(--wa-space-m);
   }
   wa-checkbox {
     pointer-events: none;
