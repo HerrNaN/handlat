@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 const order = async (page: Page) =>
-  (await page.getByRole("checkbox").allTextContents()).map((text) => text.trim());
+  page.getByRole("checkbox").evaluateAll((items) => items.map((item) => item.ariaLabel));
 const settled = async (page: Page) => {
   await expect
     .poll(() =>
