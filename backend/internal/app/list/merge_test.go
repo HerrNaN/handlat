@@ -49,11 +49,13 @@ func TestAddItemMergesCompatibleQuantities(t *testing.T) {
 			first := uuid.NewString()
 			incoming := uuid.NewString()
 
-			addAndRead(
+			created := addAndRead(
 				t,
 				f,
 				additionRequest(t, f, first, "Sea  salt", tc.firstAmount, tc.firstUnit),
 			)
+			require.Empty(t, created.MergedItemID)
+
 			result := addAndRead(
 				t,
 				f,
@@ -63,12 +65,14 @@ func TestAddItemMergesCompatibleQuantities(t *testing.T) {
 			if tc.wantAmount == "" {
 				require.Len(t, result.Items, 2)
 				require.NotEqual(t, result.Items[0].ID, result.Items[1].ID)
+				require.Empty(t, result.MergedItemID)
 
 				return
 			}
 
 			require.Len(t, result.Items, 1)
 			require.Equal(t, first, result.Items[0].ID)
+			require.Equal(t, first, result.MergedItemID)
 			require.Equal(t, "Sea  salt", result.Items[0].Text)
 			require.Equal(t, tc.wantAmount, *result.Items[0].Amount)
 
@@ -118,11 +122,9 @@ func TestAddItemMergesIntoFirstEligibleRow(t *testing.T) {
 	require.Equal(t, listapi.UnitKilogram, *target.Unit)
 	require.Equal(t, "250", *result.Items[4].Amount)
 
-	require.Equal(
-		t,
-		result,
-		addAndRead(t, f, additionRequest(t, f, incoming, "Potatoes", "500", "g")),
-	)
+	retry := addAndRead(t, f, additionRequest(t, f, incoming, "Potatoes", "500", "g"))
+	require.Equal(t, result.List, retry.List)
+	require.Empty(t, retry.MergedItemID)
 	require.NoError(
 		t,
 		q.DeleteItem(ctx, listdb.DeleteItemParams{ListID: "list", ID: target.ID, Now: 6}),
@@ -197,14 +199,19 @@ func additionRequest(t *testing.T, f fixture, id, name, amount, unit string) *ht
 	return req
 }
 
-func addAndRead(t *testing.T, f fixture, req *http.Request) listapi.List {
+type additionResponse struct {
+	listapi.List
+	MergedItemID string `json:"mergedItemId"`
+}
+
+func addAndRead(t *testing.T, f fixture, req *http.Request) additionResponse {
 	t.Helper()
 
 	response := httptest.NewRecorder()
 	f.handler.ServeHTTP(response, req)
 	require.Equal(t, http.StatusOK, response.Code, response.Body.String())
 
-	var result listapi.List
+	var result additionResponse
 	require.NoError(t, json.Unmarshal(response.Body.Bytes(), &result))
 
 	return result

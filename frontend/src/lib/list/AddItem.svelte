@@ -1,17 +1,19 @@
 <script lang="ts">
   import WaDrawer from "@awesome.me/webawesome/dist/components/drawer/drawer.js";
   import WaInput from "@awesome.me/webawesome/dist/components/input/input.js";
+  import WaToast from "@awesome.me/webawesome/dist/components/toast/toast.js";
   import { onDestroy } from "svelte";
   import "@awesome.me/webawesome/dist/components/button/button.js";
   import "@awesome.me/webawesome/dist/components/icon/icon.js";
 
   import { observeKeyboardDismissal } from "../utils/keyboard";
-  import { errorMessage, type NewItem } from "./api";
+  import { errorMessage, type AddItemResult, type NewItem } from "./api";
   import { classify, departments } from "./classifier";
-  import { parseItemInput } from "./quantity";
+  import { formatQuantity, parseItemInput } from "./quantity";
 
   let input = $state<WaInput>();
   let drawer = $state<WaDrawer>();
+  let toast = $state<WaToast>();
   let stopObserving: (() => void) | undefined;
 
   const stop = () => {
@@ -34,7 +36,8 @@
     if (drawer.open) input.focus();
   };
   onDestroy(stop);
-  let { error, onAdd }: { error?: unknown; onAdd: (item: NewItem) => Promise<unknown> } = $props();
+  let { error, onAdd }: { error?: unknown; onAdd: (item: NewItem) => Promise<AddItemResult> } =
+    $props();
 
   const handleAdd = async () => {
     if (!input) return;
@@ -45,11 +48,20 @@
       input.value = "";
       try {
         const item = parseItemInput(text);
-        await onAdd({
+        const result = await onAdd({
           id: crypto.randomUUID(),
           ...item,
           department: classify(item.text, departments).id,
         });
+        const merged = result.items.find((item) => item.id === result.mergedItemId);
+        if (merged?.amount) {
+          await toast?.create(
+            `Updated ${merged.text} to ${formatQuantity(merged.amount, merged.unit)}.`,
+            {
+              variant: "success",
+            },
+          );
+        }
       } catch {
         // The parent displays the error. Leave any newer input untouched.
       }
@@ -65,6 +77,7 @@
 </script>
 
 <div class="input-wrapper">
+  <wa-toast bind:this={toast} placement="top-center"></wa-toast>
   <wa-drawer
     bind:this={drawer}
     placement="bottom"
@@ -89,6 +102,10 @@
 </div>
 
 <style>
+  wa-toast {
+    overflow-wrap: anywhere;
+  }
+
   .input-wrapper {
     margin-block-start: auto;
     align-self: flex-end;

@@ -15,6 +15,8 @@ export const UnitSchema = z.enum([
 ]);
 export type Unit = z.infer<typeof UnitSchema>;
 export const units = UnitSchema.options;
+export const formatQuantity = (amount?: string, unit?: Unit) =>
+  [amount?.replace(".", ","), unit].filter(Boolean).join(" ");
 
 // Decimal strings preserve the entered precision, including values beyond Number's range.
 export const AmountSchema = z

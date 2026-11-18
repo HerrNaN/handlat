@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Item } from "./list";
+  import { formatQuantity } from "./quantity";
   import SwipeAction from "./SwipeAction.svelte";
   import "@awesome.me/webawesome/dist/components/checkbox/checkbox.js";
   import "@awesome.me/webawesome/dist/components/icon/icon.js";
@@ -11,7 +12,7 @@
     onDelete: (itemID: string) => Promise<unknown>;
   };
   let { item, onEditItem, onCheck, onDelete }: Props = $props();
-  const quantity = $derived([item.amount?.replace(".", ","), item.unit].filter(Boolean).join(" "));
+  const quantity = $derived(formatQuantity(item.amount, item.unit));
   const label = $derived(quantity ? `${item.text} ${quantity}` : item.text);
   const checked = $derived(item.checkedAt !== undefined);
   let swipe = $state<SwipeAction>();

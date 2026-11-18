@@ -9,6 +9,7 @@ export const ListSchema = z.object({
   items: z.array(ItemSchema),
   memberCount: z.number().int().positive(),
 });
+const AddItemResultSchema = ListSchema.extend({ mergedItemId: z.string().optional() });
 const SummariesSchema = z.array(
   z.object({
     id: z.string(),
@@ -19,6 +20,7 @@ const SummariesSchema = z.array(
 );
 
 export type ShoppingList = z.infer<typeof ListSchema>;
+export type AddItemResult = z.infer<typeof AddItemResultSchema>;
 export type ListSummary = z.infer<typeof SummariesSchema>[number];
 export type NewItem = Pick<Item, "id" | "text" | "department" | "amount" | "unit">;
 export type ItemChanges = Partial<Pick<Item, "text" | "department">> & {
@@ -76,8 +78,10 @@ export const renameList = (id: string, name: string) =>
 export const leaveList = async (id: string): Promise<void> => {
   await request(listURL(id), { method: "DELETE" });
 };
-export const addItem = (listID: string, item: NewItem) =>
-  requestList(`${listURL(listID)}/items`, { method: "POST", ...jsonBody(item) });
+export const addItem = async (listID: string, item: NewItem) =>
+  AddItemResultSchema.parse(
+    await request(`${listURL(listID)}/items`, { method: "POST", ...jsonBody(item) }),
+  );
 export const updateItem = (listID: string, itemID: string, changes: ItemChanges) =>
   requestList(itemURL(listID, itemID), { method: "PATCH", ...jsonBody(changes) });
 export const setItemChecked = (listID: string, itemID: string, checked: boolean) =>

@@ -312,9 +312,14 @@ test("parses quantities and edits amount and unit independently", async ({ page,
     page.getByRole("checkbox", { name: "Salt 1,5 tsk", exact: true, includeHidden: true }),
   ).toHaveCount(1);
   await expect(input).toHaveValue("");
+  const notice = page.locator("wa-toast-item");
+  await expect(notice).toHaveCount(0);
 
   await input.fill("0,5 tsk salt");
   await input.press("Enter");
+  await expect(notice).toBeVisible();
+  await expect(notice).toHaveText("Updated Salt to 2 tsk.");
+  await expect(input).toBeFocused();
   await input.press("Escape");
   await expect(page.getByRole("checkbox", { name: "Salt 2 tsk", exact: true })).toBeVisible();
   await expect(page.getByRole("checkbox", { name: /^Salt / })).toHaveCount(1);

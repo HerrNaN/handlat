@@ -8,9 +8,9 @@ import (
 	"github.com/herrnan/handlat/internal/app/list/db"
 )
 
-func addOrMergeItem(ctx context.Context, q *db.Queries, item db.AddItemParams) error {
+func addOrMergeItem(ctx context.Context, q *db.Queries, item db.AddItemParams) (string, error) {
 	if item.Amount == nil {
-		return q.AddItem(ctx, item)
+		return "", q.AddItem(ctx, item)
 	}
 
 	candidates, err := q.ListMergeCandidates(ctx, db.ListMergeCandidatesParams{
@@ -18,8 +18,10 @@ func addOrMergeItem(ctx context.Context, q *db.Queries, item db.AddItemParams) e
 		IncomingID: item.ID,
 	})
 	if err != nil {
-		return err
+		return "", err
 	}
+
+	var mergedItemID string
 
 	name := strings.Join(strings.Fields(item.Text), " ")
 	for _, candidate := range candidates {
@@ -48,16 +50,17 @@ func addOrMergeItem(ctx context.Context, q *db.Queries, item db.AddItemParams) e
 			SetUnit:   1,
 			Unit:      savedUnit,
 		}); err != nil {
-			return err
+			return "", err
 		}
 
 		// Retain the incoming ID so that a retry cannot add the amount again.
 		item.DeletedAt = &item.CreatedAt
+		mergedItemID = candidate.ID
 
 		break
 	}
 
-	return q.AddItem(ctx, item)
+	return mergedItemID, q.AddItem(ctx, item)
 }
 
 func unitValue(unit *string) Unit {
