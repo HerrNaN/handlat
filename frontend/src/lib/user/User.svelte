@@ -84,9 +84,9 @@
         value={$languagePreference}
         onchange={(event: ChangeEvent) => setLanguage(event.target.value)}
       >
-        <wa-radio appearance="button" value="browser">{$messages.profile.browserLanguage}</wa-radio>
         <wa-radio appearance="button" value="en"><span lang="en">English</span></wa-radio>
         <wa-radio appearance="button" value="sv"><span lang="sv">Svenska</span></wa-radio>
+        <wa-radio appearance="button" value="browser">{$messages.profile.browserLanguage}</wa-radio>
       </wa-radio-group>
     </section>
   </div>
