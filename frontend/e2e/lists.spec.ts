@@ -319,6 +319,14 @@ test("parses quantities and edits amount and unit independently", async ({ page,
   await input.press("Enter");
   await expect(notice).toBeVisible();
   await expect(notice).toHaveText("Updated Salt to 2 tsk.");
+  await expect
+    .poll(async () => {
+      const [toastBox, inputBox] = await Promise.all([notice.boundingBox(), input.boundingBox()]);
+      if (!toastBox || !inputBox) return false;
+      const gap = inputBox.y - (toastBox.y + toastBox.height);
+      return gap >= 0 && gap <= 32;
+    })
+    .toBe(true);
   await expect(input).toBeFocused();
   await input.press("Escape");
   await expect(page.getByRole("checkbox", { name: "Salt 2 tsk", exact: true })).toBeVisible();
