@@ -93,14 +93,20 @@ test("creates a list, adds an item, and keeps its checked state after reload", a
 
   await expect(emptyList).not.toBeVisible();
   const milk = page.getByRole("checkbox", { name: "Milk", exact: true });
+  const editor = page.locator('wa-dialog[label="Edit Item"]');
   await milk.click();
   await expect(milk).toBeChecked();
+  await expect(editor).toHaveJSProperty("open", false);
   await expect(milk).toBeEnabled();
   await expect(emptyList).not.toBeVisible();
 
   await page.reload();
   await expect(page.getByRole("heading", { name: "Shopping List" })).toBeVisible();
   await expect(milk).toBeChecked();
+  await page
+    .getByRole("button", { name: "Edit Milk", exact: true })
+    .click({ position: { x: 2, y: 2 } });
+  await expect(editor.getByRole("textbox", { name: "Name", exact: true })).toHaveValue("Milk");
 });
 
 test("deletes a list from its actions menu only after confirmation", async ({ page, context }) => {
@@ -305,7 +311,7 @@ test("parses quantities and edits amount and unit independently", async ({ page,
   await input.press("Escape");
   await expect(page.getByRole("checkbox", { name: "Potatoes 1.5 kg", exact: true })).toBeVisible();
 
-  await page.getByRole("button", { name: "Edit Potatoes", exact: true }).click();
+  await page.getByText("Potatoes 1.5 kg", { exact: true }).click();
   const dialog = page.locator('wa-dialog[label="Edit Item"]');
   const amount = dialog.getByRole("textbox", { name: "Amount", exact: true });
   const unit = dialog.getByRole("combobox", { name: "Unit", exact: true });
@@ -363,8 +369,13 @@ test("keeps focus and typed text when switching edit fields during a save", asyn
   await input.fill("Milk");
   await input.press("Enter");
   await input.press("Escape");
-  await page.getByRole("button", { name: "Edit Milk", exact: true }).click();
+  await expect(input).not.toBeVisible();
+  const edit = page.getByRole("button", { name: "Edit Milk", exact: true });
+  await edit.focus();
+  await expect(edit).toBeFocused();
+  await page.keyboard.press("Enter");
   const dialog = page.locator('wa-dialog[label="Edit Item"]');
+  await expect(dialog).toHaveJSProperty("open", true);
   const name = dialog.getByRole("textbox", { name: "Name", exact: true });
   const amount = dialog.getByRole("textbox", { name: "Amount", exact: true });
 

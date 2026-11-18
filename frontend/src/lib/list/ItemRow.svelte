@@ -5,7 +5,6 @@
   import SwipeAction from "./SwipeAction.svelte";
   import "@awesome.me/webawesome/dist/components/checkbox/checkbox.js";
   import "@awesome.me/webawesome/dist/components/icon/icon.js";
-  import "@awesome.me/webawesome/dist/components/button/button.js";
 
   type Props = {
     item: Item;
@@ -19,6 +18,7 @@
       .filter(Boolean)
       .join(" "),
   );
+  const label = $derived(quantity ? `${item.text} ${quantity}` : item.text);
   const checked = $derived(item.checkedAt !== undefined);
   let swipe = $state<SwipeAction>();
   const remove = async () => {
@@ -35,19 +35,24 @@
     <button
       type="button"
       role="checkbox"
+      aria-label={label}
       aria-checked={checked}
       onclick={() => onCheck(item.id, !checked)}
     >
       <!-- The button owns interaction; the checkbox only displays query state. -->
       <wa-checkbox {checked} defaultChecked={checked} inert aria-hidden="true"></wa-checkbox>
+    </button>
+    <button
+      class="edit"
+      type="button"
+      aria-label={$messages.items.editNamed(label)}
+      onclick={onEditItem}
+    >
       <span class="label" class:checked>
         {item.text}{#if quantity}
           <span class="quantity">{` ${quantity}`}</span>{/if}
       </span>
     </button>
-    <wa-button appearance="plain" onclick={onEditItem}>
-      <wa-icon name="pen" label={$messages.items.editNamed(item.text)}></wa-icon>
-    </wa-button>
   </div>
 </SwipeAction>
 
@@ -56,19 +61,14 @@
     position: relative;
     width: 100%;
     min-height: 3rem;
-    display: flex;
-    align-items: center;
-    padding-inline: var(--wa-space-2xs);
+    display: grid;
+    grid-template-columns: var(--wa-space-2xs) auto minmax(0, 1fr);
     background-color: var(--wa-color-surface-default);
     border-radius: var(--wa-border-radius-s);
   }
   button {
-    flex: 1;
-    min-width: 0;
-    min-height: 3rem;
     display: flex;
     align-items: center;
-    gap: var(--wa-space-s);
     border: 0;
     padding: 0;
     background: none;
@@ -77,6 +77,16 @@
     text-align: start;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
+  }
+  button[role="checkbox"] {
+    grid-area: 1 / 2;
+    align-self: center;
+    z-index: 1;
+  }
+  .edit {
+    grid-area: 1 / 1 / 2 / -1;
+    display: grid;
+    grid-template-columns: subgrid;
   }
   wa-checkbox {
     pointer-events: none;
@@ -100,10 +110,12 @@
     }
   }
   .label {
+    grid-column: 3;
     font-weight: var(--wa-font-weight-semibold);
     min-width: 0;
     overflow-wrap: anywhere;
     padding-block: var(--wa-space-xs);
+    padding-inline: var(--wa-space-s);
   }
   .quantity {
     white-space: nowrap;
