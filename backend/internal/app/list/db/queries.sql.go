@@ -10,8 +10,8 @@ import (
 )
 
 const addItem = `-- name: AddItem :exec
-INSERT INTO items (id, list_id, text, department, created_at, amount, unit)
-VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+INSERT INTO items (id, list_id, text, department, created_at, amount, unit, deleted_at)
+VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
 ON CONFLICT (list_id, id) DO NOTHING
 `
 
@@ -23,6 +23,7 @@ type AddItemParams struct {
 	CreatedAt  int64
 	Amount     *string
 	Unit       *string
+	DeletedAt  *int64
 }
 
 func (q *Queries) AddItem(ctx context.Context, arg AddItemParams) error {
@@ -34,6 +35,7 @@ func (q *Queries) AddItem(ctx context.Context, arg AddItemParams) error {
 		arg.CreatedAt,
 		arg.Amount,
 		arg.Unit,
+		arg.DeletedAt,
 	)
 	return err
 }
@@ -290,6 +292,58 @@ func (q *Queries) ListLists(ctx context.Context, userID []byte) ([]ListListsRow,
 			&i.Name,
 			&i.ItemCount,
 			&i.MemberCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listMergeCandidates = `-- name: ListMergeCandidates :many
+SELECT candidate.id, candidate.text, candidate.amount, candidate.unit
+FROM items AS candidate
+WHERE candidate.list_id = ?1
+    AND candidate.deleted_at IS NULL AND candidate.checked_at IS NULL AND candidate.amount IS NOT NULL
+    AND NOT EXISTS (
+        SELECT 1 FROM items AS prior
+        WHERE prior.list_id = ?1 AND prior.id = ?2
+    )
+ORDER BY candidate.created_at, candidate.id
+`
+
+type ListMergeCandidatesParams struct {
+	ListID     string
+	IncomingID string
+}
+
+type ListMergeCandidatesRow struct {
+	ID     string
+	Text   string
+	Amount *string
+	Unit   *string
+}
+
+func (q *Queries) ListMergeCandidates(ctx context.Context, arg ListMergeCandidatesParams) ([]ListMergeCandidatesRow, error) {
+	rows, err := q.db.QueryContext(ctx, listMergeCandidates, arg.ListID, arg.IncomingID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListMergeCandidatesRow
+	for rows.Next() {
+		var i ListMergeCandidatesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Text,
+			&i.Amount,
+			&i.Unit,
 		); err != nil {
 			return nil, err
 		}

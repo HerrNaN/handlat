@@ -308,14 +308,22 @@ test("parses quantities and edits amount and unit independently", async ({ page,
   const input = page.getByPlaceholder("t.ex. 2 kg potatis");
   await input.fill("1,5tsk salt");
   await input.press("Enter");
-  await input.press("Escape");
-  await expect(page.getByRole("checkbox", { name: "Salt 1,5 tsk", exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("checkbox", { name: "Salt 1,5 tsk", exact: true, includeHidden: true }),
+  ).toHaveCount(1);
+  await expect(input).toHaveValue("");
 
-  await page.getByText("Salt 1,5 tsk", { exact: true }).click();
+  await input.fill("0,5 tsk salt");
+  await input.press("Enter");
+  await input.press("Escape");
+  await expect(page.getByRole("checkbox", { name: "Salt 2 tsk", exact: true })).toBeVisible();
+  await expect(page.getByRole("checkbox", { name: /^Salt / })).toHaveCount(1);
+
+  await page.getByText("Salt 2 tsk", { exact: true }).click();
   const dialog = page.locator('wa-dialog[label="Edit Item"]');
   const amount = dialog.getByRole("textbox", { name: "Amount", exact: true });
   const unit = dialog.getByRole("combobox", { name: "Unit", exact: true });
-  await expect(amount).toHaveValue("1,5");
+  await expect(amount).toHaveValue("2");
 
   const patch = () => page.waitForRequest((request) => request.method() === "PATCH");
   let update = patch();

@@ -441,8 +441,9 @@ func (h *Handler) addItem(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	h.mutate(w, r, func(q *db.Queries) error {
-		return q.AddItem(
+		return addOrMergeItem(
 			ctx,
+			q,
 			db.AddItemParams{
 				ID:         body.ID,
 				ListID:     r.PathValue("id"),
