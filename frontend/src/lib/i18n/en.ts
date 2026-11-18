@@ -27,7 +27,7 @@ export const en = {
     dark: "Dark",
     system: "System",
     language: "Language",
-    browserLanguage: "Automatic",
+    browserLanguage: "Auto",
   },
   auth: {
     welcome: `Welcome to ${appName}`,

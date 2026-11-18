@@ -26,7 +26,7 @@ export const sv: Messages = {
     dark: "Mörkt",
     system: "System",
     language: "Språk",
-    browserLanguage: "Automatiskt",
+    browserLanguage: "Auto",
   },
   auth: {
     welcome: `Välkommen till ${appName}`,
