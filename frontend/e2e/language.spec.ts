@@ -23,8 +23,8 @@ test.describe("browser language preference", () => {
     await expect(page.getByRole("radio", { name: "English", exact: true })).toBeChecked();
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
 
-    await page.getByRole("radio", { name: "Browser default", exact: true }).click();
-    await expect(page.getByRole("radio", { name: "Webbläsarens språk" })).toBeChecked();
+    await page.getByRole("radio", { name: "Automatic", exact: true }).click();
+    await expect(page.getByRole("radio", { name: "Automatiskt", exact: true })).toBeChecked();
     await expect(page.locator("html")).toHaveAttribute("lang", "sv");
   });
 });
