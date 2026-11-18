@@ -11,11 +11,14 @@ test.describe("browser language preference", () => {
     await expect(page.getByRole("heading", { name: "Profil", exact: true })).toBeVisible();
     await expect(page.locator("html")).toHaveAttribute("lang", "sv");
     const username = page.getByText("Language User", { exact: true });
-    await expect(username).toHaveCSS("font-weight", "700");
+    const boldWeight = await username.evaluate((element) =>
+      getComputedStyle(element).getPropertyValue("--wa-font-weight-bold").trim(),
+    );
+    await expect(username).toHaveCSS("font-weight", boldWeight);
 
     await page.getByRole("radio", { name: "English", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Profile", exact: true })).toBeVisible();
-    await expect(username).toHaveCSS("font-weight", "700");
+    await expect(username).toHaveCSS("font-weight", boldWeight);
     await page.reload();
     await expect(page.getByRole("radio", { name: "English", exact: true })).toBeChecked();
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
