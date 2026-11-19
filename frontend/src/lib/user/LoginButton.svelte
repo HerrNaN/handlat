@@ -3,6 +3,8 @@
   import { createMutation } from "@tanstack/svelte-query";
 
   import { post } from "../api";
+  import { messages } from "../i18n";
+  import { passkeyErrorMessage } from "../i18n/errors";
   import { clearSession, refreshSession } from "./session";
   import "@awesome.me/webawesome/dist/components/button/button.js";
   import "@awesome.me/webawesome/dist/components/callout/callout.js";
@@ -41,11 +43,11 @@
 </script>
 
 <wa-button onclick={authenticate} disabled={pending} loading={mutation.isPending} variant="brand">
-  {mutation.isPending ? "Logging in…" : "Login"}
+  {mutation.isPending ? $messages.auth.loggingIn : $messages.auth.login}
 </wa-button>
 {#if mutation.isError}
   <wa-callout variant="danger" role="alert">
     <wa-icon slot="icon" name="circle-exclamation"></wa-icon>
-    {mutation.error instanceof Error ? mutation.error.message : "Login failed"}
+    {passkeyErrorMessage(mutation.error, $messages, $messages.errors.login)}
   </wa-callout>
 {/if}

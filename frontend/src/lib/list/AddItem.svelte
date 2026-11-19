@@ -2,11 +2,15 @@
   import WaDrawer from "@awesome.me/webawesome/dist/components/drawer/drawer.js";
   import WaInput from "@awesome.me/webawesome/dist/components/input/input.js";
   import { onDestroy } from "svelte";
+
+  import { messages } from "../i18n";
   import "@awesome.me/webawesome/dist/components/button/button.js";
   import "@awesome.me/webawesome/dist/components/icon/icon.js";
 
+  import "@awesome.me/webawesome/dist/styles/utilities/visually-hidden.css";
+
   import { observeKeyboardDismissal } from "../utils/keyboard";
-  import { errorMessage, type NewItem } from "./api";
+  import type { NewItem } from "./api";
   import { classify, departments } from "./classifier";
   import { parseItemInput } from "./quantity";
 
@@ -34,7 +38,7 @@
     if (drawer.open) input.focus();
   };
   onDestroy(stop);
-  let { error, onAdd }: { error?: unknown; onAdd: (item: NewItem) => Promise<unknown> } = $props();
+  let { error, onAdd }: { error?: string; onAdd: (item: NewItem) => Promise<unknown> } = $props();
 
   const handleAdd = async () => {
     if (!input) return;
@@ -76,15 +80,17 @@
     <wa-input
       bind:this={input}
       enterkeyhint="go"
-      placeholder="t.ex. 2 kg potatis"
+      placeholder={$messages.items.example}
       onkeydown={handleKeydown}
-    ></wa-input>
+    >
+      <span slot="label" class="wa-visually-hidden-force">{$messages.items.add}</span>
+    </wa-input>
     {#if error}
-      <p role="alert">{errorMessage(error)}</p>
+      <p role="alert">{error}</p>
     {/if}
   </wa-drawer>
   <wa-button size="l" variant="brand" onclick={open}>
-    <wa-icon name="plus" label="Add item"></wa-icon>
+    <wa-icon name="plus" label={$messages.items.add}></wa-icon>
   </wa-button>
 </div>
 

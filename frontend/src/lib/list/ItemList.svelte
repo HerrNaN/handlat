@@ -1,8 +1,10 @@
 <script lang="ts">
   import { tick } from "svelte";
+
+  import { messages } from "../i18n";
   import "@awesome.me/webawesome/dist/components/button/button.js";
 
-  import { departmentOrder, getDepartment } from "./classifier";
+  import { departmentOrder } from "./classifier";
   import ItemRow from "./ItemRow.svelte";
   import type { Item } from "./list";
 
@@ -36,13 +38,18 @@
       result.push({
         key: `heading:${deptId}`,
         kind: "heading",
-        name: getDepartment(deptId).name,
+        name: $messages.departments[deptId],
         checked: false,
       });
       result.push(...items.map((item): Row => ({ key: item.id, kind: "item", item })));
     }
     if (checkedItems.length > 0) {
-      result.push({ key: "heading:checked", kind: "heading", name: "Handlat", checked: true });
+      result.push({
+        key: "heading:checked",
+        kind: "heading",
+        name: $messages.items.checked,
+        checked: true,
+      });
       result.push(...checkedItems.map((item): Row => ({ key: item.id, kind: "item", item })));
     }
     return result;
@@ -100,7 +107,7 @@
           {row.name}
           {#if row.checked}
             <wa-button size="s" variant="brand" appearance="plain" onclick={onClear}>
-              Clear
+              {$messages.items.clear}
             </wa-button>
           {/if}
         </h2>

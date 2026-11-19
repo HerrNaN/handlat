@@ -58,15 +58,19 @@ test("preserves focus and ordering when checking and immediately unchecking", as
   await page.keyboard.press("Space");
   await expect(apple).toBeChecked();
   await expect(apple).toBeFocused();
-  await expect(page.getByRole("heading", { name: "Frukt & grönt", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Fruit & vegetables", exact: true })).toHaveCount(
+    0,
+  );
   await expect.poll(() => order(page)).toEqual(["Milk", "Bread", "Apple"]);
+  const checkedHeading = page.getByRole("heading", { name: /^Bought/ });
+  await expect(checkedHeading).toBeVisible();
   // Keyboard activation can reverse a row while it is still moving.
   await page.keyboard.press("Space");
   await expect(apple).not.toBeChecked();
   await expect(apple).toBeFocused();
   await settled(page);
   await expect.poll(() => order(page)).toEqual(["Apple", "Milk", "Bread"]);
-  await expect(page.getByRole("heading", { name: "Handlat", exact: true })).toHaveCount(0);
+  await expect(checkedHeading).toHaveCount(0);
 });
 
 test("applies checked state and ordering from another client", async ({

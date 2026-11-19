@@ -1,11 +1,14 @@
 <script lang="ts">
   import WaDialog from "@awesome.me/webawesome/dist/components/dialog/dialog.js";
   import type { Snippet } from "svelte";
+
+  import { p } from "../../router";
+  import { messages } from "../i18n";
   import "@awesome.me/webawesome/dist/components/button/button.js";
   import "@awesome.me/webawesome/dist/components/icon/icon.js";
 
-  import { p } from "../../router";
-  import { createInvitation, errorMessage } from "./api";
+  import { errorMessage } from "../i18n/errors";
+  import { createInvitation } from "./api";
 
   const {
     listID,
@@ -19,12 +22,20 @@
   let dialog = $state<WaDialog>();
   let pending = $state(false);
   let link = $state("");
-  let error = $state("");
+  let invitationError = $state<unknown>();
+  let shareError = $state<"shareFailed" | "copyManually">();
+  const error = $derived(
+    shareError
+      ? $messages.invitations[shareError]
+      : invitationError
+        ? errorMessage(invitationError, $messages, $messages.errors.createInvitation)
+        : undefined,
+  );
   let copied = $state(false);
 
   const shareData = () => ({
     title: name,
-    text: `You're invited to join “${name}” on Handlat. This invitation is valid for 24 hours.`,
+    text: $messages.invitations.shareText(name),
     url: link,
   });
   const shareNative = async () => {
@@ -33,7 +44,7 @@
       if (dialog) dialog.open = false;
     } catch (cause) {
       if (cause instanceof Error && cause.name === "AbortError") return;
-      error = "Unable to open sharing. Copy the link instead.";
+      shareError = "shareFailed";
     }
   };
 
@@ -41,7 +52,8 @@
     if (pending) return;
     pending = true;
     link = "";
-    error = "";
+    invitationError = undefined;
+    shareError = undefined;
     copied = false;
     try {
       const invite = await createInvitation(listID);
@@ -58,7 +70,7 @@
         }
       }
     } catch (cause) {
-      error = errorMessage(cause);
+      invitationError = cause;
     } finally {
       pending = false;
     }
@@ -69,35 +81,32 @@
     try {
       await navigator.clipboard.writeText(link);
       copied = true;
-      error = "";
+      shareError = undefined;
     } catch {
-      error = "Select and copy the invitation link above.";
+      shareError = "copyManually";
     }
   };
 </script>
 
 {@render children(share)}
 
-<wa-dialog bind:this={dialog} label="Share list" light-dismiss>
+<wa-dialog bind:this={dialog} label={$messages.invitations.shareList} light-dismiss>
   {#if link}
-    <p>
-      Send this invitation to one person. It expires 24 hours after creation and can be accepted
-      once.
-    </p>
+    <p>{$messages.invitations.shareDescription}</p>
     <input
-      aria-label="Invitation link"
+      aria-label={$messages.invitations.link}
       value={link}
       readonly
       onclick={(event) => event.currentTarget.select()}
     />
     {#if typeof navigator.share === "function"}<wa-button onclick={shareNative}
-        >Share invitation</wa-button
+        >{$messages.invitations.shareInvitation}</wa-button
       >{/if}
-    <wa-button onclick={copy}>Copy link</wa-button>
-    {#if copied}<p role="status">Link copied.</p>{/if}
+    <wa-button onclick={copy}>{$messages.invitations.copyLink}</wa-button>
+    {#if copied}<p role="status">{$messages.invitations.copied}</p>{/if}
   {/if}
   {#if error}<p role="alert">{error}</p>{/if}
-  <wa-button slot="footer" data-dialog="close">Done</wa-button>
+  <wa-button slot="footer" data-dialog="close">{$messages.common.done}</wa-button>
 </wa-dialog>
 
 <style>

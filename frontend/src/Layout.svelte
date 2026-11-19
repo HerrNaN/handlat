@@ -1,6 +1,7 @@
 <script lang="ts">
   import { type Snippet } from "svelte";
 
+  import { messages } from "./lib/i18n";
   import { navigateToDefaultList } from "./lib/list/navigation";
 
   import "@awesome.me/webawesome/dist/components/icon/icon.js";
@@ -37,16 +38,16 @@
     <ul>
       <li>
         <span id="recipes-nav">
-          <wa-button label="Recipes (coming soon!)" appearance="plain" disabled>
+          <wa-button label={$messages.nav.recipes} appearance="plain" disabled>
             <wa-icon name="kitchen-set"></wa-icon>
           </wa-button>
         </span>
-        <wa-tooltip for="recipes-nav" trigger="click"> Recipes (coming soon!) </wa-tooltip>
+        <wa-tooltip for="recipes-nav" trigger="click">{$messages.nav.recipes}</wa-tooltip>
       </li>
       <li class:active={route.pathname.startsWith("/lists")}>
         <wa-button
           onclick={navigateToDefaultList}
-          aria-label="Lists"
+          aria-label={$messages.lists.title}
           appearance="plain"
           disabled={!$session}
         >
@@ -56,7 +57,7 @@
       <li class:active={route.pathname.startsWith("/user")}>
         <wa-button
           onclick={() => navigate("/user")}
-          aria-label="User"
+          aria-label={$messages.nav.user}
           appearance="plain"
           disabled={!$session}
         >

@@ -1,6 +1,8 @@
 <script lang="ts">
   import WaInput from "@awesome.me/webawesome/dist/components/input/input.js";
   import type { WaInputProps } from "@awesome.me/webawesome/dist/custom-elements-jsx.d.ts";
+
+  import { messages } from "../i18n";
   import "@awesome.me/webawesome/dist/components/button/button.js";
   import "@awesome.me/webawesome/dist/components/icon/icon.js";
 
@@ -51,7 +53,7 @@
         });
       }}
     >
-      <wa-icon name="pen" label="Edit list name"></wa-icon>
+      <wa-icon name="pen" label={$messages.lists.editName}></wa-icon>
     </wa-button>
   {/if}
 </div>

@@ -18,6 +18,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/herrnan/handlat/internal/app/auth"
 	"github.com/herrnan/handlat/internal/app/list/db"
+	"github.com/herrnan/handlat/internal/util"
+)
+
+const (
+	maxListNameLength   = 200
+	maxItemTextLength   = 2000
+	maxDepartmentLength = 100
 )
 
 type Handler struct {
@@ -109,8 +116,14 @@ func (h *Handler) create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	body.Name = strings.TrimSpace(body.Name)
-	if !validText(body.Name, 200) {
-		http.Error(w, "Name must contain 1–200 characters", 400)
+	if !validText(body.Name, maxListNameLength) {
+		util.WriteAPIError(
+			w,
+			http.StatusBadRequest,
+			"invalid_list_name",
+			map[string]int{"min": 1, "max": maxListNameLength},
+		)
+
 		return
 	}
 
@@ -358,8 +371,14 @@ func (h *Handler) rename(w http.ResponseWriter, r *http.Request) {
 	}
 
 	body.Name = strings.TrimSpace(body.Name)
-	if !validText(body.Name, 200) {
-		http.Error(w, "Name must contain 1–200 characters", 400)
+	if !validText(body.Name, maxListNameLength) {
+		util.WriteAPIError(
+			w,
+			http.StatusBadRequest,
+			"invalid_list_name",
+			map[string]int{"min": 1, "max": maxListNameLength},
+		)
+
 		return
 	}
 
@@ -394,33 +413,46 @@ func readItem(w http.ResponseWriter, r *http.Request) (itemInput, bool) {
 
 	id, err := uuid.Parse(body.ID)
 	if err != nil || id == uuid.Nil {
-		http.Error(w, "A non-zero item UUID is required", http.StatusBadRequest)
+		util.WriteAPIError(w, http.StatusBadRequest, "invalid_item_id", nil)
 		return body, false
 	}
 
 	body.ID = id.String()
-	if !validText(body.Text, 2000) {
-		http.Error(w, "Text must contain 1–2000 characters", http.StatusBadRequest)
+	if !validText(body.Text, maxItemTextLength) {
+		util.WriteAPIError(
+			w,
+			http.StatusBadRequest,
+			"invalid_item_text",
+			map[string]int{"min": 1, "max": maxItemTextLength},
+		)
+
 		return body, false
 	}
 
-	if !validText(body.Department, 100) {
-		http.Error(w, "Department must contain 1–100 characters", http.StatusBadRequest)
+	if !validText(body.Department, maxDepartmentLength) {
+		util.WriteAPIError(
+			w,
+			http.StatusBadRequest,
+			"invalid_department",
+			map[string]int{"min": 1, "max": maxDepartmentLength},
+		)
+
 		return body, false
 	}
 
 	if !normalizeAmount(body.Amount) {
-		http.Error(
+		util.WriteAPIError(
 			w,
-			"Amount must be a positive decimal with at most 100 characters",
 			http.StatusBadRequest,
+			"invalid_amount",
+			map[string]int{"max": maxAmountLength},
 		)
 
 		return body, false
 	}
 
 	if body.Unit != nil && !body.Unit.valid() {
-		http.Error(w, "Unsupported unit", http.StatusBadRequest)
+		util.WriteAPIError(w, http.StatusBadRequest, "unsupported_unit", nil)
 		return body, false
 	}
 
@@ -499,37 +531,46 @@ func (h *Handler) updateItem(w http.ResponseWriter, r *http.Request) {
 
 	if !body.Text.set && !body.Department.set && !body.Checked.set && !body.Amount.set &&
 		!body.Unit.set {
-		http.Error(
+		util.WriteAPIError(w, http.StatusBadRequest, "missing_item_changes", nil)
+
+		return
+	}
+
+	if body.Text.set && !validText(body.Text.value, maxItemTextLength) {
+		util.WriteAPIError(
 			w,
-			"Provide text, department, checked, amount or unit fields",
 			http.StatusBadRequest,
+			"invalid_item_text",
+			map[string]int{"min": 1, "max": maxItemTextLength},
 		)
 
 		return
 	}
 
-	if body.Text.set && !validText(body.Text.value, 2000) {
-		http.Error(w, "Text must contain 1–2000 characters", http.StatusBadRequest)
-		return
-	}
+	if body.Department.set && !validText(body.Department.value, maxDepartmentLength) {
+		util.WriteAPIError(
+			w,
+			http.StatusBadRequest,
+			"invalid_department",
+			map[string]int{"min": 1, "max": maxDepartmentLength},
+		)
 
-	if body.Department.set && !validText(body.Department.value, 100) {
-		http.Error(w, "Department must contain 1–100 characters", http.StatusBadRequest)
 		return
 	}
 
 	if !normalizeAmount(body.Amount.value) {
-		http.Error(
+		util.WriteAPIError(
 			w,
-			"Amount must be a positive decimal with at most 100 characters",
 			http.StatusBadRequest,
+			"invalid_amount",
+			map[string]int{"max": maxAmountLength},
 		)
 
 		return
 	}
 
 	if body.Unit.value != nil && !body.Unit.value.valid() {
-		http.Error(w, "Unsupported unit", http.StatusBadRequest)
+		util.WriteAPIError(w, http.StatusBadRequest, "unsupported_unit", nil)
 		return
 	}
 
@@ -600,12 +641,12 @@ func decode(w http.ResponseWriter, r *http.Request, value any) bool {
 	decoder.DisallowUnknownFields()
 
 	if err := decoder.Decode(value); err != nil {
-		http.Error(w, "Invalid JSON body", 400)
+		util.WriteAPIError(w, http.StatusBadRequest, "invalid_request", nil)
 		return false
 	}
 
 	if err := decoder.Decode(new(any)); err != io.EOF {
-		http.Error(w, "Expected one JSON value", 400)
+		util.WriteAPIError(w, http.StatusBadRequest, "invalid_request", nil)
 		return false
 	}
 
@@ -629,12 +670,12 @@ func (h *Handler) respond(w http.ResponseWriter, status int, value any) {
 
 func (h *Handler) fail(w http.ResponseWriter, err error) {
 	if errors.Is(err, sql.ErrNoRows) {
-		http.Error(w, "List or item not found", http.StatusNotFound)
+		util.WriteAPIError(w, http.StatusNotFound, "list_or_item_unavailable", nil)
 		return
 	}
 
 	h.log.Error("List operation failed", "error", err)
-	http.Error(w, "Server error", http.StatusInternalServerError)
+	util.WriteAPIError(w, http.StatusInternalServerError, "server_error", nil)
 }
 
 func (h *Handler) rollback(tx *sql.Tx) {

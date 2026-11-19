@@ -1,5 +1,7 @@
 <script lang="ts">
+  import { language, messages } from "../i18n";
   import type { Item } from "./list";
+  import { formatAmount } from "./quantity";
   import SwipeAction from "./SwipeAction.svelte";
   import "@awesome.me/webawesome/dist/components/checkbox/checkbox.js";
   import "@awesome.me/webawesome/dist/components/icon/icon.js";
@@ -11,7 +13,11 @@
     onDelete: (itemID: string) => Promise<unknown>;
   };
   let { item, onEditItem, onCheck, onDelete }: Props = $props();
-  const quantity = $derived([item.amount?.replace(".", ","), item.unit].filter(Boolean).join(" "));
+  const quantity = $derived(
+    [formatAmount(item.amount, $language), item.unit && $messages.units[item.unit]]
+      .filter(Boolean)
+      .join(" "),
+  );
   const label = $derived(quantity ? `${item.text} ${quantity}` : item.text);
   const checked = $derived(item.checkedAt !== undefined);
   let swipe = $state<SwipeAction>();
@@ -36,7 +42,12 @@
       <!-- The button owns interaction; the checkbox only displays query state. -->
       <wa-checkbox {checked} defaultChecked={checked} inert aria-hidden="true"></wa-checkbox>
     </button>
-    <button class="edit" type="button" aria-label="Edit {label}" onclick={onEditItem}>
+    <button
+      class="edit"
+      type="button"
+      aria-label={$messages.items.editNamed(label)}
+      onclick={onEditItem}
+    >
       <span class="label" class:checked>
         {item.text}{#if quantity}
           <span class="quantity">{` ${quantity}`}</span>{/if}

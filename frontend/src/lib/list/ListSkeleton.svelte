@@ -1,10 +1,11 @@
 <script lang="ts">
+  import { messages } from "../i18n";
   import "@awesome.me/webawesome/dist/components/skeleton/skeleton.js";
 
   let { overview = false }: { overview?: boolean } = $props();
 </script>
 
-<div role="status" aria-label={overview ? "Loading lists" : "Loading list"}>
+<div role="status" aria-label={overview ? $messages.lists.loading : $messages.lists.loadingList}>
   <div class:overview aria-hidden="true">
     {#if !overview}
       <wa-skeleton class="department" effect="none"></wa-skeleton>

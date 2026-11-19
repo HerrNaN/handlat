@@ -3,6 +3,8 @@
   import { createMutation } from "@tanstack/svelte-query";
 
   import { post } from "../api";
+  import { messages } from "../i18n";
+  import { passkeyErrorMessage } from "../i18n/errors";
   import { clearSession, refreshSession } from "./session";
   import "@awesome.me/webawesome/dist/components/button/button.js";
   import "@awesome.me/webawesome/dist/components/callout/callout.js";
@@ -46,11 +48,11 @@
   loading={mutation.isPending}
   appearance="outlined"
 >
-  {mutation.isPending ? "Creating account…" : "Create Account"}
+  {mutation.isPending ? $messages.auth.creatingAccount : $messages.auth.createAccount}
 </wa-button>
 {#if mutation.isError}
   <wa-callout variant="danger" role="alert">
     <wa-icon slot="icon" name="circle-exclamation"></wa-icon>
-    {mutation.error instanceof Error ? mutation.error.message : "Could not create account"}
+    {passkeyErrorMessage(mutation.error, $messages, $messages.errors.createAccount)}
   </wa-callout>
 {/if}

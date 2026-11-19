@@ -15,6 +15,7 @@ import (
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/herrnan/handlat/internal/app/auth/db"
+	"github.com/herrnan/handlat/internal/util"
 )
 
 const (
@@ -157,19 +158,19 @@ func (h *Handler) beginRegistration(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) finishRegistration(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie(registrationCookie)
 	if err != nil {
-		http.Error(w, "Registration expired; try again", http.StatusBadRequest)
+		util.WriteAPIError(w, http.StatusBadRequest, "registration_expired", nil)
 		return
 	}
 
 	hash, err := tokenHash(cookie.Value)
 	if err != nil {
-		http.Error(w, "Registration expired; try again", http.StatusBadRequest)
+		util.WriteAPIError(w, http.StatusBadRequest, "registration_expired", nil)
 		return
 	}
 
 	attempt, err := h.queries.PopRegistrationAttempt(r.Context(), hash)
 	if errors.Is(err, sql.ErrNoRows) {
-		http.Error(w, "Registration expired; try again", http.StatusBadRequest)
+		util.WriteAPIError(w, http.StatusBadRequest, "registration_expired", nil)
 		return
 	} else if err != nil {
 		h.fail(w, "consume registration attempt", err)
@@ -189,7 +190,7 @@ func (h *Handler) finishRegistration(w http.ResponseWriter, r *http.Request) {
 	credential, err := h.wa.FinishRegistration(u, ceremony, r)
 	if err != nil {
 		h.log.Error("Passkey verification failed", "err", err)
-		http.Error(w, "Passkey verification failed; try again", http.StatusBadRequest)
+		util.WriteAPIError(w, http.StatusBadRequest, "passkey_verification_failed", nil)
 
 		return
 	}
@@ -290,20 +291,20 @@ func (h *Handler) beginLogin(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) finishLogin(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie(loginCookie)
 	if err != nil {
-		http.Error(w, "Sign-in expired; try again", http.StatusBadRequest)
+		util.WriteAPIError(w, http.StatusBadRequest, "sign_in_expired", nil)
 		return
 	}
 
 	hash, err := tokenHash(cookie.Value)
 	if err != nil {
-		http.Error(w, "Sign-in expired; try again", http.StatusBadRequest)
+		util.WriteAPIError(w, http.StatusBadRequest, "sign_in_expired", nil)
 		return
 	}
 
 	// Consume the challenge atomically to prevent replaying a login ceremony.
 	ceremonyJSON, err := h.queries.PopLoginAttempt(r.Context(), hash)
 	if errors.Is(err, sql.ErrNoRows) {
-		http.Error(w, "Sign-in expired; try again", http.StatusBadRequest)
+		util.WriteAPIError(w, http.StatusBadRequest, "sign_in_expired", nil)
 		return
 	} else if err != nil {
 		h.fail(w, "consume login attempt", err)
@@ -344,7 +345,7 @@ func (h *Handler) finishLogin(w http.ResponseWriter, r *http.Request) {
 	u, credential, err := h.wa.FinishPasskeyLogin(lookup, ceremony, r)
 	if err != nil {
 		h.log.Error("Passkey verification failed", "err", err)
-		http.Error(w, "Passkey verification failed; try again", http.StatusBadRequest)
+		util.WriteAPIError(w, http.StatusBadRequest, "passkey_verification_failed", nil)
 
 		return
 	}
@@ -415,7 +416,7 @@ func (h *Handler) me(w http.ResponseWriter, r *http.Request) {
 
 	account, err := h.sessionAccount(r)
 	if errors.Is(err, sql.ErrNoRows) {
-		http.Error(w, "Not signed in", http.StatusUnauthorized)
+		util.WriteAPIError(w, http.StatusUnauthorized, "not_signed_in", nil)
 		return
 	} else if err != nil {
 		h.fail(w, "load session", err)
@@ -451,5 +452,5 @@ func (h *Handler) writeJSON(w http.ResponseWriter, status int, body any, operati
 
 func (h *Handler) fail(w http.ResponseWriter, operation string, err error) {
 	h.log.Error(operation, "error", err)
-	http.Error(w, "Server error", http.StatusInternalServerError)
+	util.WriteAPIError(w, http.StatusInternalServerError, "server_error", nil)
 }

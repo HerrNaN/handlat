@@ -1,5 +1,6 @@
 import z from "zod";
 
+import { readApiError } from "../api";
 import { clearSession } from "../user/session";
 import { ItemSchema, type Item } from "./list";
 
@@ -26,32 +27,11 @@ export type ItemChanges = Partial<Pick<Item, "text" | "department">> & {
   unit?: Item["unit"] | null;
 };
 
-export class ApiError extends Error {
-  constructor(
-    public status: number,
-    message: string,
-  ) {
-    super(message);
-  }
-}
-
-export const errorMessage = (error: unknown) =>
-  error instanceof ApiError ? error.message : "Unable to reach the server.";
-
 const request = async (url: string, init?: RequestInit) => {
   const response = await fetch(url, { cache: "no-store", ...init });
   if (!response.ok) {
     if (response.status === 401) clearSession();
-    throw new ApiError(
-      response.status,
-      response.status === 401
-        ? "Your session expired. Please log in again."
-        : response.status === 404
-          ? "This list or item is no longer available."
-          : response.status >= 500
-            ? "The server could not save or load your list. Try again."
-            : (await response.text()) || "The request failed.",
-    );
+    throw await readApiError(response);
   }
   return response.status === 204 ? undefined : response.json();
 };
@@ -88,22 +68,12 @@ export const clearCheckedItems = (listID: string) =>
   requestList(`${listURL(listID)}/checked-items`, { method: "DELETE" });
 
 const invitationURL = (token: string) => `/api/invitations/${encodeURIComponent(token)}`;
-const invitationRequest = async (url: string, init?: RequestInit) => {
-  try {
-    return await request(url, init);
-  } catch (error) {
-    if (error instanceof ApiError && error.status === 404) {
-      throw new ApiError(404, "This invitation is no longer available.");
-    }
-    throw error;
-  }
-};
 
 export const createInvitation = async (listID: string) =>
   z
     .object({ token: z.string(), expiresAt: z.string() })
     .parse(await request(`${listURL(listID)}/invitations`, { method: "POST" }));
 export const getInvitation = async (token: string, signal?: AbortSignal) =>
-  z.object({ name: z.string() }).parse(await invitationRequest(invitationURL(token), { signal }));
+  z.object({ name: z.string() }).parse(await request(invitationURL(token), { signal }));
 export const acceptInvitation = async (token: string) =>
-  ListSchema.parse(await invitationRequest(`${invitationURL(token)}/accept`, { method: "POST" }));
+  ListSchema.parse(await request(`${invitationURL(token)}/accept`, { method: "POST" }));
