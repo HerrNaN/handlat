@@ -25,9 +25,20 @@ DELETE FROM lists WHERE id = @id AND NOT EXISTS (SELECT 1 FROM list_members WHER
 -- name: ListItems :many
 SELECT * FROM items WHERE list_id = @list_id AND deleted_at IS NULL ORDER BY created_at, id;
 
+-- name: ListMergeCandidates :many
+SELECT candidate.id, candidate.text, candidate.amount, candidate.unit
+FROM items AS candidate
+WHERE candidate.list_id = @list_id
+    AND candidate.deleted_at IS NULL AND candidate.checked_at IS NULL AND candidate.amount IS NOT NULL
+    AND NOT EXISTS (
+        SELECT 1 FROM items AS prior
+        WHERE prior.list_id = @list_id AND prior.id = @incoming_id
+    )
+ORDER BY candidate.created_at, candidate.id;
+
 -- name: AddItem :exec
-INSERT INTO items (id, list_id, text, department, created_at, amount, unit)
-VALUES (@id, @list_id, @text, @department, @created_at, sqlc.narg('amount'), sqlc.narg('unit'))
+INSERT INTO items (id, list_id, text, department, created_at, amount, unit, deleted_at)
+VALUES (@id, @list_id, @text, @department, @created_at, sqlc.narg('amount'), sqlc.narg('unit'), sqlc.narg('deleted_at'))
 ON CONFLICT (list_id, id) DO NOTHING;
 
 -- name: UpdateItem :exec

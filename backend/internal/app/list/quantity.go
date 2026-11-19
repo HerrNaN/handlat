@@ -6,7 +6,6 @@ import (
 	"strings"
 )
 
-// Unit is the unit selected by the user; quantities are never converted for storage.
 type Unit string
 
 const (

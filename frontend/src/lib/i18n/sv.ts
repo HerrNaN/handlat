@@ -67,6 +67,7 @@ export const sv: Messages = {
   items: {
     add: "Lägg till vara",
     example: "t.ex. 2 kg potatis",
+    mergeUpdated: (name, quantity) => `Uppdaterade ${name} till ${quantity}.`,
     edit: "Redigera vara",
     editNamed: (name) => `Redigera ${name}`,
     name: "Namn",

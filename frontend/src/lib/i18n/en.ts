@@ -68,6 +68,7 @@ export const en = {
   items: {
     add: "Add item",
     example: "e.g. 2 kg potatoes",
+    mergeUpdated: (name: string, quantity: string) => `Updated ${name} to ${quantity}.`,
     edit: "Edit Item",
     editNamed: (name: string) => `Edit ${name}`,
     name: "Name",

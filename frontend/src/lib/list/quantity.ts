@@ -29,6 +29,12 @@ const parseUnit = (value: string): Unit | undefined => {
 export const formatAmount = (amount: string | undefined, language: Language) =>
   language === "sv" ? amount?.replace(".", ",") : amount;
 
+export const formatQuantity = (
+  amount: string | undefined,
+  unitLabel: string | undefined,
+  language: Language,
+) => [formatAmount(amount, language), unitLabel].filter(Boolean).join(" ");
+
 // Decimal strings preserve the entered precision, including values beyond Number's range.
 export const maxAmountLength = 100;
 export const AmountSchema = z

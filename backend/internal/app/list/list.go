@@ -472,9 +472,14 @@ func (h *Handler) addItem(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
-	h.mutate(w, r, func(q *db.Queries) error {
-		return q.AddItem(
+	var mergedItemID string
+
+	result, err := h.commitChange(r, func(q *db.Queries) error {
+		var err error
+
+		mergedItemID, err = addOrMergeItem(
 			ctx,
+			q,
 			db.AddItemParams{
 				ID:         body.ID,
 				ListID:     r.PathValue("id"),
@@ -485,7 +490,18 @@ func (h *Handler) addItem(w http.ResponseWriter, r *http.Request) {
 				Unit:       (*string)(body.Unit),
 			},
 		)
+
+		return err
 	})
+	if err != nil {
+		h.fail(w, err)
+		return
+	}
+
+	h.respond(w, http.StatusOK, struct {
+		List
+		MergedItemID string `json:"mergedItemId,omitempty"`
+	}{List: result, MergedItemID: mergedItemID})
 }
 
 // A field is either absent or carries a value; null is not a command to clear it.
