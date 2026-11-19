@@ -1,16 +1,17 @@
 <script lang="ts">
   import WaDialog from "@awesome.me/webawesome/dist/components/dialog/dialog.js";
+  import { createMutation, createQuery, useMutationState } from "@tanstack/svelte-query";
+  import { onMount } from "svelte";
   import "@awesome.me/webawesome/dist/components/button/button.js";
   import "@awesome.me/webawesome/dist/components/icon/icon.js";
   import "@awesome.me/webawesome/dist/components/skeleton/skeleton.js";
-  import { createMutation, createQuery, useMutationState } from "@tanstack/svelte-query";
-  import { onMount } from "svelte";
 
   import { route, navigate } from "../../router";
   import PageHeader from "../components/PageHeader.svelte";
+  import { messages } from "../i18n";
+  import { errorMessage } from "../i18n/errors";
   import { session } from "../user/session";
   import AddItem from "./AddItem.svelte";
-  import { errorMessage } from "./api";
   import EditItem from "./EditItem.svelte";
   import EmptyShoppingList from "./EmptyShoppingList.svelte";
   import EmptyState from "./EmptyState.svelte";
@@ -58,8 +59,14 @@
     ),
   );
   const pending = $derived(listWrites.filter((write) => write.status === "pending"));
-  const error = $derived(
-    listWrites.findLast((write) => write.status === "error")?.error ?? query.error,
+  const writeError = $derived(listWrites.findLast((write) => write.status === "error")?.error);
+  const error = $derived(writeError ?? query.error);
+  const displayedError = $derived(
+    errorMessage(
+      error,
+      $messages,
+      writeError ? $messages.errors.saveList : $messages.errors.loadList,
+    ),
   );
   const refresh = async () => {
     if (pending.length) return;
@@ -87,7 +94,7 @@
   <PageHeader title={query.data?.name ?? ""}>
     {#snippet leading()}
       <wa-button appearance="plain" onclick={() => navigate("/lists")}>
-        <wa-icon name="arrow-left" label="Back"></wa-icon>
+        <wa-icon name="arrow-left" label={$messages.common.back}></wa-icon>
       </wa-button>
     {/snippet}
     {#snippet titleContent()}
@@ -101,7 +108,12 @@
       {#if query.data}
         <ListActions list={query.data} onleave={() => navigate("/lists")} />
       {:else if loading}
-        <wa-button class="loading-actions" appearance="plain" disabled aria-label="List actions">
+        <wa-button
+          class="loading-actions"
+          appearance="plain"
+          disabled
+          aria-label={$messages.lists.actions}
+        >
           <wa-icon name="ellipsis-vertical"></wa-icon>
         </wa-button>
       {/if}
@@ -109,8 +121,8 @@
   </PageHeader>
   {#if error}
     <aside role="alert">
-      <p>{errorMessage(error)}</p>
-      <wa-button onclick={refresh}>Refresh</wa-button>
+      <p>{displayedError}</p>
+      <wa-button onclick={refresh}>{$messages.common.refresh}</wa-button>
     </aside>
   {/if}
   <div class="list-area" aria-busy={loading}>
@@ -121,8 +133,8 @@
         {#if query.data.items.length === 0 && !error}
           <div class="empty-area" style:top={`${emptyCenter}px`}>
             <EmptyState
-              heading="What do you need to buy?"
-              description="Add your first item using the plus button."
+              heading={$messages.lists.emptyListTitle}
+              description={$messages.lists.emptyListDescription}
             >
               {#snippet illustration()}
                 <EmptyShoppingList />
@@ -137,17 +149,20 @@
           onDelete={(itemID) => remove.mutateAsync({ ...target, itemID })}
           onClear={() => clear.mutate({ ...target })}
         />
-        <AddItem {error} onAdd={(item) => addition.mutateAsync({ ...target, item })} />
+        <AddItem
+          error={error ? displayedError : undefined}
+          onAdd={(item) => addition.mutateAsync({ ...target, item })}
+        />
       {/key}
     {/if}
   </div>
 </article>
 
-<wa-dialog bind:this={editItemDialog} label="Edit Item" light-dismiss>
+<wa-dialog bind:this={editItemDialog} label={$messages.items.edit} light-dismiss>
   {#if error}
     <aside role="alert">
-      <p>{errorMessage(error)}</p>
-      <wa-button onclick={refresh}>Refresh</wa-button>
+      <p>{displayedError}</p>
+      <wa-button onclick={refresh}>{$messages.common.refresh}</wa-button>
     </aside>
   {/if}
   {#if itemToEdit}

@@ -3,11 +3,15 @@
   import WaInput from "@awesome.me/webawesome/dist/components/input/input.js";
   import WaToast from "@awesome.me/webawesome/dist/components/toast/toast.js";
   import { onDestroy } from "svelte";
+
+  import { language, messages } from "../i18n";
   import "@awesome.me/webawesome/dist/components/button/button.js";
   import "@awesome.me/webawesome/dist/components/icon/icon.js";
 
+  import "@awesome.me/webawesome/dist/styles/utilities/visually-hidden.css";
+
   import { observeKeyboardDismissal } from "../utils/keyboard";
-  import { errorMessage, type AddItemResult, type NewItem } from "./api";
+  import type { AddItemResult, NewItem } from "./api";
   import { classify, departments } from "./classifier";
   import { formatQuantity, parseItemInput } from "./quantity";
 
@@ -36,7 +40,7 @@
     if (drawer.open) input.focus();
   };
   onDestroy(stop);
-  let { error, onAdd }: { error?: unknown; onAdd: (item: NewItem) => Promise<AddItemResult> } =
+  let { error, onAdd }: { error?: string; onAdd: (item: NewItem) => Promise<AddItemResult> } =
     $props();
 
   const handleAdd = async () => {
@@ -55,12 +59,14 @@
         });
         const merged = result.items.find((item) => item.id === result.mergedItemId);
         if (merged?.amount) {
-          await toast?.create(
-            `Updated ${merged.text} to ${formatQuantity(merged.amount, merged.unit)}.`,
-            {
-              variant: "success",
-            },
+          const quantity = formatQuantity(
+            merged.amount,
+            merged.unit && $messages.units[merged.unit],
+            $language,
           );
+          await toast?.create($messages.items.mergeUpdated(merged.text, quantity), {
+            variant: "success",
+          });
         }
       } catch {
         // The parent displays the error. Leave any newer input untouched.
@@ -89,15 +95,17 @@
     <wa-input
       bind:this={input}
       enterkeyhint="go"
-      placeholder="t.ex. 2 kg potatis"
+      placeholder={$messages.items.example}
       onkeydown={handleKeydown}
-    ></wa-input>
+    >
+      <span slot="label" class="wa-visually-hidden-force">{$messages.items.add}</span>
+    </wa-input>
     {#if error}
-      <p role="alert">{errorMessage(error)}</p>
+      <p role="alert">{error}</p>
     {/if}
   </wa-drawer>
   <wa-button size="l" variant="brand" onclick={open}>
-    <wa-icon name="plus" label="Add item"></wa-icon>
+    <wa-icon name="plus" label={$messages.items.add}></wa-icon>
   </wa-button>
 </div>
 

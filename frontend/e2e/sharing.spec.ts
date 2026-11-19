@@ -33,6 +33,7 @@ test("shares a list with a logged-out invitee who creates an account and accepts
     await invitee.goto(link);
     await expect(invitee).toHaveURL(link);
     await expect(invitee.getByText("You've been invited to join")).toContainText("Shopping List");
+    await expect(invitee.locator("strong").filter({ hasText: /^Shopping List$/ })).toBeVisible();
     await expect(invitee.getByRole("button", { name: "Login", exact: true })).toBeVisible();
     await expect(
       invitee.getByRole("button", { name: "Accept invitation", exact: true }),
@@ -52,7 +53,7 @@ test("shares a list with a logged-out invitee who creates an account and accepts
 
     // Both independent users can collaborate through the existing stream.
     await invitee.getByRole("button", { name: "Add item", exact: true }).click();
-    const input = invitee.getByPlaceholder("t.ex. 2 kg potatis");
+    const input = invitee.getByRole("textbox", { name: "Add item", exact: true });
     await input.fill("Milk");
     await input.press("Enter");
     await input.press("Escape");

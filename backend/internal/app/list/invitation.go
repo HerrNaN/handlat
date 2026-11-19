@@ -11,6 +11,7 @@ import (
 
 	"github.com/herrnan/handlat/internal/app/auth"
 	"github.com/herrnan/handlat/internal/app/list/db"
+	"github.com/herrnan/handlat/internal/util"
 )
 
 func invitationHash(token string) ([]byte, error) {
@@ -79,7 +80,7 @@ func (h *Handler) invitationError(w http.ResponseWriter, err error) {
 	w.Header().Set("Cache-Control", "no-store")
 
 	if errors.Is(err, sql.ErrNoRows) {
-		http.Error(w, "This invitation is no longer available.", http.StatusNotFound)
+		util.WriteAPIError(w, http.StatusNotFound, "invitation_unavailable", nil)
 		return
 	}
 
