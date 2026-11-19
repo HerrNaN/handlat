@@ -62,6 +62,8 @@ export const addItem = async (listID: string, item: NewItem) =>
   AddItemResultSchema.parse(
     await request(`${listURL(listID)}/items`, { method: "POST", ...jsonBody(item) }),
   );
+export const addItems = (listID: string, items: NewItem[]) =>
+  requestList(`${listURL(listID)}/items/batch`, { method: "POST", ...jsonBody(items) });
 export const updateItem = (listID: string, itemID: string, changes: ItemChanges) =>
   requestList(itemURL(listID, itemID), { method: "PATCH", ...jsonBody(changes) });
 export const setItemChecked = (listID: string, itemID: string, checked: boolean) =>

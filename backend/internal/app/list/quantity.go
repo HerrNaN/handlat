@@ -22,7 +22,7 @@ const (
 	UnitKryddmått  Unit = "krm"
 )
 
-func (unit Unit) valid() bool {
+func (unit Unit) Valid() bool {
 	switch unit {
 	case UnitPiece,
 		UnitPackage,
@@ -41,19 +41,19 @@ func (unit Unit) valid() bool {
 	}
 }
 
-const maxAmountLength = 100
+const MaxAmountLength = 100
 
 var decimalAmount = regexp.MustCompile(`^[0-9]+([.][0-9]+)?$`)
 
 // Keep decimals exact instead of rounding them through a floating-point value.
-func normalizeAmount(amount *string) bool {
+func NormalizeAmount(amount *string) bool {
 	if amount == nil {
 		return true
 	}
 
 	*amount = strings.ReplaceAll(strings.TrimSpace(*amount), ",", ".")
 
-	return len(*amount) <= maxAmountLength && decimalAmount.MatchString(*amount) &&
+	return len(*amount) <= MaxAmountLength && decimalAmount.MatchString(*amount) &&
 		strings.Trim(*amount, "0.") != ""
 }
 
