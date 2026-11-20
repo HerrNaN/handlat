@@ -92,19 +92,26 @@
   };
 </script>
 
-<wa-number-input
-  value={portions}
-  label={$messages.recipes.targetPortions}
-  min={1}
-  max={Number.MAX_SAFE_INTEGER}
-  step={1}
-  inputmode="numeric"
-  aria-invalid={target === undefined}
-  disabled={transfer.isPending}
-  oninput={(event: Event) => {
-    portions = (event.currentTarget as WaNumberInput).value ?? "";
-  }}
-></wa-number-input>
+<div class="scale-controls">
+  <wa-number-input
+    value={portions}
+    label={$messages.recipes.targetPortions}
+    min={1}
+    max={Number.MAX_SAFE_INTEGER}
+    step={1}
+    inputmode="numeric"
+    aria-invalid={target === undefined}
+    disabled={transfer.isPending}
+    oninput={(event: Event) => {
+      portions = (event.currentTarget as WaNumberInput).value ?? "";
+    }}
+  ></wa-number-input>
+  {#if !reviewing}
+    <wa-button variant="brand" disabled={target === undefined} onclick={review}>
+      {$messages.recipes.addToList}
+    </wa-button>
+  {/if}
+</div>
 
 <h2>{reviewing ? $messages.recipes.review : $messages.recipes.ingredients}</h2>
 <ul>
@@ -183,23 +190,31 @@
       {$messages.recipes.addToList}
     </wa-button>
   </div>
-{:else}
-  {#if addedTo}
-    <p role="status">{$messages.recipes.added(addedTo.name)}</p>
-    <wa-button href={p("/lists/:id", { params: { id: addedTo.id } })}>
-      {$messages.recipes.openList}
-    </wa-button>
-  {/if}
-  <div class="actions">
-    <wa-button variant="brand" disabled={target === undefined} onclick={review}>
-      {$messages.recipes.addToList}
-    </wa-button>
-  </div>
+{:else if addedTo}
+  <p role="status">{$messages.recipes.added(addedTo.name)}</p>
+  <wa-button href={p("/lists/:id", { params: { id: addedTo.id } })}>
+    {$messages.recipes.openList}
+  </wa-button>
 {/if}
 
 <style>
+  .scale-controls {
+    display: flex;
+    align-items: end;
+    gap: var(--wa-space-s);
+  }
+
   wa-number-input {
-    max-inline-size: 12rem;
+    inline-size: 12rem;
+    min-inline-size: 7rem;
+  }
+
+  .scale-controls wa-button {
+    min-inline-size: 0;
+
+    &::part(label) {
+      white-space: normal;
+    }
   }
 
   .destination {

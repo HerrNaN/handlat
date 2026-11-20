@@ -67,26 +67,46 @@ test("saves a recipe and adds selected scaled ingredients to a shopping list on 
   await ingredientInput.fill("Basil");
   await page.getByRole("button", { name: "Save recipe" }).click();
 
-  await expect(page.getByRole("heading", { name: "Tomato sauce" })).toBeVisible();
+  const recipeHeading = page.getByRole("heading", { name: "Tomato sauce" });
+  await expect(recipeHeading).toBeVisible();
   await expect(page.getByText("400 g", { exact: true })).toBeVisible();
   const portions = page.getByRole("spinbutton", { name: "Portions", exact: true });
+  const addToList = page.getByRole("button", { name: "Add to shopping list", exact: true });
   await expect(portions).toHaveValue("4");
+
+  await page.setViewportSize({ width: 320, height: 300 });
+  await expect(portions).toBeInViewport();
+  const portionBounds = await portions.boundingBox();
+  const actionBounds = await addToList.boundingBox();
+  const headerBounds = await recipeHeading.boundingBox();
+  if (!portionBounds || !actionBounds || !headerBounds) {
+    throw new Error("The recipe header and controls must be visible.");
+  }
+  expect(actionBounds.x).toBeGreaterThan(portionBounds.x + portionBounds.width);
+  expect(actionBounds.y).toBeLessThan(portionBounds.y + portionBounds.height);
+  expect(actionBounds.y + actionBounds.height).toBeGreaterThan(portionBounds.y);
+
+  await page.getByText("Basil", { exact: true }).scrollIntoViewIfNeeded();
+  await expect.poll(async () => (await portions.boundingBox())?.y).toBeLessThan(portionBounds.y);
+  await expect.poll(async () => (await recipeHeading.boundingBox())?.y).toBe(headerBounds.y);
+  await expect(page.locator("main > .wrapper")).toHaveJSProperty("scrollTop", 0);
+  await page.setViewportSize({ width: 390, height: 800 });
   await portions.fill("0");
   await expect(page.getByRole("alert")).toHaveText("Enter a positive whole number of portions.");
-  await expect(page.getByRole("button", { name: "Add to shopping list" })).toBeDisabled();
+  await expect(addToList).toBeDisabled();
   await portions.fill("3");
   await expect(page.getByText("300 g", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Decrement", exact: true }).click();
   await expect(portions).toHaveValue("2");
   await expect(page.getByText("200 g", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Add to shopping list" }).click();
+  await addToList.click();
   const onions = page.getByRole("checkbox", { name: /Onions/ });
   await expect(onions).toBeChecked();
   await onions.uncheck();
   await page
     .getByRole("combobox", { name: "Shopping list" })
     .selectOption({ label: "Shopping List" });
-  await page.getByRole("button", { name: "Add to shopping list" }).click();
+  await addToList.click();
   await expect(page.getByRole("status")).toHaveText("Ingredients added to Shopping List.");
   await page.getByRole("link", { name: "Open shopping list" }).click();
 
