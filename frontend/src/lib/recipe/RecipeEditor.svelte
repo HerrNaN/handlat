@@ -195,7 +195,7 @@
   bind:this={editDialog}
   label={$messages.recipes.editIngredient}
   light-dismiss
-  onwa-after-hide={(event) => {
+  onwa-after-hide={(event: Event) => {
     if (event.target === editDialog) editingKey = undefined;
   }}
 >
