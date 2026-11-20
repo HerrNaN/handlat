@@ -24,6 +24,7 @@ export const en = {
     empty: "Save your first recipe to start your private collection.",
     newRecipe: "New recipe",
     edit: "Edit recipe",
+    actionsFor: (name: string) => `Actions for ${name}`,
     save: "Save recipe",
     name: "Recipe name",
     yield: "Yield",
@@ -50,7 +51,8 @@ export const en = {
     tooPrecise:
       "Amounts marked * exceed the shopping list’s quantity limit. Change the portions or deselect those ingredients.",
     delete: "Delete recipe",
-    confirmDelete: (name: string) => `Delete ${name}?`,
+    confirmDelete: "Delete recipe?",
+    deleteDescription: (name: string) => `${name} will be removed from your recipes.`,
     loading: "Loading recipes…",
     unavailable: "This recipe is unavailable.",
     loadFailed: "Could not load recipes.",

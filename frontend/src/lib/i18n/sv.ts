@@ -23,6 +23,7 @@ export const sv: Messages = {
     empty: "Spara ditt första recept för att skapa din privata samling.",
     newRecipe: "Nytt recept",
     edit: "Redigera recept",
+    actionsFor: (name: string) => `Alternativ för ${name}`,
     save: "Spara recept",
     name: "Receptnamn",
     yield: "Ger",
@@ -49,7 +50,8 @@ export const sv: Messages = {
     tooPrecise:
       "Mängder markerade med * överskrider inköpslistans gräns. Ändra antalet portioner eller välj bort de ingredienserna.",
     delete: "Ta bort recept",
-    confirmDelete: (name: string) => `Ta bort ${name}?`,
+    confirmDelete: "Ta bort receptet?",
+    deleteDescription: (name: string) => `${name} tas bort från dina recept.`,
     loading: "Laddar recept…",
     unavailable: "Receptet är inte tillgängligt.",
     loadFailed: "Kunde inte ladda recepten.",

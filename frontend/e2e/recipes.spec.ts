@@ -91,14 +91,24 @@ test("saves a recipe and adds selected scaled ingredients to a shopping list on 
   await page.getByRole("link", { name: "Tomato sauce" }).click();
   await expect(page.getByRole("textbox", { name: "Portions", exact: true })).toHaveValue("4");
   await expect(page.getByText("400 g", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Edit recipe" }).click();
+  await page.getByRole("button", { name: "Actions for Tomato sauce" }).click();
+  await page.getByRole("menuitem", { name: "Edit recipe" }).click();
   await page.getByRole("textbox", { name: "Recipe name" }).fill("Sunday tomato sauce");
   await page.getByRole("button", { name: "Save recipe" }).click();
   await expect(page.getByRole("heading", { name: "Sunday tomato sauce" })).toBeVisible();
 
-  page.once("dialog", async (dialog) => {
-    await dialog.accept();
-  });
-  await page.getByRole("button", { name: "Delete recipe" }).click();
+  const actions = page.getByRole("button", { name: "Actions for Sunday tomato sauce" });
+  const deleteAction = page.getByRole("menuitem", { name: "Delete recipe" });
+  const confirm = page.locator('wa-dialog[label="Delete recipe?"]');
+  await actions.click();
+  await deleteAction.click();
+  await expect(confirm).toContainText("Sunday tomato sauce");
+  await confirm.getByRole("button", { name: "Cancel" }).click();
+  await expect(page.getByRole("dialog", { name: "Delete recipe?" })).toBeHidden();
+  await expect(page.getByRole("heading", { name: "Sunday tomato sauce" })).toBeVisible();
+
+  await actions.click();
+  await deleteAction.click();
+  await confirm.getByRole("button", { name: "Delete recipe" }).click();
   await expect(page.getByText(/Save your first recipe/)).toBeVisible();
 });
