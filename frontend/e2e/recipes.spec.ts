@@ -28,20 +28,43 @@ test("saves a recipe and adds selected scaled ingredients to a shopping list on 
   await expect(page.getByText(/Save your first recipe/)).toBeVisible();
   await page.getByRole("link", { name: "New recipe" }).click();
   await page.getByRole("textbox", { name: "Recipe name" }).fill("Tomato sauce");
-  await page.getByRole("textbox", { name: "Base portions" }).fill("4");
-  const first = page.getByRole("group", { name: "Ingredient 1", exact: true });
-  await first.getByRole("textbox", { name: "Ingredient name" }).fill("Tomatoes");
-  await first.getByRole("textbox", { name: "Amount" }).fill("400");
-  await first.getByRole("combobox", { name: "Unit" }).selectOption("g");
+  await page.getByRole("spinbutton", { name: "Yield" }).fill("4");
+
+  const ingredientInput = page.getByRole("textbox", { name: "Ingredient", exact: true });
+  await ingredientInput.fill("450ml Chopped tomatoes");
+  await ingredientInput.press("Enter");
+  await expect(ingredientInput).toHaveValue("");
+  await expect(ingredientInput).toBeFocused();
+  const tomatoes = page.getByRole("button", { name: "Chopped tomatoes 450 ml" });
+  await tomatoes.click();
+
+  const editor = page.locator('wa-dialog[label="Edit ingredient"]');
+  const editName = editor.getByRole("textbox", { name: "Ingredient name" });
+  const editAmount = editor.getByRole("textbox", { name: "Amount" });
+  const editUnit = editor.getByRole("combobox", { name: "Unit" });
+  await expect(editName).toHaveValue("Chopped tomatoes");
+  await expect(editAmount).toHaveValue("450");
+  await expect(editUnit).toHaveValue("ml");
+  await editName.fill("Tomatoes");
+  await editAmount.fill("400");
+  await editUnit.click();
+  await editor.getByRole("option", { name: "g", exact: true }).click();
+  await editor.getByRole("button", { name: "Done" }).click();
+  await expect(editor).toHaveJSProperty("open", false);
+  await expect(page.getByRole("button", { name: "Tomatoes 400 g" })).toBeVisible();
+
+  await ingredientInput.fill("2 Onions");
   await page.getByRole("button", { name: "Add ingredient", exact: true }).click();
-  const second = page.getByRole("group", { name: "Ingredient 2", exact: true });
-  await second.getByRole("textbox", { name: "Ingredient name" }).fill("Onions");
-  await second.getByRole("textbox", { name: "Amount" }).fill("2");
-  await page.getByRole("button", { name: "Add ingredient", exact: true }).click();
-  await page
-    .getByRole("group", { name: "Ingredient 3", exact: true })
-    .getByRole("textbox", { name: "Ingredient name" })
-    .fill("Basil");
+  await expect(page.getByRole("button", { name: "Onions 2" })).toBeVisible();
+  await ingredientInput.fill("Parsley");
+  await ingredientInput.press("Enter");
+  const parsley = page.getByRole("button", { name: "Parsley" });
+  await parsley.click();
+  await editor.getByRole("button", { name: "Remove ingredient" }).click();
+  await expect(parsley).toHaveCount(0);
+  await expect(editor).toHaveJSProperty("open", false);
+
+  await ingredientInput.fill("Basil");
   await page.getByRole("button", { name: "Save recipe" }).click();
 
   await expect(page.getByRole("heading", { name: "Tomato sauce" })).toBeVisible();
