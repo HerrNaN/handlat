@@ -1,7 +1,8 @@
 <script lang="ts">
+  import WaNumberInput from "@awesome.me/webawesome/dist/components/number-input/number-input.js";
   import { createMutation, createQuery } from "@tanstack/svelte-query";
-  import { untrack } from "svelte";
   import "@awesome.me/webawesome/dist/components/button/button.js";
+  import { untrack } from "svelte";
 
   import { p } from "../../router";
   import { language, messages } from "../i18n";
@@ -91,15 +92,19 @@
   };
 </script>
 
-<label class="portions">
-  {$messages.recipes.targetPortions}
-  <input
-    bind:value={portions}
-    inputmode="numeric"
-    aria-invalid={target === undefined}
-    disabled={transfer.isPending}
-  />
-</label>
+<wa-number-input
+  value={portions}
+  label={$messages.recipes.targetPortions}
+  min={1}
+  max={Number.MAX_SAFE_INTEGER}
+  step={1}
+  inputmode="numeric"
+  aria-invalid={target === undefined}
+  disabled={transfer.isPending}
+  oninput={(event: Event) => {
+    portions = (event.currentTarget as WaNumberInput).value ?? "";
+  }}
+></wa-number-input>
 
 <h2>{reviewing ? $messages.recipes.review : $messages.recipes.ingredients}</h2>
 <ul>
@@ -193,21 +198,16 @@
 {/if}
 
 <style>
-  .portions,
-  .destination {
-    display: grid;
-    gap: var(--wa-space-2xs);
-  }
-
-  .portions {
+  wa-number-input {
     max-inline-size: 12rem;
   }
 
   .destination {
+    display: grid;
+    gap: var(--wa-space-2xs);
     margin-block-start: var(--wa-space-l);
   }
 
-  .portions input,
   select {
     box-sizing: border-box;
     width: 100%;

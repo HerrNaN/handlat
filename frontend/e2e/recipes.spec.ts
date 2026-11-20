@@ -69,7 +69,15 @@ test("saves a recipe and adds selected scaled ingredients to a shopping list on 
 
   await expect(page.getByRole("heading", { name: "Tomato sauce" })).toBeVisible();
   await expect(page.getByText("400 g", { exact: true })).toBeVisible();
-  await page.getByRole("textbox", { name: "Portions", exact: true }).fill("2");
+  const portions = page.getByRole("spinbutton", { name: "Portions", exact: true });
+  await expect(portions).toHaveValue("4");
+  await portions.fill("0");
+  await expect(page.getByRole("alert")).toHaveText("Enter a positive whole number of portions.");
+  await expect(page.getByRole("button", { name: "Add to shopping list" })).toBeDisabled();
+  await portions.fill("3");
+  await expect(page.getByText("300 g", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Decrement", exact: true }).click();
+  await expect(portions).toHaveValue("2");
   await expect(page.getByText("200 g", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Add to shopping list" }).click();
   const onions = page.getByRole("checkbox", { name: /Onions/ });
@@ -89,7 +97,7 @@ test("saves a recipe and adds selected scaled ingredients to a shopping list on 
 
   await page.getByRole("button", { name: "Recipes", exact: true }).click();
   await page.getByRole("link", { name: "Tomato sauce" }).click();
-  await expect(page.getByRole("textbox", { name: "Portions", exact: true })).toHaveValue("4");
+  await expect(portions).toHaveValue("4");
   await expect(page.getByText("400 g", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Actions for Tomato sauce" }).click();
   await page.getByRole("menuitem", { name: "Edit recipe" }).click();
