@@ -140,6 +140,23 @@
       </wa-number-input>
     </div>
     <h2>{$messages.recipes.ingredients}</h2>
+    <div class="add">
+      <wa-input
+        bind:this={ingredientInput}
+        enterkeyhint="go"
+        placeholder={$messages.items.example}
+        oninput={() => (ingredientError = undefined)}
+        onkeydown={onIngredientKeydown}
+      >
+        <span slot="label" class="wa-visually-hidden-force">{$messages.recipes.ingredient}</span>
+      </wa-input>
+      <wa-button onclick={addIngredient}>
+        <wa-icon name="plus" label={$messages.recipes.addIngredient}></wa-icon>
+      </wa-button>
+    </div>
+    {#if ingredientError}
+      <p role="alert">{$messages.recipes[ingredientError]}</p>
+    {/if}
     {#if rows.length}
       <ul>
         {#each rows as { key, ingredient } (key)}
@@ -161,25 +178,9 @@
         {/each}
       </ul>
     {/if}
-    <div class="add">
-      <wa-input
-        bind:this={ingredientInput}
-        enterkeyhint="go"
-        placeholder={$messages.items.example}
-        oninput={() => (ingredientError = undefined)}
-        onkeydown={onIngredientKeydown}
-      >
-        <span slot="label" class="wa-visually-hidden-force">{$messages.recipes.ingredient}</span>
-      </wa-input>
-      <wa-button onclick={addIngredient}>
-        <wa-icon name="plus" label={$messages.recipes.addIngredient}></wa-icon>
-      </wa-button>
-    </div>
-    {#if ingredientError}
-      <p role="alert">{$messages.recipes[ingredientError]}</p>
-    {:else if invalid || (save.error instanceof ApiError && save.error.code === "invalid_recipe")}
+    {#if !ingredientError && (invalid || (save.error instanceof ApiError && save.error.code === "invalid_recipe"))}
       <p role="alert">{$messages.recipes.invalid}</p>
-    {:else if save.isError}
+    {:else if !ingredientError && save.isError}
       <p role="alert">{$messages.recipes.saveFailed}</p>
     {/if}
     <div class="actions">
@@ -232,7 +233,7 @@
   ul {
     list-style: none;
     padding: 0;
-    margin: 0 0 var(--wa-space-s);
+    margin: var(--wa-space-s) 0 0;
   }
 
   li button {

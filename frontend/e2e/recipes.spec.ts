@@ -32,10 +32,13 @@ test("saves a recipe and adds selected scaled ingredients to a shopping list on 
 
   const ingredientInput = page.getByRole("textbox", { name: "Ingredient", exact: true });
   await ingredientInput.fill("450ml Chopped tomatoes");
+  const inputY = (await ingredientInput.boundingBox())?.y;
   await ingredientInput.press("Enter");
   await expect(ingredientInput).toHaveValue("");
   await expect(ingredientInput).toBeFocused();
   const tomatoes = page.getByRole("button", { name: "Chopped tomatoes 450 ml" });
+  await expect(tomatoes).toBeVisible();
+  expect((await ingredientInput.boundingBox())?.y).toBe(inputY);
   await tomatoes.click();
 
   const editor = page.locator('wa-dialog[label="Edit ingredient"]');
@@ -56,6 +59,7 @@ test("saves a recipe and adds selected scaled ingredients to a shopping list on 
   await ingredientInput.fill("2 Onions");
   await page.getByRole("button", { name: "Add ingredient", exact: true }).click();
   await expect(page.getByRole("button", { name: "Onions 2" })).toBeVisible();
+  await expect(ingredientInput).toBeFocused();
   await ingredientInput.fill("Parsley");
   await ingredientInput.press("Enter");
   const parsley = page.getByRole("button", { name: "Parsley" });
