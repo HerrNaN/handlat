@@ -117,6 +117,7 @@ func TestPrivateRecipeCollection(t *testing.T) {
 
 	invalid := strings.Replace(body, `"portions":4`, `"portions":0`, 1)
 	request(owner, http.MethodPost, root, invalid, http.StatusBadRequest)
+
 	for _, amount := range []string{"0", "-1", "1e3", strings.Repeat("1", 101)} {
 		invalidAmount := strings.Replace(body, `"amount":"400"`, `"amount":"`+amount+`"`, 1)
 		request(owner, http.MethodPost, root, invalidAmount, http.StatusBadRequest)

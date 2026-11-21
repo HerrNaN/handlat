@@ -26,7 +26,9 @@ const json = (body: unknown) => ({
 const request = async (path: string, init?: RequestInit) => {
   const response = await fetch(path, { cache: "no-store", ...init });
   if (!response.ok) {
-    if (response.status === 401) clearSession();
+    if (response.status === 401) {
+      clearSession();
+    }
     throw await readApiError(response);
   }
   return response.status === 204 ? undefined : response.json();

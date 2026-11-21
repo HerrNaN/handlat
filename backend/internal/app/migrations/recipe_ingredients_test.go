@@ -35,7 +35,8 @@ func TestRecipeIngredientMigration(t *testing.T) {
 
 	var enabled bool
 
-	err = conn.QueryRowContext(ctx, "SELECT recipes_enabled FROM users WHERE id = x'01'").Scan(&enabled)
+	err = conn.QueryRowContext(ctx, "SELECT recipes_enabled FROM users WHERE id = x'01'").
+		Scan(&enabled)
 	requireRecipeMigrationOK(t, err)
 
 	if enabled {

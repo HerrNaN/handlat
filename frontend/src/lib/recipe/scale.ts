@@ -8,7 +8,9 @@ export const parsePortions = (value: string) => {
 const gcd = (a: bigint, b: bigint): bigint => (b === 0n ? a : gcd(b, a % b));
 
 export const scaleAmount = (amount: string, target: number, base: number) => {
-  if (target === base) return { amount, approximate: false };
+  if (target === base) {
+    return { amount, approximate: false };
+  }
 
   const [whole, fractional = ""] = amount.split(".");
   const numerator = BigInt(whole + fractional) * BigInt(target);
@@ -41,7 +43,9 @@ export const scaleAmount = (amount: string, target: number, base: number) => {
   const scaled = numerator * 10n ** BigInt(precision);
   const rounded = (scaled + denominator / 2n) / denominator;
   const digits = rounded.toString().padStart(precision + 1, "0");
-  if (precision === 0) return { amount: digits, approximate };
+  if (precision === 0) {
+    return { amount: digits, approximate };
+  }
 
   const wholeDigits = digits.slice(0, -precision);
   const fractionalDigits = digits.slice(-precision).replace(/0+$/, "");

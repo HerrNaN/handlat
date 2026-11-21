@@ -51,9 +51,13 @@
   }));
 
   const appendIngredient = () => {
-    if (!ingredientInput) return true;
+    if (!ingredientInput) {
+      return true;
+    }
     const input = ingredientInput.value?.trim();
-    if (!input) return true;
+    if (!input) {
+      return true;
+    }
     if (rows.length >= maxIngredients) {
       ingredientError = "tooManyIngredients";
       return false;
@@ -71,7 +75,9 @@
   };
 
   const addIngredient = () => {
-    if (save.isPending) return;
+    if (save.isPending) {
+      return;
+    }
     appendIngredient();
     ingredientInput?.focus();
   };
@@ -84,7 +90,9 @@
 
   const submit = (event: SubmitEvent) => {
     event.preventDefault();
-    if (save.isPending) return;
+    if (save.isPending) {
+      return;
+    }
     save.reset();
     const name = nameInput?.value?.trim();
     const portions = parsePortions(yieldInput?.value ?? "");
@@ -100,13 +108,19 @@
 
   const openEditor = (key: number) => {
     editingKey = key;
-    if (editDialog) editDialog.open = true;
+    if (editDialog) {
+      editDialog.open = true;
+    }
   };
   const closeEditor = () => {
-    if (editDialog) editDialog.open = false;
+    if (editDialog) {
+      editDialog.open = false;
+    }
   };
   const updateIngredient = (ingredient: Ingredient) => {
-    if (editing) editing.ingredient = ingredient;
+    if (editing) {
+      editing.ingredient = ingredient;
+    }
     closeEditor();
   };
   const removeIngredient = () => {

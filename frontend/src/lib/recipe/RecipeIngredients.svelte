@@ -55,7 +55,9 @@
     mutationFn: ({ list, items }: { list: ListSummary; items: NewItem[] }) =>
       addItems(list.id, items),
     onSuccess: (list) => {
-      if (account !== $session?.id) return;
+      if (account !== $session?.id) {
+        return;
+      }
       queryClient.setQueryData(listKey(account, list.id), list);
       void queryClient.invalidateQueries({ queryKey: summariesKey(account) });
       addedTo = list;
@@ -76,7 +78,9 @@
       : [...excluded, index];
   };
   const submit = () => {
-    if (!canTransfer || !destination || transfer.isPending) return;
+    if (!canTransfer || !destination || transfer.isPending) {
+      return;
+    }
     const items = selected.map(({ name, amount, unit }) => ({
       text: name,
       amount,

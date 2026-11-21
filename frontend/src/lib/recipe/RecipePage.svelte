@@ -33,17 +33,23 @@
   let editing = $state(false);
   let deleteDialog = $state<WaDialog>();
   const saved = (recipe: Recipe) => {
-    if (account !== $session?.id) return;
+    if (account !== $session?.id) {
+      return;
+    }
     queryClient.setQueryData(recipeKey(account, recipe.id), recipe);
     void queryClient.invalidateQueries({ queryKey: recipesKey(account) });
-    if (isNew)
+    if (isNew) {
       void navigate("/recipes/:recipeId", { params: { recipeId: recipe.id }, replace: true });
-    else editing = false;
+    } else {
+      editing = false;
+    }
   };
   const remove = createMutation(() => ({
     mutationFn: async () => {
       await deleteRecipe(id);
-      if (account !== $session?.id) return;
+      if (account !== $session?.id) {
+        return;
+      }
       void queryClient.invalidateQueries({ queryKey: recipesKey(account) });
       await navigate("/recipes", { replace: true });
       queryClient.removeQueries({ queryKey: recipeKey(account, id), exact: true });
@@ -52,7 +58,9 @@
 
   const selectAction = (event: WaSelectEvent) => {
     const action = (event.detail.item as WaDropdownItem).value;
-    if (action === "edit") editing = true;
+    if (action === "edit") {
+      editing = true;
+    }
     if (action === "delete" && deleteDialog) {
       remove.reset();
       deleteDialog.open = true;
