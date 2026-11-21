@@ -69,7 +69,9 @@
     ),
   );
   const refresh = async () => {
-    if (pending.length) return;
+    if (pending.length) {
+      return;
+    }
     mutations.forEach((mutation) => mutation.reset());
     dismissListErrors();
     void query.refetch();
@@ -85,7 +87,9 @@
   let itemToEditID = $state("");
   const itemToEdit = $derived(query.data?.items.find((item) => item.id === itemToEditID));
   const onClickEditItem = (item: Item) => {
-    if (editItemDialog) editItemDialog.open = true;
+    if (editItemDialog) {
+      editItemDialog.open = true;
+    }
     itemToEditID = item.id;
   };
 </script>

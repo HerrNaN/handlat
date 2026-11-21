@@ -398,7 +398,9 @@ test("keeps focus and typed text when switching edit fields during a save", asyn
   });
   let requests = 0;
   await page.route("**/api/lists/*/items/*", async (route) => {
-    if (route.request().method() === "PATCH" && ++requests === 1) await gate;
+    if (route.request().method() === "PATCH" && ++requests === 1) {
+      await gate;
+    }
     await route.continue();
   });
   await name.fill("Oat milk");

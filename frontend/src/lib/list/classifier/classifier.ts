@@ -80,7 +80,9 @@ export const score = (
   params: Bm25Params = DEFAULT_PARAMS,
 ): ScoredDept[] => {
   const queryTokens = tokenize(rawInput);
-  if (queryTokens.length === 0) return [];
+  if (queryTokens.length === 0) {
+    return [];
+  }
 
   const rawNorm = normalize(rawInput);
   const { indexes, avgdl, n } = getIndex(departments);
@@ -107,7 +109,9 @@ export const score = (
     let internalScore = 0;
 
     for (const token of queryTokens) {
-      if (!idx.terms.has(token)) continue;
+      if (!idx.terms.has(token)) {
+        continue;
+      }
       const df = globalDf.get(token) ?? 1;
       const idf = computeIdf(df, n);
       const tf = 1;

@@ -34,7 +34,9 @@
       const items = itemList.filter(
         (item) => item.checkedAt === undefined && (item.department ?? "other") === deptId,
       );
-      if (items.length === 0) continue;
+      if (items.length === 0) {
+        continue;
+      }
       result.push({
         key: `heading:${deptId}`,
         kind: "heading",

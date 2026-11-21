@@ -36,11 +36,15 @@
     rename.reset();
     name = list.name;
     await tick();
-    if (renameDialog) renameDialog.open = true;
+    if (renameDialog) {
+      renameDialog.open = true;
+    }
   };
   const saveName = async (event: SubmitEvent) => {
     event.preventDefault();
-    if (!$session || saving || !name.trim()) return;
+    if (!$session || saving || !name.trim()) {
+      return;
+    }
     saving = true;
     try {
       await rename.mutateAsync({ account: $session.id, listID: list.id, name: name.trim() });
@@ -50,17 +54,25 @@
     } finally {
       saving = false;
     }
-    if (renameDialog) renameDialog.open = false;
+    if (renameDialog) {
+      renameDialog.open = false;
+    }
   };
   const confirmLeave = () => {
     departure.reset();
-    if (leaveDialog) leaveDialog.open = true;
+    if (leaveDialog) {
+      leaveDialog.open = true;
+    }
   };
   const leave = async () => {
-    if (!$session || departure.isPending) return;
+    if (!$session || departure.isPending) {
+      return;
+    }
     try {
       await departure.mutateAsync({ account: $session.id, listID: list.id });
-      if (leaveDialog) leaveDialog.open = false;
+      if (leaveDialog) {
+        leaveDialog.open = false;
+      }
       onleave?.();
     } catch {
       // Keep the dialog open so the user can retry.

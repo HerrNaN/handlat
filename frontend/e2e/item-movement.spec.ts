@@ -45,7 +45,9 @@ test("animates the moved item and surrounding rows", async ({ page }) => {
   }
   await page.locator("li").evaluateAll((rows) => {
     for (const row of rows) {
-      for (const animation of row.getAnimations()) animation.finish();
+      for (const animation of row.getAnimations()) {
+        animation.finish();
+      }
     }
   });
   await settled(page);

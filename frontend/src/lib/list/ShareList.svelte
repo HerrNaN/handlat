@@ -41,15 +41,21 @@
   const shareNative = async () => {
     try {
       await navigator.share(shareData());
-      if (dialog) dialog.open = false;
+      if (dialog) {
+        dialog.open = false;
+      }
     } catch (cause) {
-      if (cause instanceof Error && cause.name === "AbortError") return;
+      if (cause instanceof Error && cause.name === "AbortError") {
+        return;
+      }
       shareError = "shareFailed";
     }
   };
 
   const share = async () => {
-    if (pending) return;
+    if (pending) {
+      return;
+    }
     pending = true;
     link = "";
     invitationError = undefined;
@@ -64,7 +70,9 @@
           await navigator.share(shareData());
           return;
         } catch (cause) {
-          if (cause instanceof Error && cause.name === "AbortError") return;
+          if (cause instanceof Error && cause.name === "AbortError") {
+            return;
+          }
           // Sharing may require a fresh user gesture after the link request.
           // Offer the copy fallback if the browser cannot open its share sheet.
         }
@@ -74,7 +82,9 @@
     } finally {
       pending = false;
     }
-    if (dialog) dialog.open = true;
+    if (dialog) {
+      dialog.open = true;
+    }
   };
 
   const copy = async () => {
