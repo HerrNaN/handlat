@@ -54,9 +54,13 @@ type ParsedItem = { text: string; amount?: string; unit?: Unit };
 export const parseItemInput = (input: string): ParsedItem => {
   const text = input.trim();
   const match = /^([0-9]+(?:[.,][0-9]+)?)(\S*)\s+(.+)$/s.exec(text);
-  if (!match) return { text };
+  if (!match) {
+    return { text };
+  }
   const amount = AmountSchema.safeParse(match[1]);
-  if (!amount.success) return { text };
+  if (!amount.success) {
+    return { text };
+  }
 
   const rest = match[3]!.trim();
   if (match[2]) {
@@ -66,7 +70,9 @@ export const parseItemInput = (input: string): ParsedItem => {
   const unitMatch = /^(\S+)\s+(.+)$/s.exec(rest);
   if (unitMatch) {
     const unit = parseUnit(unitMatch[1]!);
-    if (unit) return { text: unitMatch[2]!.trim(), amount: amount.data, unit };
+    if (unit) {
+      return { text: unitMatch[2]!.trim(), amount: amount.data, unit };
+    }
   }
   return { text: rest, amount: amount.data };
 };

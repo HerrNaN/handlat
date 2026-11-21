@@ -30,7 +30,9 @@
   };
 
   const handlePointerMove = (e: PointerEvent) => {
-    if (!isDragging || !contentEl) return;
+    if (!isDragging || !contentEl) {
+      return;
+    }
     const delta = startX - e.clientX;
     if (Math.abs(delta) <= DEAD_ZONE) {
       currentX = 0;
@@ -44,7 +46,9 @@
   };
 
   const handlePointerUp = () => {
-    if (!isDragging) return;
+    if (!isDragging) {
+      return;
+    }
     isDragging = false;
     const width = contentEl?.offsetWidth ?? 0;
 
@@ -61,7 +65,9 @@
   };
 
   const handleTransitionEnd = (e: TransitionEvent) => {
-    if (e.propertyName !== "transform") return;
+    if (e.propertyName !== "transform") {
+      return;
+    }
     if (currentX < 0) {
       ontrigger();
     }

@@ -59,7 +59,9 @@ test("retranslates a visible API error without resubmitting or clearing the draf
   await dialog.getByRole("textbox", { name: /^List name/ }).fill(draft);
   let saves = 0;
   page.on("request", (request) => {
-    if (request.method() === "PATCH") saves += 1;
+    if (request.method() === "PATCH") {
+      saves += 1;
+    }
   });
   await dialog.getByRole("button", { name: "Save", exact: true }).click();
   await expect(dialog.getByRole("alert")).toHaveText(

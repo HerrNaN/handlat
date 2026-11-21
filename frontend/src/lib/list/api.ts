@@ -32,7 +32,9 @@ export type ItemChanges = Partial<Pick<Item, "text" | "department">> & {
 const request = async (url: string, init?: RequestInit) => {
   const response = await fetch(url, { cache: "no-store", ...init });
   if (!response.ok) {
-    if (response.status === 401) clearSession();
+    if (response.status === 401) {
+      clearSession();
+    }
     throw await readApiError(response);
   }
   return response.status === 204 ? undefined : response.json();

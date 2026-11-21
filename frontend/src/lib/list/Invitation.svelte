@@ -25,7 +25,9 @@
   const acceptance = createMutation(() => ({
     mutationFn: ({ token }: { token: string; account: string }) => acceptInvitation(token),
     onSuccess: async (list, { account, token: acceptedToken }) => {
-      if (account !== $session?.id || acceptedToken !== token) return;
+      if (account !== $session?.id || acceptedToken !== token) {
+        return;
+      }
       queryClient.setQueryData(listKey(account, list.id), list);
       void queryClient.invalidateQueries({ queryKey: summariesKey(account) });
       await navigate("/lists/:id", { params: { id: list.id } });

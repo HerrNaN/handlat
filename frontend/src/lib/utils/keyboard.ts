@@ -8,7 +8,9 @@ export const observeKeyboardDismissal = (onDismiss: () => void): (() => void) =>
   const update = (next: boolean) => {
     const dismissed = visible && !next;
     visible = next;
-    if (dismissed) onDismiss();
+    if (dismissed) {
+      onDismiss();
+    }
   };
 
   if (window.matchMedia("(any-pointer: coarse)").matches) {
@@ -29,9 +31,13 @@ export const observeKeyboardDismissal = (onDismiss: () => void): (() => void) =>
       baseline.height = Math.max(baseline.height, current.height);
       const shrink = baseline.height - current.height;
       // Ignore browser chrome and wait for a substantial keyboard-sized reduction.
-      if (shrink > Math.max(150, baseline.height * 0.2)) update(true);
+      if (shrink > Math.max(150, baseline.height * 0.2)) {
+        update(true);
+      }
       // Allow for toolbar changes and rounding when the keyboard closes.
-      else if (shrink < 80) update(false);
+      else if (shrink < 80) {
+        update(false);
+      }
     };
     (viewport ?? window).addEventListener(
       "resize",

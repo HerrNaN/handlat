@@ -18,14 +18,18 @@
   let saving = $state(false);
 
   const commitChange = async () => {
-    if (!editing || saving) return;
+    if (!editing || saving) {
+      return;
+    }
     if (input && input.value !== null) {
       if (input.value === value) {
         editing = false;
         return;
       }
       saving = true;
-      if (await onsave(input.value)) editing = false;
+      if (await onsave(input.value)) {
+        editing = false;
+      }
       saving = false;
     }
   };

@@ -54,7 +54,9 @@
     }
     const amount = AmountSchema.safeParse(input.value);
     invalidAmount = !amount.success;
-    if (amount.success) onUpdate(item.id, { amount: amount.data });
+    if (amount.success) {
+      onUpdate(item.id, { amount: amount.data });
+    }
   };
 
   const onChangeUnit = (event: ChangeEvent) =>
