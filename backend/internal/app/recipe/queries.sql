@@ -14,20 +14,30 @@ JOIN recipe_collections AS c ON c.id = r.collection_id
 WHERE c.user_id = @user_id
 ORDER BY r.name COLLATE NOCASE, r.id;
 
--- name: GetRecipe :one
-SELECT r.id, r.name, r.portions, r.ingredients FROM recipes AS r
+-- name: GetRecipe :many
+SELECT r.id, r.name, r.portions, i.name AS ingredient_name, i.amount, i.unit
+FROM recipes AS r
 JOIN recipe_collections AS c ON c.id = r.collection_id
-WHERE r.id = @id AND c.user_id = @user_id;
+LEFT JOIN recipe_ingredients AS i ON i.recipe_id = r.id
+WHERE r.id = @id AND c.user_id = @user_id
+ORDER BY i.position;
 
--- name: CreateRecipe :exec
-INSERT INTO recipes (id, collection_id, name, portions, ingredients)
-SELECT @id, c.id, @name, @portions, @ingredients
+-- name: CreateRecipe :execrows
+INSERT INTO recipes (id, collection_id, name, portions)
+SELECT @id, c.id, @name, @portions
 FROM recipe_collections AS c WHERE c.user_id = @user_id
 ON CONFLICT (id) DO NOTHING;
 
 -- name: UpdateRecipe :execrows
-UPDATE recipes SET name = @name, portions = @portions, ingredients = @ingredients
+UPDATE recipes SET name = @name, portions = @portions
 WHERE recipes.id = @id AND recipes.collection_id = (SELECT c.id FROM recipe_collections AS c WHERE c.user_id = @user_id);
+
+-- name: AddRecipeIngredient :exec
+INSERT INTO recipe_ingredients (recipe_id, position, name, amount, unit)
+VALUES (@recipe_id, @position, @name, @amount, @unit);
+
+-- name: ClearRecipeIngredients :exec
+DELETE FROM recipe_ingredients WHERE recipe_id = @recipe_id;
 
 -- name: DeleteRecipe :execrows
 DELETE FROM recipes

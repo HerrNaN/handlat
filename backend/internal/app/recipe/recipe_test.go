@@ -121,7 +121,9 @@ func TestPrivateRecipeCollection(t *testing.T) {
 
 	first := request(owner, http.MethodPost, root, body, http.StatusCreated)
 
-	second := request(owner, http.MethodPost, root, body, http.StatusCreated)
+	retry := strings.Replace(body, `"amount":"400"`, `"amount":"500"`, 1)
+
+	second := request(owner, http.MethodPost, root, retry, http.StatusCreated)
 	if first != second {
 		t.Fatalf("retry changed first recipe: %s vs %s", first, second)
 	}
@@ -165,12 +167,15 @@ func TestPrivateRecipeCollection(t *testing.T) {
 	request(guest, http.MethodPost, root, body, http.StatusNotFound)
 	collectionCount(1)
 
-	renamed := strings.Replace(draft, "Salsa", "Tomato salsa", 1)
-	request(owner, http.MethodPut, path, renamed, http.StatusOK)
+	const replacement = `{"name":"Tomato salsa","portions":2,"ingredients":[{"name":"Cilantro","amount":"1,5","unit":"msk"}]}`
+
+	request(owner, http.MethodPut, path, replacement, http.StatusOK)
 
 	updated := request(owner, http.MethodGet, path, "", http.StatusOK)
-	if !strings.Contains(updated, `"name":"Tomato salsa"`) {
-		t.Fatalf("recipe was not renamed: %s", updated)
+	want := `{"id":"` + id + `",` + strings.Replace(replacement[1:], `"1,5"`, `"1.5"`, 1)
+
+	if updated != want {
+		t.Fatalf("updated recipe = %s, want %s", updated, want)
 	}
 
 	request(owner, http.MethodDelete, path, "", http.StatusNoContent)

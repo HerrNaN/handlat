@@ -107,15 +107,30 @@ func (h *Handler) enable(w http.ResponseWriter, r *http.Request) {
 }
 
 func load(ctx context.Context, q *db.Queries, id string, user []byte) (recipe, error) {
-	row, err := q.GetRecipe(ctx, db.GetRecipeParams{ID: id, UserID: user})
+	rows, err := q.GetRecipe(ctx, db.GetRecipeParams{ID: id, UserID: user})
 	if err != nil {
 		return recipe{}, err
 	}
 
-	result := recipe{ID: row.ID, Name: row.Name, Portions: row.Portions}
-	err = json.Unmarshal([]byte(row.Ingredients), &result.Ingredients)
+	if len(rows) == 0 {
+		return recipe{}, sql.ErrNoRows
+	}
 
-	return result, err
+	first := rows[0]
+
+	result := recipe{
+		ID: first.ID, Name: first.Name, Portions: first.Portions,
+		Ingredients: make([]ingredient, 0, len(rows)),
+	}
+	for _, row := range rows {
+		if row.IngredientName != nil {
+			result.Ingredients = append(result.Ingredients, ingredient{
+				Name: *row.IngredientName, Amount: row.Amount, Unit: (*list.Unit)(row.Unit),
+			})
+		}
+	}
+
+	return result, nil
 }
 
 func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
@@ -190,11 +205,6 @@ func (h *Handler) save(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) store(ctx context.Context, value recipe, create bool) (recipe, error) {
-	ingredients, err := json.Marshal(value.Ingredients)
-	if err != nil {
-		return recipe{}, err
-	}
-
 	tx, err := h.conn.BeginTx(ctx, nil)
 	if err != nil {
 		return recipe{}, err
@@ -209,6 +219,8 @@ func (h *Handler) store(ctx context.Context, value recipe, create bool) (recipe,
 	q := h.queries.WithTx(tx)
 
 	user := auth.UserID(ctx)
+	writeIngredients := true
+
 	if create {
 		enabled, err := q.RecipesEnabled(ctx, user)
 		if err != nil {
@@ -223,17 +235,17 @@ func (h *Handler) store(ctx context.Context, value recipe, create bool) (recipe,
 			return recipe{}, err
 		}
 
-		err = q.CreateRecipe(ctx, db.CreateRecipeParams{
+		rows, err := q.CreateRecipe(ctx, db.CreateRecipeParams{
 			ID: value.ID, UserID: user, Name: value.Name, Portions: value.Portions,
-			Ingredients: string(ingredients),
 		})
 		if err != nil {
 			return recipe{}, err
 		}
+
+		writeIngredients = rows != 0
 	} else {
 		rows, err := q.UpdateRecipe(ctx, db.UpdateRecipeParams{
 			ID: value.ID, UserID: user, Name: value.Name, Portions: value.Portions,
-			Ingredients: string(ingredients),
 		})
 		if err != nil {
 			return recipe{}, err
@@ -241,6 +253,21 @@ func (h *Handler) store(ctx context.Context, value recipe, create bool) (recipe,
 
 		if rows == 0 {
 			return recipe{}, sql.ErrNoRows
+		}
+
+		if err := q.ClearRecipeIngredients(ctx, value.ID); err != nil {
+			return recipe{}, err
+		}
+	}
+
+	if writeIngredients {
+		for position, item := range value.Ingredients {
+			if err := q.AddRecipeIngredient(ctx, db.AddRecipeIngredientParams{
+				RecipeID: value.ID, Position: int64(position), Name: item.Name,
+				Amount: item.Amount, Unit: (*string)(item.Unit),
+			}); err != nil {
+				return recipe{}, err
+			}
 		}
 	}
 

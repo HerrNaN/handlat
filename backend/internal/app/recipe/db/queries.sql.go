@@ -9,30 +9,64 @@ import (
 	"context"
 )
 
-const createRecipe = `-- name: CreateRecipe :exec
-INSERT INTO recipes (id, collection_id, name, portions, ingredients)
-SELECT ?1, c.id, ?2, ?3, ?4
-FROM recipe_collections AS c WHERE c.user_id = ?5
+const addRecipeIngredient = `-- name: AddRecipeIngredient :exec
+INSERT INTO recipe_ingredients (recipe_id, position, name, amount, unit)
+VALUES (?1, ?2, ?3, ?4, ?5)
+`
+
+type AddRecipeIngredientParams struct {
+	RecipeID string
+	Position int64
+	Name     string
+	Amount   *string
+	Unit     *string
+}
+
+func (q *Queries) AddRecipeIngredient(ctx context.Context, arg AddRecipeIngredientParams) error {
+	_, err := q.db.ExecContext(ctx, addRecipeIngredient,
+		arg.RecipeID,
+		arg.Position,
+		arg.Name,
+		arg.Amount,
+		arg.Unit,
+	)
+	return err
+}
+
+const clearRecipeIngredients = `-- name: ClearRecipeIngredients :exec
+DELETE FROM recipe_ingredients WHERE recipe_id = ?1
+`
+
+func (q *Queries) ClearRecipeIngredients(ctx context.Context, recipeID string) error {
+	_, err := q.db.ExecContext(ctx, clearRecipeIngredients, recipeID)
+	return err
+}
+
+const createRecipe = `-- name: CreateRecipe :execrows
+INSERT INTO recipes (id, collection_id, name, portions)
+SELECT ?1, c.id, ?2, ?3
+FROM recipe_collections AS c WHERE c.user_id = ?4
 ON CONFLICT (id) DO NOTHING
 `
 
 type CreateRecipeParams struct {
-	ID          string
-	Name        string
-	Portions    int64
-	Ingredients string
-	UserID      []byte
+	ID       string
+	Name     string
+	Portions int64
+	UserID   []byte
 }
 
-func (q *Queries) CreateRecipe(ctx context.Context, arg CreateRecipeParams) error {
-	_, err := q.db.ExecContext(ctx, createRecipe,
+func (q *Queries) CreateRecipe(ctx context.Context, arg CreateRecipeParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, createRecipe,
 		arg.ID,
 		arg.Name,
 		arg.Portions,
-		arg.Ingredients,
 		arg.UserID,
 	)
-	return err
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const deleteRecipe = `-- name: DeleteRecipe :execrows
@@ -72,10 +106,13 @@ func (q *Queries) EnsureCollection(ctx context.Context, userID []byte) error {
 	return err
 }
 
-const getRecipe = `-- name: GetRecipe :one
-SELECT r.id, r.name, r.portions, r.ingredients FROM recipes AS r
+const getRecipe = `-- name: GetRecipe :many
+SELECT r.id, r.name, r.portions, i.name AS ingredient_name, i.amount, i.unit
+FROM recipes AS r
 JOIN recipe_collections AS c ON c.id = r.collection_id
+LEFT JOIN recipe_ingredients AS i ON i.recipe_id = r.id
 WHERE r.id = ?1 AND c.user_id = ?2
+ORDER BY i.position
 `
 
 type GetRecipeParams struct {
@@ -84,22 +121,42 @@ type GetRecipeParams struct {
 }
 
 type GetRecipeRow struct {
-	ID          string
-	Name        string
-	Portions    int64
-	Ingredients string
+	ID             string
+	Name           string
+	Portions       int64
+	IngredientName *string
+	Amount         *string
+	Unit           *string
 }
 
-func (q *Queries) GetRecipe(ctx context.Context, arg GetRecipeParams) (GetRecipeRow, error) {
-	row := q.db.QueryRowContext(ctx, getRecipe, arg.ID, arg.UserID)
-	var i GetRecipeRow
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Portions,
-		&i.Ingredients,
-	)
-	return i, err
+func (q *Queries) GetRecipe(ctx context.Context, arg GetRecipeParams) ([]GetRecipeRow, error) {
+	rows, err := q.db.QueryContext(ctx, getRecipe, arg.ID, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetRecipeRow
+	for rows.Next() {
+		var i GetRecipeRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Portions,
+			&i.IngredientName,
+			&i.Amount,
+			&i.Unit,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listRecipes = `-- name: ListRecipes :many
@@ -149,23 +206,21 @@ func (q *Queries) RecipesEnabled(ctx context.Context, userID []byte) (int64, err
 }
 
 const updateRecipe = `-- name: UpdateRecipe :execrows
-UPDATE recipes SET name = ?1, portions = ?2, ingredients = ?3
-WHERE recipes.id = ?4 AND recipes.collection_id = (SELECT c.id FROM recipe_collections AS c WHERE c.user_id = ?5)
+UPDATE recipes SET name = ?1, portions = ?2
+WHERE recipes.id = ?3 AND recipes.collection_id = (SELECT c.id FROM recipe_collections AS c WHERE c.user_id = ?4)
 `
 
 type UpdateRecipeParams struct {
-	Name        string
-	Portions    int64
-	Ingredients string
-	ID          string
-	UserID      []byte
+	Name     string
+	Portions int64
+	ID       string
+	UserID   []byte
 }
 
 func (q *Queries) UpdateRecipe(ctx context.Context, arg UpdateRecipeParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, updateRecipe,
 		arg.Name,
 		arg.Portions,
-		arg.Ingredients,
 		arg.ID,
 		arg.UserID,
 	)

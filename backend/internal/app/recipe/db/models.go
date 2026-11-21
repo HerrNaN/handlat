@@ -51,12 +51,19 @@ type Recipe struct {
 	CollectionID int64
 	Name         string
 	Portions     int64
-	Ingredients  string
 }
 
 type RecipeCollection struct {
 	ID     int64
 	UserID []byte
+}
+
+type RecipeIngredient struct {
+	RecipeID string
+	Position int64
+	Name     string
+	Amount   *string
+	Unit     *string
 }
 
 type RegistrationAttempt struct {
