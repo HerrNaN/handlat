@@ -36,7 +36,9 @@
   }));
 
   const authenticate = () => {
-    if (pending) return;
+    if (pending) {
+      return;
+    }
     pending = true;
     mutation.mutate();
   };

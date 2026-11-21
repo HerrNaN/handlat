@@ -36,6 +36,8 @@ export const post = async (url: string, body?: unknown) => {
           body: JSON.stringify(body),
         }),
   });
-  if (!response.ok) throw await readApiError(response);
+  if (!response.ok) {
+    throw await readApiError(response);
+  }
   return response;
 };

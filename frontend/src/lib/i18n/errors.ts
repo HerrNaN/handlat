@@ -3,8 +3,12 @@ import type { Messages } from "./en";
 
 export const errorMessage = (error: unknown, messages: Messages, fallback: string): string => {
   const { errors } = messages;
-  if (!(error instanceof ApiError)) return fallback;
-  if (error.status === 401) return errors.sessionExpired;
+  if (!(error instanceof ApiError)) {
+    return fallback;
+  }
+  if (error.status === 401) {
+    return errors.sessionExpired;
+  }
 
   const { min, max } = error.params ?? {};
   switch (error.code) {

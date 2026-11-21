@@ -1,8 +1,10 @@
 {
+  "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/npm/oxlint/configuration_schema.json",
   "options": {
     "typeAware": true
   },
   "rules": {
+    "curly": ["error", "all"],
     "typescript/no-floating-promises": "error",
     "typescript/no-misused-promises": "error",
     "typescript/await-thenable": "error"

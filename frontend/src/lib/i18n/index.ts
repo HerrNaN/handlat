@@ -23,7 +23,9 @@ const readPreference = (): LanguagePreference => {
 const preferredBrowserLanguage = (): Language => {
   for (const tag of navigator.languages) {
     const primary = tag.toLowerCase().split("-")[0];
-    if (primary === "en" || primary === "sv") return primary;
+    if (primary === "en" || primary === "sv") {
+      return primary;
+    }
   }
   return "en";
 };
@@ -54,6 +56,8 @@ export const initializeLanguage = () => {
   });
   window.addEventListener("languagechange", updateBrowserLanguage);
   window.addEventListener("storage", (event) => {
-    if (event.key === storageKey || event.key === null) preference.set(readPreference());
+    if (event.key === storageKey || event.key === null) {
+      preference.set(readPreference());
+    }
   });
 };

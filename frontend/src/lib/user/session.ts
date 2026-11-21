@@ -31,13 +31,20 @@ export const refreshSession = async () => {
       queryKey: ["session"],
       queryFn: async ({ signal }) => {
         const response = await fetch("/api/auth/me", { cache: "no-store", signal });
-        if (response.status === 401) return null;
-        if (!response.ok) throw new Error("Could not load session");
+        if (response.status === 401) {
+          return null;
+        }
+        if (!response.ok) {
+          throw new Error("Could not load session");
+        }
         return (await response.json()) as Account;
       },
     });
-    if (account) current.set(account);
-    else clearSession();
+    if (account) {
+      current.set(account);
+    } else {
+      clearSession();
+    }
   } catch {
     // Server unreachable: keep what we already know instead of signing out.
   }

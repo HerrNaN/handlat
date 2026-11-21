@@ -80,10 +80,14 @@ const listMutationOptions = {
   mutationKey: ["private-lists", "write"],
   onMutate: ({ account }: Account) => {
     dismissListErrors();
-    if (account !== get(session)?.id) throw new Error("The active account changed.");
+    if (account !== get(session)?.id) {
+      throw new Error("The active account changed.");
+    }
   },
   onSettled: (_data: ShoppingList | void, _error: Error | null, { account }: Account) => {
-    if (account !== get(session)?.id) return;
+    if (account !== get(session)?.id) {
+      return;
+    }
     // This mutation still counts as pending until onSettled completes.
     if (queryClient.isMutating({ mutationKey: ["private-lists"] }) === 1) {
       return queryClient.invalidateQueries({ queryKey: summariesKey(account) });
@@ -113,7 +117,9 @@ export const leaveListMutation = () => ({
     void listMutationOptions.onSettled(data, error, target);
   },
   onSuccess: (_data: void, { account, listID }: ListTarget) => {
-    if (account !== get(session)?.id) return;
+    if (account !== get(session)?.id) {
+      return;
+    }
     queryClient.removeQueries({ queryKey: listKey(account, listID), exact: true });
     queryClient.setQueryData<ListSummary[]>(summariesKey(account), (lists) =>
       lists?.filter((list) => list.id !== listID),
@@ -156,7 +162,9 @@ export const checkItemMutation = (): MutationOptions<
     const previous = queryClient
       .getQueryData<ShoppingList>(key)
       ?.items.find((item) => item.id === target.itemID);
-    if (!previous) return;
+    if (!previous) {
+      return;
+    }
     const optimistic = target.checked ? new Date() : undefined;
     queryClient.setQueryData<ShoppingList>(
       key,
@@ -171,7 +179,9 @@ export const checkItemMutation = (): MutationOptions<
     return { previous: previous.checkedAt, optimistic };
   },
   onError: (_error, target, snapshot) => {
-    if (target.account !== get(session)?.id || !snapshot) return;
+    if (target.account !== get(session)?.id || !snapshot) {
+      return;
+    }
     const key = listKey(target.account, target.listID);
     queryClient.setQueryData<ShoppingList>(
       key,

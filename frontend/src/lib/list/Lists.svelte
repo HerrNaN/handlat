@@ -18,12 +18,16 @@
   const createList = createMutation(() => createListMutation());
   const query = createQuery(() => summariesQuery($session?.id));
   const handleCreateList = () => {
-    if (!$session) return;
+    if (!$session) {
+      return;
+    }
     createList.mutate(
       { account: $session.id, name: $messages.lists.defaultName },
       {
         onSuccess: (list, { account }) => {
-          if (account === $session?.id) void navigate("/lists/:id", { params: { id: list.id } });
+          if (account === $session?.id) {
+            void navigate("/lists/:id", { params: { id: list.id } });
+          }
         },
       },
     );
