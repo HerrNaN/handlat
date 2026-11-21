@@ -1,6 +1,18 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator } from "@playwright/test";
 
 test.use({ viewport: { width: 390, height: 800 }, isMobile: true, hasTouch: true });
+
+const expectPinned = async (scrollBody: Locator, control: Locator) => {
+  await expect(control).toBeInViewport();
+  const y = (await control.boundingBox())?.y;
+  const scrollTop = await scrollBody.evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+    return element.scrollTop;
+  });
+  expect(scrollTop).toBeGreaterThan(0);
+  await expect(control).toBeInViewport();
+  expect((await control.boundingBox())?.y).toBe(y);
+};
 
 test("saves a recipe and adds selected scaled ingredients to a shopping list on mobile", async ({
   page,
@@ -98,13 +110,16 @@ test("saves a recipe and adds selected scaled ingredients to a shopping list on 
   const ingredientHeadingBounds = await page
     .getByRole("heading", { name: "Ingredients" })
     .boundingBox();
-  const ingredientNameBounds = await basilName.boundingBox();
+  const ingredientRowBounds = await page
+    .getByRole("listitem")
+    .filter({ has: basilName })
+    .boundingBox();
   if (
     !portionBounds ||
     !actionBounds ||
     !headerBounds ||
     !ingredientHeadingBounds ||
-    !ingredientNameBounds
+    !ingredientRowBounds
   ) {
     throw new Error("The recipe header, controls, and ingredients must be visible.");
   }
@@ -112,7 +127,7 @@ test("saves a recipe and adds selected scaled ingredients to a shopping list on 
   expect(actionBounds.y).toBeLessThan(ingredientHeadingBounds.y + ingredientHeadingBounds.height);
   expect(actionBounds.y + actionBounds.height).toBeGreaterThan(ingredientHeadingBounds.y);
   expect(actionBounds.x + actionBounds.width).toBeCloseTo(
-    ingredientNameBounds.x + ingredientNameBounds.width,
+    ingredientRowBounds.x + ingredientRowBounds.width,
   );
 
   await basilName.scrollIntoViewIfNeeded();
@@ -131,8 +146,9 @@ test("saves a recipe and adds selected scaled ingredients to a shopping list on 
   await addToList.click();
   const transferDialog = page.getByRole("dialog", { name: "Add to list", exact: true });
   const transfer = page.locator('wa-dialog[label="Add to list"]');
+  const transferFooter = transfer.locator('[slot="footer"]');
   await expect(transferDialog).toBeVisible();
-  const confirmTransfer = transfer.getByRole("button", { name: "Add to list", exact: true });
+  const confirmTransfer = transferFooter.getByRole("button", { name: "Add to list", exact: true });
   const onions = transfer.getByRole("checkbox", { name: /Onions/ });
   await expect(onions).toBeChecked();
   const onionLabel = transfer.getByText("Onions", { exact: true });
@@ -143,8 +159,12 @@ test("saves a recipe and adds selected scaled ingredients to a shopping list on 
     (await transfer.getByText("1", { exact: true }).boundingBox())?.x ?? Infinity,
   );
   expect((await transfer.getByText("Basil", { exact: true }).boundingBox())?.x).toBe(dialogNameX);
-  const destination = transfer.getByRole("combobox", { name: "Shopping list" });
+  const destination = transferFooter.getByRole("combobox", { name: "Shopping list" });
   await expect(destination).toHaveValue("Shopping List");
+  await page.setViewportSize({ width: 390, height: 360 });
+  await expectPinned(transfer.locator('[part="body"]'), destination);
+  await expect(confirmTransfer).toBeInViewport();
+  await page.setViewportSize({ width: 390, height: 800 });
   await confirmTransfer.click();
   await expect(transferDialog).toBeHidden();
   await expect(page.getByRole("status")).toHaveText("Ingredients added to Shopping List.");
@@ -168,16 +188,29 @@ test("saves a recipe and adds selected scaled ingredients to a shopping list on 
   await page.getByRole("option", { name: "Weekend", exact: true }).click();
   await expect(destination).toHaveValue("Weekend");
   await expect(confirmTransfer).toBeEnabled();
-  await transfer.getByRole("button", { name: "Cancel", exact: true }).click();
+  await transferFooter.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(transferDialog).toBeHidden();
+  const viewRowHeights = await page
+    .locator("article section li")
+    .evaluateAll((rows) => rows.map((row) => row.getBoundingClientRect().height));
   await page.getByRole("button", { name: "Actions for Tomato sauce" }).click();
   await page.getByRole("menuitem", { name: "Edit recipe" }).click();
-  await page.getByRole("button", { name: "400 g Tomatoes" }).click();
+  const editTomatoes = page.getByRole("button", { name: "400 g Tomatoes" });
+  await expect(editTomatoes).toBeVisible();
+  const editRowHeights = await page
+    .locator("form li")
+    .evaluateAll((rows) => rows.map((row) => row.getBoundingClientRect().height));
+  expect(editRowHeights).toEqual(viewRowHeights);
+  await editTomatoes.click();
   await expect(editName).toHaveValue("tomatoes");
   await editor.getByRole("button", { name: "Close", exact: true }).click();
   await expect(editor).toHaveJSProperty("open", false);
+  const saveRecipe = page.locator("form > footer").getByRole("button", { name: "Save recipe" });
+  await page.setViewportSize({ width: 390, height: 360 });
+  await expectPinned(page.locator("form > .fields"), saveRecipe);
   await page.getByRole("textbox", { name: "Recipe name" }).fill("Sunday tomato sauce");
-  await page.getByRole("button", { name: "Save recipe" }).click();
+  await saveRecipe.click();
+  await page.setViewportSize({ width: 390, height: 800 });
   await expect(page.getByRole("heading", { name: "Sunday tomato sauce" })).toBeVisible();
 
   const actions = page.getByRole("button", { name: "Actions for Sunday tomato sauce" });

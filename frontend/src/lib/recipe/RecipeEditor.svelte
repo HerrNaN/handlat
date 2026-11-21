@@ -126,87 +126,91 @@
 </script>
 
 <form onsubmit={submit}>
-  <fieldset disabled={save.isPending}>
-    <div class="details">
-      <wa-input
-        bind:this={nameInput}
-        value={initial?.name ?? ""}
-        label={$messages.recipes.name}
-        maxlength={200}
-        required
-      ></wa-input>
-      <wa-number-input
-        bind:this={yieldInput}
-        value={String(initial?.portions ?? 1)}
-        label={$messages.recipes.yield}
-        min={1}
-        max={Number.MAX_SAFE_INTEGER}
-        step={1}
-        inputmode="numeric"
-        required
-      >
-        <span slot="end">{$messages.recipes.targetPortions}</span>
-      </wa-number-input>
-    </div>
-    <h2>{$messages.recipes.ingredients}</h2>
-    <div class="add">
-      <wa-input
-        bind:this={ingredientInput}
-        enterkeyhint="go"
-        placeholder={$messages.items.example}
-        oninput={() => (ingredientError = undefined)}
-        onkeydown={onIngredientKeydown}
-      >
-        <span slot="label" class="wa-visually-hidden-force">{$messages.recipes.ingredient}</span>
-      </wa-input>
-      <wa-button onclick={addIngredient}>
-        <wa-icon name="plus" label={$messages.recipes.addIngredient}></wa-icon>
-      </wa-button>
-    </div>
-    {#if ingredientError}
-      <p role="alert">{$messages.recipes[ingredientError]}</p>
-    {/if}
-    {#if rows.length}
-      <ul>
-        {#each rows as { key, ingredient } (key)}
-          <li>
-            <button type="button" aria-haspopup="dialog" onclick={() => openEditor(key)}>
-              <span>
-                {formatQuantity(
-                  ingredient.amount,
-                  ingredient.unit ? $messages.units[ingredient.unit] : undefined,
-                  $language,
-                )}
-              </span>
-              <span>{formatIngredientName(ingredient.name)}</span>
-            </button>
-            <wa-button
-              variant="danger"
-              appearance="plain"
-              disabled={save.isPending}
-              onclick={() => removeIngredient(key)}
-            >
-              <wa-icon
-                name="trash-can"
-                label={$messages.recipes.removeIngredient(formatIngredientName(ingredient.name))}
-              ></wa-icon>
-            </wa-button>
-          </li>
-        {/each}
-      </ul>
-    {/if}
-    {#if !ingredientError && (invalid || (save.error instanceof ApiError && save.error.code === "invalid_recipe"))}
-      <p role="alert">{$messages.recipes.invalid}</p>
-    {:else if !ingredientError && save.isError}
-      <p role="alert">{$messages.recipes.saveFailed}</p>
-    {/if}
+  <div class="fields">
+    <fieldset disabled={save.isPending}>
+      <div class="details">
+        <wa-input
+          bind:this={nameInput}
+          value={initial?.name ?? ""}
+          label={$messages.recipes.name}
+          maxlength={200}
+          required
+        ></wa-input>
+        <wa-number-input
+          bind:this={yieldInput}
+          value={String(initial?.portions ?? 1)}
+          label={$messages.recipes.yield}
+          min={1}
+          max={Number.MAX_SAFE_INTEGER}
+          step={1}
+          inputmode="numeric"
+          required
+        >
+          <span slot="end">{$messages.recipes.targetPortions}</span>
+        </wa-number-input>
+      </div>
+      <h2>{$messages.recipes.ingredients}</h2>
+      <div class="add">
+        <wa-input
+          bind:this={ingredientInput}
+          enterkeyhint="go"
+          placeholder={$messages.items.example}
+          oninput={() => (ingredientError = undefined)}
+          onkeydown={onIngredientKeydown}
+        >
+          <span slot="label" class="wa-visually-hidden-force">{$messages.recipes.ingredient}</span>
+        </wa-input>
+        <wa-button onclick={addIngredient}>
+          <wa-icon name="plus" label={$messages.recipes.addIngredient}></wa-icon>
+        </wa-button>
+      </div>
+      {#if ingredientError}
+        <p role="alert">{$messages.recipes[ingredientError]}</p>
+      {/if}
+      {#if rows.length}
+        <ul>
+          {#each rows as { key, ingredient } (key)}
+            <li>
+              <button type="button" aria-haspopup="dialog" onclick={() => openEditor(key)}>
+                <span>
+                  {formatQuantity(
+                    ingredient.amount,
+                    ingredient.unit ? $messages.units[ingredient.unit] : undefined,
+                    $language,
+                  )}
+                </span>
+                <span>{formatIngredientName(ingredient.name)}</span>
+              </button>
+              <wa-button
+                variant="danger"
+                appearance="plain"
+                disabled={save.isPending}
+                onclick={() => removeIngredient(key)}
+              >
+                <wa-icon
+                  name="trash-can"
+                  label={$messages.recipes.removeIngredient(formatIngredientName(ingredient.name))}
+                ></wa-icon>
+              </wa-button>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+      {#if !ingredientError && (invalid || (save.error instanceof ApiError && save.error.code === "invalid_recipe"))}
+        <p role="alert">{$messages.recipes.invalid}</p>
+      {:else if !ingredientError && save.isError}
+        <p role="alert">{$messages.recipes.saveFailed}</p>
+      {/if}
+    </fieldset>
+  </div>
+  <footer>
     <div class="actions">
-      <wa-button onclick={onCancel}>{$messages.common.cancel}</wa-button>
+      <wa-button onclick={onCancel} disabled={save.isPending}>{$messages.common.cancel}</wa-button>
       <wa-button variant="brand" type="submit" loading={save.isPending}>
         {$messages.recipes.save}
       </wa-button>
     </div>
-  </fieldset>
+  </footer>
 </form>
 
 <wa-dialog
@@ -225,10 +229,29 @@
 </wa-dialog>
 
 <style>
+  form {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-block-size: 0;
+  }
+
+  .fields {
+    flex: 1;
+    min-block-size: 0;
+    overflow-y: auto;
+  }
+
+  fieldset,
+  .actions {
+    box-sizing: border-box;
+    max-inline-size: 40rem;
+    margin: 0 auto;
+    padding: var(--wa-space-l);
+  }
+
   fieldset {
     border: 0;
-    padding: 0;
-    margin: 0;
     min-inline-size: 0;
   }
 
@@ -244,7 +267,7 @@
 
   ul {
     display: grid;
-    grid-template-columns: fit-content(45%) minmax(0, 1fr) auto;
+    grid-template-columns: fit-content(45%) minmax(0, 1fr) var(--ingredient-row-height);
     column-gap: var(--wa-space-s);
     list-style: none;
     padding: 0;
@@ -265,10 +288,11 @@
     grid-template-columns: subgrid;
     appearance: none;
     border: 0;
-    min-block-size: 2.75rem;
+    box-sizing: border-box;
+    min-block-size: var(--ingredient-row-height);
     align-self: stretch;
     align-items: center;
-    padding: var(--wa-space-xs) var(--wa-space-2xs);
+    padding: var(--wa-space-2xs) 0;
     background: none;
     color: inherit;
     font: inherit;
@@ -281,9 +305,19 @@
     background: var(--wa-color-surface-raised);
   }
 
+  li > wa-button {
+    --wa-form-control-height: var(--ingredient-row-height);
+  }
+
   .add {
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: end;
+  }
+
+  footer {
+    flex-shrink: 0;
+    border-block-start: 1px solid var(--wa-color-surface-border);
+    background-color: var(--wa-color-surface-default);
   }
 
   .actions {
@@ -291,6 +325,6 @@
     flex-wrap: wrap;
     justify-content: end;
     gap: var(--wa-space-s);
-    margin-block-start: var(--wa-space-xl);
+    padding-block: var(--wa-space-m);
   }
 </style>

@@ -198,49 +198,54 @@
   {#if reviewing}
     {@render ingredientList(true)}
     {@render quantityNotes()}
-    {#if lists.isPending}
-      <p role="status">{$messages.lists.loading}</p>
-    {:else if lists.isError}
-      <p role="alert">{$messages.errors.loadLists}</p>
-      <wa-button onclick={() => lists.refetch()}>{$messages.common.tryAgain}</wa-button>
-    {:else if lists.data?.length}
-      <wa-select
-        label={$messages.recipes.destination}
-        placeholder={$messages.recipes.chooseList}
-        value={destination?.id ?? ""}
-        disabled={transfer.isPending}
-        onchange={(event: Event) => {
-          const value = (event.currentTarget as WaSelect).value;
-          destinationID = typeof value === "string" ? value : "";
-        }}
-      >
-        {#each lists.data as list (list.id)}
-          <wa-option value={list.id}>{list.name}</wa-option>
-        {/each}
-      </wa-select>
-      {#if destination && destination.memberCount > 1}
-        <p>{$messages.recipes.sharedList}</p>
-      {/if}
-    {:else}
-      <p>{$messages.recipes.noLists}</p>
-      <wa-button href="/lists">{$messages.lists.title}</wa-button>
-    {/if}
-    {#if transfer.isError}
-      <p role="alert">{$messages.recipes.transferFailed}</p>
-    {/if}
   {/if}
-  <wa-button slot="footer" data-dialog="close" disabled={transfer.isPending}>
-    {$messages.common.cancel}
-  </wa-button>
-  <wa-button
-    slot="footer"
-    variant="brand"
-    disabled={!canTransfer}
-    loading={transfer.isPending}
-    onclick={submit}
-  >
-    {$messages.recipes.addToList}
-  </wa-button>
+  <div slot="footer" class="transfer-footer">
+    {#if reviewing}
+      {#if lists.isPending}
+        <p role="status">{$messages.lists.loading}</p>
+      {:else if lists.isError}
+        <p role="alert">{$messages.errors.loadLists}</p>
+        <wa-button onclick={() => lists.refetch()}>{$messages.common.tryAgain}</wa-button>
+      {:else if lists.data?.length}
+        <wa-select
+          label={$messages.recipes.destination}
+          placeholder={$messages.recipes.chooseList}
+          value={destination?.id ?? ""}
+          disabled={transfer.isPending}
+          onchange={(event: Event) => {
+            const value = (event.currentTarget as WaSelect).value;
+            destinationID = typeof value === "string" ? value : "";
+          }}
+        >
+          {#each lists.data as list (list.id)}
+            <wa-option value={list.id}>{list.name}</wa-option>
+          {/each}
+        </wa-select>
+        {#if destination && destination.memberCount > 1}
+          <p>{$messages.recipes.sharedList}</p>
+        {/if}
+      {:else}
+        <p>{$messages.recipes.noLists}</p>
+        <wa-button href="/lists">{$messages.lists.title}</wa-button>
+      {/if}
+      {#if transfer.isError}
+        <p role="alert">{$messages.recipes.transferFailed}</p>
+      {/if}
+    {/if}
+    <div class="actions">
+      <wa-button data-dialog="close" disabled={transfer.isPending}>
+        {$messages.common.cancel}
+      </wa-button>
+      <wa-button
+        variant="brand"
+        disabled={!canTransfer}
+        loading={transfer.isPending}
+        onclick={submit}
+      >
+        {$messages.recipes.addToList}
+      </wa-button>
+    </div>
+  </div>
 </wa-dialog>
 
 <style>
@@ -255,13 +260,34 @@
     inline-size: min(12rem, 100%);
   }
 
-  wa-select {
-    margin-block-start: var(--wa-space-l);
+  wa-dialog::part(footer) {
+    padding-block-start: var(--wa-space-s);
+  }
+
+  .transfer-footer {
+    display: grid;
+    gap: var(--wa-space-m);
+    inline-size: 100%;
+  }
+
+  .transfer-footer p {
+    margin: 0;
+  }
+
+  .transfer-footer > wa-button {
+    justify-self: start;
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: end;
+    gap: var(--wa-space-xs);
   }
 
   ul {
     display: grid;
-    grid-template-columns: fit-content(45%) minmax(0, 1fr);
+    grid-template-columns: fit-content(45%) minmax(0, 1fr) var(--ingredient-row-height);
     column-gap: var(--wa-space-s);
     list-style: none;
     padding: 0;
@@ -281,12 +307,16 @@
 
   .choice {
     align-items: center;
-    border-bottom: 1px solid var(--wa-color-surface-border);
     overflow-wrap: anywhere;
   }
 
+  li {
+    border-bottom: 1px solid var(--wa-color-surface-border);
+  }
+
   div.choice {
-    min-block-size: 2rem;
+    box-sizing: border-box;
+    min-block-size: var(--ingredient-row-height);
     padding-block: var(--wa-space-2xs);
   }
 

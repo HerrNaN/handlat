@@ -70,40 +70,42 @@
       {/if}
     {/snippet}
   </PageHeader>
-  <div class="recipe-content">
-    <section>
-      {#if isNew}
-        {#if collection.isPending}
+  {#if isNew && collection.isSuccess && collection.data.enabled}
+    <RecipeEditor onSave={saved} onCancel={() => navigate("/recipes")} />
+  {:else if editing && detail.isSuccess}
+    <RecipeEditor recipe={detail.data} onSave={saved} onCancel={closeEditor} />
+  {:else}
+    <div class="recipe-content">
+      <section>
+        {#if isNew}
+          {#if collection.isPending}
+            <p role="status">{$messages.recipes.loading}</p>
+          {:else if collection.isError}
+            <p role="alert">{$messages.recipes.loadFailed}</p>
+            <wa-button onclick={() => collection.refetch()}>{$messages.common.tryAgain}</wa-button>
+          {:else}
+            <p>{$messages.recipes.disclosure}</p>
+            <wa-button href="/recipes">{$messages.nav.recipes}</wa-button>
+          {/if}
+        {:else if detail.isPending}
           <p role="status">{$messages.recipes.loading}</p>
-        {:else if collection.isError}
+        {:else if detail.error instanceof ApiError && detail.error.status === 404}
+          <p role="alert">{$messages.recipes.unavailable}</p>
+        {:else if detail.isError}
           <p role="alert">{$messages.recipes.loadFailed}</p>
-          <wa-button onclick={() => collection.refetch()}>{$messages.common.tryAgain}</wa-button>
-        {:else if collection.data?.enabled}
-          <RecipeEditor onSave={saved} onCancel={() => navigate("/recipes")} />
-        {:else}
-          <p>{$messages.recipes.disclosure}</p>
-          <wa-button href="/recipes">{$messages.nav.recipes}</wa-button>
-        {/if}
-      {:else if detail.isPending}
-        <p role="status">{$messages.recipes.loading}</p>
-      {:else if detail.error instanceof ApiError && detail.error.status === 404}
-        <p role="alert">{$messages.recipes.unavailable}</p>
-      {:else if detail.isError}
-        <p role="alert">{$messages.recipes.loadFailed}</p>
-        <wa-button onclick={() => detail.refetch()}>{$messages.common.tryAgain}</wa-button>
-      {:else if detail.data}
-        {#if editing}
-          <RecipeEditor recipe={detail.data} onSave={saved} onCancel={closeEditor} />
-        {:else}
+          <wa-button onclick={() => detail.refetch()}>{$messages.common.tryAgain}</wa-button>
+        {:else if detail.data}
           <RecipeIngredients recipe={detail.data} {account} />
         {/if}
-      {/if}
-    </section>
-  </div>
+      </section>
+    </div>
+  {/if}
 </article>
 
 <style>
   article {
+    --ingredient-row-height: 2rem;
+
     height: 100%;
     display: flex;
     flex-direction: column;
