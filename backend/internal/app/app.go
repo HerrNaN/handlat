@@ -12,6 +12,7 @@ import (
 	"github.com/herrnan/handlat/internal/app/database"
 	"github.com/herrnan/handlat/internal/app/list"
 	"github.com/herrnan/handlat/internal/app/migrations"
+	"github.com/herrnan/handlat/internal/app/recipe"
 	"github.com/herrnan/handlat/internal/app/web"
 	"github.com/herrnan/handlat/internal/util"
 	"golang.org/x/sync/errgroup"
@@ -47,6 +48,7 @@ func Run(ctx context.Context, log *slog.Logger, cfg Config) error {
 	apiMux := http.NewServeMux()
 	authHandler.Register(apiMux)
 	list.New(db, log).Register(apiMux, authHandler.RequireSession)
+	recipe.New(db, log).Register(apiMux, authHandler.RequireSession)
 
 	mux.Handle(
 		"/api/",

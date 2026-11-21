@@ -79,6 +79,7 @@ func (h *Handler) Register(mux *http.ServeMux, requireSession func(http.Handler)
 	routes.HandleFunc("DELETE /lists/{id}", h.leaveList)
 	routes.HandleFunc("POST /lists/{id}/invitations", h.createInvitation)
 	routes.HandleFunc("POST /lists/{id}/items", h.addItem)
+	routes.HandleFunc("POST /lists/{id}/items/batch", h.addItems)
 	routes.HandleFunc("PATCH /lists/{id}/items/{itemID}", h.updateItem)
 	routes.HandleFunc("DELETE /lists/{id}/items/{itemID}", h.deleteItem)
 	routes.HandleFunc("DELETE /lists/{id}/checked-items", h.deleteChecked)
@@ -400,12 +401,7 @@ type itemInput struct {
 	Department string  `json:"department"`
 }
 
-func readItem(w http.ResponseWriter, r *http.Request) (itemInput, bool) {
-	var body itemInput
-	if !decode(w, r, &body) {
-		return body, false
-	}
-
+func validateItem(w http.ResponseWriter, body *itemInput) bool {
 	body.Text = strings.TrimSpace(body.Text)
 	if body.Department == "" {
 		body.Department = "other"
@@ -414,7 +410,7 @@ func readItem(w http.ResponseWriter, r *http.Request) (itemInput, bool) {
 	id, err := uuid.Parse(body.ID)
 	if err != nil || id == uuid.Nil {
 		util.WriteAPIError(w, http.StatusBadRequest, "invalid_item_id", nil)
-		return body, false
+		return false
 	}
 
 	body.ID = id.String()
@@ -426,7 +422,7 @@ func readItem(w http.ResponseWriter, r *http.Request) (itemInput, bool) {
 			map[string]int{"min": 1, "max": maxItemTextLength},
 		)
 
-		return body, false
+		return false
 	}
 
 	if !validText(body.Department, maxDepartmentLength) {
@@ -437,37 +433,44 @@ func readItem(w http.ResponseWriter, r *http.Request) (itemInput, bool) {
 			map[string]int{"min": 1, "max": maxDepartmentLength},
 		)
 
-		return body, false
+		return false
 	}
 
-	if !normalizeAmount(body.Amount) {
+	if !NormalizeAmount(body.Amount) {
 		util.WriteAPIError(
 			w,
 			http.StatusBadRequest,
 			"invalid_amount",
-			map[string]int{"max": maxAmountLength},
+			map[string]int{"max": MaxAmountLength},
 		)
 
-		return body, false
+		return false
 	}
 
-	if body.Unit != nil && !body.Unit.valid() {
+	if body.Unit != nil && !body.Unit.Valid() {
 		util.WriteAPIError(w, http.StatusBadRequest, "unsupported_unit", nil)
-		return body, false
+		return false
 	}
 
-	return body, true
+	return true
 }
 
-func (h *Handler) addItem(w http.ResponseWriter, r *http.Request) {
-	body, ok := readItem(w, r)
-	if !ok {
-		return
-	}
-
+func itemParams(body itemInput, listID string, timestamp int64) db.AddItemParams {
 	first, size := utf8.DecodeRuneInString(body.Text)
 	if unicode.IsLower(first) {
 		body.Text = string(unicode.ToUpper(first)) + body.Text[size:]
+	}
+
+	return db.AddItemParams{
+		ID: body.ID, ListID: listID, Text: body.Text, Department: body.Department,
+		CreatedAt: timestamp, Amount: body.Amount, Unit: (*string)(body.Unit),
+	}
+}
+
+func (h *Handler) addItem(w http.ResponseWriter, r *http.Request) {
+	var body itemInput
+	if !decode(w, r, &body) || !validateItem(w, &body) {
+		return
 	}
 
 	ctx := r.Context()
@@ -478,17 +481,7 @@ func (h *Handler) addItem(w http.ResponseWriter, r *http.Request) {
 		var err error
 
 		mergedItemID, err = addOrMergeItem(
-			ctx,
-			q,
-			db.AddItemParams{
-				ID:         body.ID,
-				ListID:     r.PathValue("id"),
-				Text:       body.Text,
-				Department: body.Department,
-				CreatedAt:  now(),
-				Amount:     body.Amount,
-				Unit:       (*string)(body.Unit),
-			},
+			ctx, q, itemParams(body, r.PathValue("id"), now()),
 		)
 
 		return err
@@ -502,6 +495,49 @@ func (h *Handler) addItem(w http.ResponseWriter, r *http.Request) {
 		List
 		MergedItemID string `json:"mergedItemId,omitempty"`
 	}{List: result, MergedItemID: mergedItemID})
+}
+
+func (h *Handler) addItems(w http.ResponseWriter, r *http.Request) {
+	var items []itemInput
+	if !decodeLimit(w, r, &items, 256<<10) {
+		return
+	}
+
+	if len(items) == 0 || len(items) > 100 {
+		util.WriteAPIError(w, http.StatusBadRequest, "invalid_item_batch", nil)
+		return
+	}
+
+	ids := make(map[string]bool, len(items))
+	for i := range items {
+		if !validateItem(w, &items[i]) {
+			return
+		}
+
+		id := items[i].ID
+		if ids[id] {
+			util.WriteAPIError(w, http.StatusBadRequest, "invalid_item_batch", nil)
+			return
+		}
+
+		ids[id] = true
+	}
+
+	ctx := r.Context()
+	h.mutate(w, r, func(q *db.Queries) error {
+		timestamp := now()
+		for _, item := range items {
+			if _, err := addOrMergeItem(
+				ctx,
+				q,
+				itemParams(item, r.PathValue("id"), timestamp),
+			); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
 }
 
 // A field is either absent or carries a value; null is not a command to clear it.
@@ -574,18 +610,18 @@ func (h *Handler) updateItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !normalizeAmount(body.Amount.value) {
+	if !NormalizeAmount(body.Amount.value) {
 		util.WriteAPIError(
 			w,
 			http.StatusBadRequest,
 			"invalid_amount",
-			map[string]int{"max": maxAmountLength},
+			map[string]int{"max": MaxAmountLength},
 		)
 
 		return
 	}
 
-	if body.Unit.value != nil && !body.Unit.value.valid() {
+	if body.Unit.value != nil && !body.Unit.value.Valid() {
 		util.WriteAPIError(w, http.StatusBadRequest, "unsupported_unit", nil)
 		return
 	}
@@ -653,7 +689,11 @@ func (h *Handler) deleteChecked(w http.ResponseWriter, r *http.Request) {
 }
 
 func decode(w http.ResponseWriter, r *http.Request, value any) bool {
-	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 16<<10))
+	return decodeLimit(w, r, value, 16<<10)
+}
+
+func decodeLimit(w http.ResponseWriter, r *http.Request, value any, limit int64) bool {
+	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, limit))
 	decoder.DisallowUnknownFields()
 
 	if err := decoder.Decode(value); err != nil {

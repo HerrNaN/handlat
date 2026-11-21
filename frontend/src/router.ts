@@ -10,6 +10,10 @@ export const { p, navigate, isActive, route } = createRouter({
   "/invitations/:token": () => import("./lib/list/Invitation.svelte"),
   "/login": () => import("./lib/user/Authenticate.svelte"),
   "/user": () => import("./lib/user/User.svelte"),
+  "/recipes": {
+    "/": () => import("./lib/recipe/Recipes.svelte"),
+    "/:recipeId": () => import("./lib/recipe/RecipeRoute.svelte"),
+  },
   "/lists": {
     "/": () => import("./lib/list/Lists.svelte"),
     "/:id": () => import("./lib/list/List.svelte"),

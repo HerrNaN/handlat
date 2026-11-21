@@ -46,6 +46,26 @@ type LoginAttempt struct {
 	ExpiresAt int64
 }
 
+type Recipe struct {
+	ID           string
+	CollectionID int64
+	Name         string
+	Portions     int64
+}
+
+type RecipeCollection struct {
+	ID     int64
+	UserID []byte
+}
+
+type RecipeIngredient struct {
+	RecipeID string
+	Position int64
+	Name     string
+	Amount   *string
+	Unit     *string
+}
+
 type RegistrationAttempt struct {
 	TokenHash []byte
 	UserID    []byte
@@ -61,7 +81,8 @@ type Session struct {
 }
 
 type User struct {
-	ID        []byte
-	Name      string
-	CreatedAt int64
+	ID             []byte
+	Name           string
+	CreatedAt      int64
+	RecipesEnabled int64
 }

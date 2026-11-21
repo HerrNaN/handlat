@@ -120,7 +120,7 @@ func exactDecimal(value *big.Rat) (string, bool) {
 
 	amount := value.FloatString(digits)
 
-	return amount, len(amount) <= maxAmountLength
+	return amount, len(amount) <= MaxAmountLength
 }
 
 func metricScale(unit Unit) (Unit, int64) {

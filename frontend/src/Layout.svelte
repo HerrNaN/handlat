@@ -9,7 +9,6 @@
   import "@awesome.me/webawesome/dist/components/tab-panel/tab-panel.js";
   import "@awesome.me/webawesome/dist/components/tab/tab.js";
   import "@awesome.me/webawesome/dist/components/button/button.js";
-  import "@awesome.me/webawesome/dist/components/tooltip/tooltip.js";
 
   import { session } from "./lib/user/session";
   import { navigate, route } from "./router";
@@ -36,13 +35,10 @@
 
   <nav>
     <ul>
-      <li>
-        <span id="recipes-nav">
-          <wa-button label={$messages.nav.recipes} appearance="plain" disabled>
-            <wa-icon name="kitchen-set"></wa-icon>
-          </wa-button>
-        </span>
-        <wa-tooltip for="recipes-nav" trigger="click">{$messages.nav.recipes}</wa-tooltip>
+      <li class:active={route.pathname.startsWith("/recipes")}>
+        <wa-button onclick={() => navigate("/recipes")} appearance="plain" disabled={!$session}>
+          <wa-icon name="kitchen-set" label={$messages.nav.recipes}></wa-icon>
+        </wa-button>
       </li>
       <li class:active={route.pathname.startsWith("/lists")}>
         <wa-button
@@ -88,16 +84,6 @@
 
   nav {
     height: 4rem;
-
-    #recipes-nav {
-      display: inline-flex;
-      width: 100%;
-      height: 100%;
-
-      wa-button {
-        pointer-events: none;
-      }
-    }
 
     wa-button {
       width: 100%;
