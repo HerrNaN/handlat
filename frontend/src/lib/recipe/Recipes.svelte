@@ -4,7 +4,7 @@
   import "@awesome.me/webawesome/dist/components/callout/callout.js";
   import "@awesome.me/webawesome/dist/components/icon/icon.js";
 
-  import { p } from "../../router";
+  import { navigate, p } from "../../router";
   import PageHeader from "../components/PageHeader.svelte";
   import { messages } from "../i18n";
   import EmptyState from "../list/EmptyState.svelte";
@@ -12,6 +12,7 @@
   import { queryClient } from "../query";
   import { session } from "../user/session";
   import { enableRecipes, getRecipes, recipesKey } from "./api";
+  import RecipeActions from "./RecipeActions.svelte";
 
   const newRecipeURL = p("/recipes/:recipeId", { params: { recipeId: "new" } });
   const collection = createQuery(() => ({
@@ -87,6 +88,18 @@
               <wa-icon name="kitchen-set" aria-hidden="true"></wa-icon>
               <span>{recipe.name}</span>
             </a>
+            {#if $session}
+              <RecipeActions
+                {recipe}
+                account={$session.id}
+                onEdit={() => {
+                  void navigate("/recipes/:recipeId", {
+                    params: { recipeId: recipe.id },
+                    search: { edit: true },
+                  });
+                }}
+              />
+            {/if}
           </li>
         {/each}
       </ul>
@@ -137,14 +150,23 @@
     gap: var(--wa-space-2xs);
   }
 
+  li {
+    display: flex;
+    align-items: center;
+    padding-inline-end: var(--wa-space-xs);
+    background-color: var(--wa-color-neutral-fill-quiet);
+    border-radius: var(--wa-border-radius-s);
+  }
+
   a {
+    flex: 1;
+    min-width: 0;
     display: flex;
     align-items: center;
     gap: var(--wa-space-s);
     padding: var(--wa-space-m);
     text-decoration: none;
     color: var(--wa-color-text-normal);
-    background-color: var(--wa-color-neutral-fill-quiet);
     border-radius: var(--wa-border-radius-s);
   }
 

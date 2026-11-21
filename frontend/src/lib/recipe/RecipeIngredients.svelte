@@ -124,7 +124,7 @@
 </div>
 
 <h2>{reviewing ? $messages.recipes.review : $messages.recipes.ingredients}</h2>
-<ul>
+<ul class:reviewing>
   {#each scaled as item (item.index)}
     <li>
       {#if reviewing}
@@ -145,10 +145,8 @@
 </ul>
 
 {#snippet ingredient(item: (typeof scaled)[number])}
-  <span class="name">{formatIngredientName(item.name)}</span>
-  {#if item.label}
-    <span>{item.label}{item.tooPrecise ? " *" : ""}</span>
-  {/if}
+  <span>{item.label}{item.tooPrecise ? " *" : ""}</span>
+  <span>{formatIngredientName(item.name)}</span>
 {/snippet}
 
 {#if target === undefined}
@@ -229,17 +227,29 @@
   }
 
   ul {
+    display: grid;
+    grid-template-columns: fit-content(45%) minmax(0, 1fr);
+    column-gap: var(--wa-space-s);
     list-style: none;
     padding: 0;
     margin: 0;
   }
 
+  ul.reviewing {
+    grid-template-columns: auto fit-content(45%) minmax(0, 1fr);
+  }
+
+  li,
   .choice {
-    display: flex;
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+  }
+
+  .choice {
     align-items: center;
     min-block-size: 2.75rem;
     padding-block: var(--wa-space-xs);
-    gap: var(--wa-space-s);
     border-bottom: 1px solid var(--wa-color-surface-border);
     overflow-wrap: anywhere;
   }
@@ -247,17 +257,7 @@
   input[type="checkbox"] {
     width: 1.25rem;
     height: 1.25rem;
-    flex-shrink: 0;
     accent-color: var(--wa-color-brand-fill-loud);
-  }
-
-  .name {
-    flex: 1;
-  }
-
-  .choice span:last-child:not(.name) {
-    max-inline-size: 50%;
-    text-align: end;
   }
 
   .actions {

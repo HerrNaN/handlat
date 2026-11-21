@@ -177,16 +177,14 @@
         {#each rows as { key, ingredient } (key)}
           <li>
             <button type="button" aria-haspopup="dialog" onclick={() => openEditor(key)}>
-              <span class="name">{formatIngredientName(ingredient.name)}</span>
-              {#if ingredient.amount || ingredient.unit}
-                <span class="quantity">
-                  {formatQuantity(
-                    ingredient.amount,
-                    ingredient.unit ? $messages.units[ingredient.unit] : undefined,
-                    $language,
-                  )}
-                </span>
-              {/if}
+              <span>
+                {formatQuantity(
+                  ingredient.amount,
+                  ingredient.unit ? $messages.units[ingredient.unit] : undefined,
+                  $language,
+                )}
+              </span>
+              <span>{formatIngredientName(ingredient.name)}</span>
               <wa-icon name="pen" aria-hidden="true"></wa-icon>
             </button>
           </li>
@@ -246,20 +244,27 @@
   }
 
   ul {
+    display: grid;
+    grid-template-columns: fit-content(45%) minmax(0, 1fr) auto;
+    column-gap: var(--wa-space-s);
     list-style: none;
     padding: 0;
     margin: var(--wa-space-s) 0 0;
+  }
+
+  li,
+  li button {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
   }
 
   li button {
     appearance: none;
     border: 0;
     border-bottom: 1px solid var(--wa-color-surface-border);
-    width: 100%;
     min-block-size: 2.75rem;
-    display: flex;
     align-items: center;
-    gap: var(--wa-space-s);
     padding: var(--wa-space-xs) var(--wa-space-2xs);
     background: none;
     color: inherit;
@@ -271,15 +276,6 @@
 
   li button:hover {
     background: var(--wa-color-surface-raised);
-  }
-
-  .name {
-    flex: 1;
-  }
-
-  .quantity {
-    max-inline-size: 45%;
-    text-align: end;
   }
 
   .add {
