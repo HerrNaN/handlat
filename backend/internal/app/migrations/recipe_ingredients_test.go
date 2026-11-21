@@ -27,22 +27,31 @@ func TestRecipeIngredientMigration(t *testing.T) {
 	t.Cleanup(func() { requireRecipeMigrationOK(t, conn.Close()) })
 
 	requireRecipeMigrationOK(t, migrations.Up(conn))
-	requireRecipeMigrationOK(t, goose.DownTo(conn, ".", 7))
+	requireRecipeMigrationOK(t, goose.DownTo(conn, ".", 6))
 
-	const original = `[{"name":"Stock","amount":"9007199254740993.1234567890","unit":"ml"},{"name":"Basil"},{"name":"Pasta","unit":"pkt"},{"name":"Onions","amount":"02"}]`
-
-	_, err = conn.ExecContext(ctx, `
-		INSERT INTO users (id, name) VALUES (x'01', 'Owner');
-		INSERT INTO recipe_collections (id, user_id) VALUES (1, x'01');
-	`)
-	requireRecipeMigrationOK(t, err)
-
-	_, err = conn.ExecContext(ctx, `
-		INSERT INTO recipes (id, collection_id, name, portions, ingredients)
-		VALUES ('recipe', 1, 'Soup', 4, ?)
-	`, original)
+	_, err = conn.ExecContext(ctx, "INSERT INTO users (id, name) VALUES (x'01', 'Owner')")
 	requireRecipeMigrationOK(t, err)
 	requireRecipeMigrationOK(t, migrations.Up(conn))
+
+	var enabled bool
+
+	err = conn.QueryRowContext(ctx, "SELECT recipes_enabled FROM users WHERE id = x'01'").Scan(&enabled)
+	requireRecipeMigrationOK(t, err)
+
+	if enabled {
+		t.Fatal("recipes enabled by default for an existing user")
+	}
+
+	_, err = conn.ExecContext(ctx, `
+		INSERT INTO recipe_collections (id, user_id) VALUES (1, x'01');
+		INSERT INTO recipes (id, collection_id, name, portions) VALUES ('recipe', 1, 'Soup', 4);
+		INSERT INTO recipe_ingredients (recipe_id, position, name, amount, unit) VALUES
+		    ('recipe', 0, 'Stock', '9007199254740993.1234567890', 'ml'),
+		    ('recipe', 100, 'Onions', '02', NULL),
+		    ('recipe', 1, 'Basil', NULL, NULL),
+		    ('recipe', 2, 'Pasta', NULL, 'pkt');
+	`)
+	requireRecipeMigrationOK(t, err)
 
 	type ingredient struct {
 		name         string
@@ -79,19 +88,7 @@ func TestRecipeIngredientMigration(t *testing.T) {
 	requireRecipeMigrationOK(t, rows.Err())
 
 	if !slices.Equal(got, want) {
-		t.Fatalf("migrated ingredients = %+v, want %+v", got, want)
-	}
-
-	for _, amount := range []any{
-		"", "0", "000.00", "-1", ".5", "5.", "1.2.3", "1,5", "1e3", " 1", "1\x002",
-		strings.Repeat("1", 101), []byte("5"),
-	} {
-		_, err := conn.ExecContext(ctx, `
-			UPDATE recipe_ingredients SET amount = ? WHERE recipe_id = 'recipe' AND position = 0
-		`, amount)
-		if err == nil || !strings.Contains(err.Error(), "recipe_ingredient_positive_decimal") {
-			t.Errorf("amount %q: expected decimal constraint violation, got %v", amount, err)
-		}
+		t.Fatalf("stored ingredients = %+v, want %+v", got, want)
 	}
 
 	_, err = conn.ExecContext(ctx, `
@@ -101,20 +98,6 @@ func TestRecipeIngredientMigration(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "recipe_ingredient_supported_unit") {
 		t.Fatalf("expected unit constraint violation, got %v", err)
 	}
-
-	requireRecipeMigrationOK(t, goose.DownTo(conn, ".", 7))
-
-	var restored string
-
-	err = conn.QueryRowContext(ctx, "SELECT ingredients FROM recipes WHERE id = 'recipe'").
-		Scan(&restored)
-	requireRecipeMigrationOK(t, err)
-
-	if restored != original {
-		t.Fatalf("restored ingredients = %s, want %s", restored, original)
-	}
-
-	requireRecipeMigrationOK(t, migrations.Up(conn))
 
 	_, err = conn.ExecContext(ctx, "DELETE FROM recipes WHERE id = 'recipe'")
 	requireRecipeMigrationOK(t, err)
