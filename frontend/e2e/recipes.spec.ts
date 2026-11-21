@@ -53,7 +53,10 @@ test("saves a recipe and adds selected scaled ingredients to a shopping list on 
   await editAmount.fill("400");
   await editUnit.click();
   await editor.getByRole("option", { name: "g", exact: true }).click();
-  await editor.getByRole("button", { name: "Done" }).click();
+  await expect(
+    page.getByRole("button", { name: "400 g Tomatoes", includeHidden: true }),
+  ).toHaveCount(1);
+  await editor.getByRole("button", { name: "Close", exact: true }).click();
   await expect(editor).toHaveJSProperty("open", false);
   await expect(page.getByRole("button", { name: "400 g Tomatoes" })).toBeVisible();
 
@@ -63,11 +66,11 @@ test("saves a recipe and adds selected scaled ingredients to a shopping list on 
   await expect(ingredientInput).toBeFocused();
   await ingredientInput.fill("Parsley");
   await ingredientInput.press("Enter");
-  const parsley = page.getByRole("button", { name: "Parsley" });
-  await parsley.click();
-  await editor.getByRole("button", { name: "Remove ingredient" }).click();
+  const parsley = page.getByRole("button", { name: "Parsley", exact: true });
+  await page.getByRole("button", { name: "Remove Parsley", exact: true }).click();
   await expect(parsley).toHaveCount(0);
   await expect(editor).toHaveJSProperty("open", false);
+  await expect(ingredientInput).toBeFocused();
 
   await ingredientInput.fill("Basil");
   await page.getByRole("button", { name: "Save recipe" }).click();
@@ -92,12 +95,25 @@ test("saves a recipe and adds selected scaled ingredients to a shopping list on 
   const portionBounds = await portions.boundingBox();
   const actionBounds = await addToList.boundingBox();
   const headerBounds = await recipeHeading.boundingBox();
-  if (!portionBounds || !actionBounds || !headerBounds) {
-    throw new Error("The recipe header and controls must be visible.");
+  const ingredientHeadingBounds = await page
+    .getByRole("heading", { name: "Ingredients" })
+    .boundingBox();
+  const ingredientNameBounds = await basilName.boundingBox();
+  if (
+    !portionBounds ||
+    !actionBounds ||
+    !headerBounds ||
+    !ingredientHeadingBounds ||
+    !ingredientNameBounds
+  ) {
+    throw new Error("The recipe header, controls, and ingredients must be visible.");
   }
-  expect(actionBounds.x).toBeGreaterThan(portionBounds.x + portionBounds.width);
-  expect(actionBounds.y).toBeLessThan(portionBounds.y + portionBounds.height);
-  expect(actionBounds.y + actionBounds.height).toBeGreaterThan(portionBounds.y);
+  expect(actionBounds.y).toBeGreaterThan(portionBounds.y + portionBounds.height);
+  expect(actionBounds.y).toBeLessThan(ingredientHeadingBounds.y + ingredientHeadingBounds.height);
+  expect(actionBounds.y + actionBounds.height).toBeGreaterThan(ingredientHeadingBounds.y);
+  expect(actionBounds.x + actionBounds.width).toBeCloseTo(
+    ingredientNameBounds.x + ingredientNameBounds.width,
+  );
 
   await basilName.scrollIntoViewIfNeeded();
   await expect.poll(async () => (await portions.boundingBox())?.y).toBeLessThan(portionBounds.y);
@@ -113,12 +129,24 @@ test("saves a recipe and adds selected scaled ingredients to a shopping list on 
   await expect(portions).toHaveValue("2");
   await expect(page.getByText("200 g", { exact: true })).toBeVisible();
   await addToList.click();
-  const onions = page.getByRole("checkbox", { name: /Onions/ });
+  const transferDialog = page.getByRole("dialog", { name: "Add to list", exact: true });
+  const transfer = page.locator('wa-dialog[label="Add to list"]');
+  await expect(transferDialog).toBeVisible();
+  const confirmTransfer = transfer.getByRole("button", { name: "Add to list", exact: true });
+  const onions = transfer.getByRole("checkbox", { name: /Onions/ });
   await expect(onions).toBeChecked();
-  await onions.uncheck();
-  const destination = page.getByRole("combobox", { name: "Shopping list" });
+  const onionLabel = transfer.getByText("Onions", { exact: true });
+  await onionLabel.click();
+  await expect(onions).not.toBeChecked();
+  const dialogNameX = (await onionLabel.boundingBox())?.x;
+  expect(dialogNameX).toBeGreaterThan(
+    (await transfer.getByText("1", { exact: true }).boundingBox())?.x ?? Infinity,
+  );
+  expect((await transfer.getByText("Basil", { exact: true }).boundingBox())?.x).toBe(dialogNameX);
+  const destination = transfer.getByRole("combobox", { name: "Shopping list" });
   await expect(destination).toHaveValue("Shopping List");
-  await addToList.click();
+  await confirmTransfer.click();
+  await expect(transferDialog).toBeHidden();
   await expect(page.getByRole("status")).toHaveText("Ingredients added to Shopping List.");
   await page.getByRole("link", { name: "Open shopping list" }).click();
 
@@ -135,17 +163,18 @@ test("saves a recipe and adds selected scaled ingredients to a shopping list on 
   await expect(page.getByText("400 g", { exact: true })).toBeVisible();
   await addToList.click();
   await expect(destination).toHaveValue("");
-  await expect(addToList).toBeDisabled();
+  await expect(confirmTransfer).toBeDisabled();
   await destination.click();
   await page.getByRole("option", { name: "Weekend", exact: true }).click();
   await expect(destination).toHaveValue("Weekend");
-  await expect(addToList).toBeEnabled();
-  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(confirmTransfer).toBeEnabled();
+  await transfer.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(transferDialog).toBeHidden();
   await page.getByRole("button", { name: "Actions for Tomato sauce" }).click();
   await page.getByRole("menuitem", { name: "Edit recipe" }).click();
   await page.getByRole("button", { name: "400 g Tomatoes" }).click();
   await expect(editName).toHaveValue("tomatoes");
-  await editor.getByRole("button", { name: "Cancel" }).click();
+  await editor.getByRole("button", { name: "Close", exact: true }).click();
   await expect(editor).toHaveJSProperty("open", false);
   await page.getByRole("textbox", { name: "Recipe name" }).fill("Sunday tomato sauce");
   await page.getByRole("button", { name: "Save recipe" }).click();

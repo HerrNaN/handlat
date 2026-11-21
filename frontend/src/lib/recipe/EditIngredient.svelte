@@ -1,5 +1,4 @@
 <script lang="ts">
-  import "@awesome.me/webawesome/dist/components/button/button.js";
   import WaInput from "@awesome.me/webawesome/dist/components/input/input.js";
   import "@awesome.me/webawesome/dist/components/option/option.js";
   import WaSelect from "@awesome.me/webawesome/dist/components/select/select.js";
@@ -11,88 +10,74 @@
   type Ingredient = RecipeDraft["ingredients"][number];
   let {
     ingredient,
-    onSave,
-    onRemove,
-    onCancel,
+    onUpdate,
   }: {
     ingredient: Ingredient;
-    onSave: (value: Ingredient) => void;
-    onRemove: () => void;
-    onCancel: () => void;
+    onUpdate: (changes: Partial<Ingredient>) => void;
   } = $props();
 
-  let nameInput = $state<WaInput>();
-  let amountInput = $state<WaInput>();
-  let unitInput = $state<WaSelect>();
-  let error = $state<"invalidIngredientName" | "invalidAmount">();
+  const name = $derived(ingredient.name);
+  const amount = $derived(formatAmount(ingredient.amount, $language) ?? "");
+  const unit = $derived(ingredient.unit ?? "none");
+  let invalidName = $state(false);
+  let invalidAmount = $state(false);
 
-  const submit = (event: SubmitEvent) => {
-    event.preventDefault();
-    const name = nameInput?.value?.trim();
-    if (!name || [...name].length > 200) {
-      error = "invalidIngredientName";
-      nameInput?.focus();
-      return;
+  const changeName = (event: Event) => {
+    const value = (event.currentTarget as WaInput).value?.trim() ?? "";
+    invalidName = !value || [...value].length > 200;
+    if (!invalidName) {
+      onUpdate({ name: value });
     }
+  };
 
-    const enteredAmount = amountInput?.value?.trim();
-    const amount = enteredAmount ? AmountSchema.safeParse(enteredAmount) : undefined;
-    if (amount?.success === false) {
-      error = "invalidAmount";
-      amountInput?.focus();
-      return;
+  const changeAmount = (event: Event) => {
+    const value = (event.currentTarget as WaInput).value?.trim();
+    const parsed = value ? AmountSchema.safeParse(value) : undefined;
+    invalidAmount = parsed?.success === false;
+    if (!invalidAmount) {
+      onUpdate({ amount: parsed?.data });
     }
+  };
 
-    const unit = UnitSchema.safeParse(unitInput?.value);
-    onSave({ name, amount: amount?.data, unit: unit.data });
+  const changeUnit = (event: Event) => {
+    const parsed = UnitSchema.safeParse((event.currentTarget as WaSelect).value);
+    onUpdate({ unit: parsed.data });
   };
 </script>
 
-<form onsubmit={submit}>
+<section>
   <wa-input
-    bind:this={nameInput}
     label={$messages.recipes.ingredientName}
-    value={ingredient.name}
-    oninput={() => (error = undefined)}
+    value={name}
+    oninput={() => (invalidName = false)}
+    onchange={changeName}
     required
   ></wa-input>
+  {#if invalidName}
+    <p role="alert">{$messages.recipes.invalidIngredientName}</p>
+  {/if}
   <div class="quantity">
     <wa-input
-      bind:this={amountInput}
       label={$messages.recipes.amount}
-      value={formatAmount(ingredient.amount, $language) ?? ""}
+      value={amount}
       inputmode="decimal"
-      oninput={() => (error = undefined)}
+      oninput={() => (invalidAmount = false)}
+      onchange={changeAmount}
     ></wa-input>
-    <wa-select
-      bind:this={unitInput}
-      label={$messages.recipes.unit}
-      value={ingredient.unit ?? "none"}
-    >
+    <wa-select label={$messages.recipes.unit} value={unit} onchange={changeUnit}>
       <wa-option value="none">{$messages.recipes.noUnit}</wa-option>
       {#each units as unit (unit)}
         <wa-option value={unit}>{$messages.units[unit]}</wa-option>
       {/each}
     </wa-select>
   </div>
-  {#if error}
-    <p role="alert">
-      {error === "invalidAmount"
-        ? $messages.errors.invalidAmount(maxAmountLength)
-        : $messages.recipes.invalidIngredientName}
-    </p>
+  {#if invalidAmount}
+    <p role="alert">{$messages.errors.invalidAmount(maxAmountLength)}</p>
   {/if}
-  <div class="actions">
-    <wa-button variant="danger" appearance="plain" onclick={onRemove}>
-      {$messages.recipes.removeIngredient}
-    </wa-button>
-    <wa-button onclick={onCancel}>{$messages.common.cancel}</wa-button>
-    <wa-button variant="brand" type="submit">{$messages.common.done}</wa-button>
-  </div>
-</form>
+</section>
 
 <style>
-  form {
+  section {
     display: grid;
     gap: var(--wa-space-m);
   }
@@ -105,16 +90,5 @@
 
   p {
     margin: 0;
-  }
-
-  .actions {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: end;
-    gap: var(--wa-space-s);
-  }
-
-  .actions wa-button:first-child {
-    margin-inline-end: auto;
   }
 </style>

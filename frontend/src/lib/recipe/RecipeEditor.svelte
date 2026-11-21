@@ -113,21 +113,15 @@
       editDialog.open = true;
     }
   };
-  const closeEditor = () => {
-    if (editDialog) {
-      editDialog.open = false;
-    }
-  };
-  const updateIngredient = (ingredient: Ingredient) => {
+  const updateIngredient = (changes: Partial<Ingredient>) => {
     if (editing) {
-      editing.ingredient = ingredient;
+      editing.ingredient = { ...editing.ingredient, ...changes };
     }
-    closeEditor();
   };
-  const removeIngredient = () => {
-    rows = rows.filter(({ key }) => key !== editingKey);
+  const removeIngredient = (ingredientKey: number) => {
+    rows = rows.filter(({ key }) => key !== ingredientKey);
     ingredientError = undefined;
-    closeEditor();
+    ingredientInput?.focus();
   };
 </script>
 
@@ -185,8 +179,18 @@
                 )}
               </span>
               <span>{formatIngredientName(ingredient.name)}</span>
-              <wa-icon name="pen" aria-hidden="true"></wa-icon>
             </button>
+            <wa-button
+              variant="danger"
+              appearance="plain"
+              disabled={save.isPending}
+              onclick={() => removeIngredient(key)}
+            >
+              <wa-icon
+                name="trash-can"
+                label={$messages.recipes.removeIngredient(formatIngredientName(ingredient.name))}
+              ></wa-icon>
+            </wa-button>
           </li>
         {/each}
       </ul>
@@ -215,12 +219,7 @@
 >
   {#if editing}
     {#key editing.key}
-      <EditIngredient
-        ingredient={editing.ingredient}
-        onSave={updateIngredient}
-        onRemove={removeIngredient}
-        onCancel={closeEditor}
-      />
+      <EditIngredient ingredient={editing.ingredient} onUpdate={updateIngredient} />
     {/key}
   {/if}
 </wa-dialog>
@@ -252,18 +251,22 @@
     margin: var(--wa-space-s) 0 0;
   }
 
-  li,
-  li button {
+  li {
     display: grid;
     grid-column: 1 / -1;
     grid-template-columns: subgrid;
+    align-items: center;
+    border-bottom: 1px solid var(--wa-color-surface-border);
   }
 
-  li button {
+  li > button {
+    display: grid;
+    grid-column: 1 / 3;
+    grid-template-columns: subgrid;
     appearance: none;
     border: 0;
-    border-bottom: 1px solid var(--wa-color-surface-border);
     min-block-size: 2.75rem;
+    align-self: stretch;
     align-items: center;
     padding: var(--wa-space-xs) var(--wa-space-2xs);
     background: none;
@@ -274,7 +277,7 @@
     overflow-wrap: anywhere;
   }
 
-  li button:hover {
+  li > button:hover {
     background: var(--wa-color-surface-raised);
   }
 

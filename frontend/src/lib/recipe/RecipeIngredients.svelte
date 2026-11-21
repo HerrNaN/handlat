@@ -1,7 +1,9 @@
 <script lang="ts">
+  import WaDialog from "@awesome.me/webawesome/dist/components/dialog/dialog.js";
   import WaNumberInput from "@awesome.me/webawesome/dist/components/number-input/number-input.js";
   import WaSelect from "@awesome.me/webawesome/dist/components/select/select.js";
   import "@awesome.me/webawesome/dist/components/button/button.js";
+  import "@awesome.me/webawesome/dist/components/checkbox/checkbox.js";
   import "@awesome.me/webawesome/dist/components/icon/icon.js";
   import "@awesome.me/webawesome/dist/components/option/option.js";
   import { createMutation, createQuery } from "@tanstack/svelte-query";
@@ -22,6 +24,7 @@
   let { recipe, account }: { recipe: Recipe; account: string } = $props();
   const base = $derived(recipe.portions);
   let portions = $state(untrack(() => String(base)));
+  let dialog = $state<WaDialog>();
   let reviewing = $state(false);
   let excluded = $state<number[]>([]);
   let destinationID = $state("");
@@ -67,8 +70,10 @@
       queryClient.setQueryData(listKey(account, list.id), list);
       void queryClient.invalidateQueries({ queryKey: summariesKey(account) });
       addedTo = list;
-      reviewing = false;
       attempt = undefined;
+      if (dialog) {
+        dialog.open = false;
+      }
     },
   }));
 
@@ -77,6 +82,9 @@
     excluded = [];
     addedTo = undefined;
     transfer.reset();
+    if (dialog) {
+      dialog.open = true;
+    }
   };
   const toggle = (index: number) => {
     excluded = excluded.includes(index)
@@ -102,124 +110,149 @@
   };
 </script>
 
-<div class="scale-controls">
-  <wa-number-input
-    value={portions}
-    label={$messages.recipes.targetPortions}
-    min={1}
-    max={Number.MAX_SAFE_INTEGER}
-    step={1}
-    inputmode="numeric"
-    aria-invalid={target === undefined}
-    disabled={transfer.isPending}
-    oninput={(event: Event) => {
-      portions = (event.currentTarget as WaNumberInput).value ?? "";
-    }}
-  ></wa-number-input>
-  {#if !reviewing}
-    <wa-button variant="brand" disabled={target === undefined} onclick={review}>
-      <wa-icon name="cart-plus" label={$messages.recipes.addToList}></wa-icon>
-    </wa-button>
-  {/if}
+<wa-number-input
+  value={portions}
+  label={$messages.recipes.targetPortions}
+  min={1}
+  max={Number.MAX_SAFE_INTEGER}
+  step={1}
+  inputmode="numeric"
+  aria-invalid={target === undefined}
+  disabled={transfer.isPending}
+  oninput={(event: Event) => {
+    portions = (event.currentTarget as WaNumberInput).value ?? "";
+  }}
+></wa-number-input>
+
+<div class="ingredient-heading">
+  <h2>{$messages.recipes.ingredients}</h2>
+  <wa-button variant="brand" disabled={target === undefined} onclick={review}>
+    <wa-icon name="cart-plus" label={$messages.recipes.addToList}></wa-icon>
+  </wa-button>
 </div>
 
-<h2>{reviewing ? $messages.recipes.review : $messages.recipes.ingredients}</h2>
-<ul class:reviewing>
-  {#each scaled as item (item.index)}
-    <li>
-      {#if reviewing}
-        <label class="choice">
-          <input
-            type="checkbox"
-            checked={!excluded.includes(item.index)}
-            onchange={() => toggle(item.index)}
-            disabled={transfer.isPending}
-          />
-          {@render ingredient(item)}
-        </label>
-      {:else}
-        <div class="choice">{@render ingredient(item)}</div>
-      {/if}
-    </li>
-  {/each}
-</ul>
-
-{#snippet ingredient(item: (typeof scaled)[number])}
-  <span>{item.label}{item.tooPrecise ? " *" : ""}</span>
-  <span>{formatIngredientName(item.name)}</span>
-{/snippet}
-
-{#if target === undefined}
-  <p role="alert">{$messages.recipes.invalidPortions}</p>
-{/if}
-{#if scaled.some(({ approximate }) => approximate)}
-  <p>{$messages.recipes.rounded}</p>
-{/if}
-{#if scaled.some(({ tooPrecise }) => tooPrecise)}
-  <p>{$messages.recipes.tooPrecise}</p>
-{/if}
-
-{#if reviewing}
-  {#if lists.isPending}
-    <p role="status">{$messages.lists.loading}</p>
-  {:else if lists.isError}
-    <p role="alert">{$messages.errors.loadLists}</p>
-    <wa-button onclick={() => lists.refetch()}>{$messages.common.tryAgain}</wa-button>
-  {:else if lists.data?.length}
-    <wa-select
-      label={$messages.recipes.destination}
-      placeholder={$messages.recipes.chooseList}
-      value={destination?.id ?? ""}
-      disabled={transfer.isPending}
-      onchange={(event: Event) => {
-        const value = (event.currentTarget as WaSelect).value;
-        destinationID = typeof value === "string" ? value : "";
-      }}
-    >
-      {#each lists.data as list (list.id)}
-        <wa-option value={list.id}>{list.name}</wa-option>
-      {/each}
-    </wa-select>
-    {#if destination && destination.memberCount > 1}
-      <p>{$messages.recipes.sharedList}</p>
-    {/if}
-  {:else}
-    <p>{$messages.recipes.noLists}</p>
-    <wa-button href="/lists">{$messages.lists.title}</wa-button>
-  {/if}
-  {#if transfer.isError}
-    <p role="alert">{$messages.recipes.transferFailed}</p>
-  {/if}
-  <div class="actions">
-    <wa-button disabled={transfer.isPending} onclick={() => (reviewing = false)}>
-      {$messages.common.cancel}
-    </wa-button>
-    <wa-button
-      variant="brand"
-      disabled={!canTransfer}
-      loading={transfer.isPending}
-      onclick={submit}
-    >
-      {$messages.recipes.addToList}
-    </wa-button>
-  </div>
-{:else if addedTo}
+{#if addedTo}
   <p role="status">{$messages.recipes.added(addedTo.name)}</p>
   <wa-button href={p("/lists/:id", { params: { id: addedTo.id } })}>
     {$messages.recipes.openList}
   </wa-button>
 {/if}
 
+{@render ingredientList(false)}
+
+{#if target === undefined}
+  <p role="alert">{$messages.recipes.invalidPortions}</p>
+{/if}
+{@render quantityNotes()}
+
+{#snippet ingredientList(selectable: boolean)}
+  <ul class:selectable>
+    {#each scaled as item (item.index)}
+      <li>
+        {#if selectable}
+          <wa-checkbox
+            class="choice"
+            checked={!excluded.includes(item.index)}
+            onchange={() => toggle(item.index)}
+            disabled={transfer.isPending}
+          >
+            {@render ingredient(item)}
+          </wa-checkbox>
+        {:else}
+          <div class="choice">{@render ingredient(item)}</div>
+        {/if}
+      </li>
+    {/each}
+  </ul>
+{/snippet}
+
+{#snippet ingredient(item: (typeof scaled)[number])}
+  <span>{item.label}{item.tooPrecise ? " *" : ""}</span>
+  <span>{formatIngredientName(item.name)}</span>
+{/snippet}
+
+{#snippet quantityNotes()}
+  {#if scaled.some(({ approximate }) => approximate)}
+    <p>{$messages.recipes.rounded}</p>
+  {/if}
+  {#if scaled.some(({ tooPrecise }) => tooPrecise)}
+    <p>{$messages.recipes.tooPrecise}</p>
+  {/if}
+{/snippet}
+
+<wa-dialog
+  bind:this={dialog}
+  label={$messages.recipes.addToList}
+  light-dismiss
+  onwa-hide={(event: Event) => {
+    if (event.target === dialog && transfer.isPending && !addedTo) {
+      event.preventDefault();
+    }
+  }}
+  onwa-after-hide={(event: Event) => {
+    if (event.target === dialog) {
+      reviewing = false;
+    }
+  }}
+>
+  {#if reviewing}
+    {@render ingredientList(true)}
+    {@render quantityNotes()}
+    {#if lists.isPending}
+      <p role="status">{$messages.lists.loading}</p>
+    {:else if lists.isError}
+      <p role="alert">{$messages.errors.loadLists}</p>
+      <wa-button onclick={() => lists.refetch()}>{$messages.common.tryAgain}</wa-button>
+    {:else if lists.data?.length}
+      <wa-select
+        label={$messages.recipes.destination}
+        placeholder={$messages.recipes.chooseList}
+        value={destination?.id ?? ""}
+        disabled={transfer.isPending}
+        onchange={(event: Event) => {
+          const value = (event.currentTarget as WaSelect).value;
+          destinationID = typeof value === "string" ? value : "";
+        }}
+      >
+        {#each lists.data as list (list.id)}
+          <wa-option value={list.id}>{list.name}</wa-option>
+        {/each}
+      </wa-select>
+      {#if destination && destination.memberCount > 1}
+        <p>{$messages.recipes.sharedList}</p>
+      {/if}
+    {:else}
+      <p>{$messages.recipes.noLists}</p>
+      <wa-button href="/lists">{$messages.lists.title}</wa-button>
+    {/if}
+    {#if transfer.isError}
+      <p role="alert">{$messages.recipes.transferFailed}</p>
+    {/if}
+  {/if}
+  <wa-button slot="footer" data-dialog="close" disabled={transfer.isPending}>
+    {$messages.common.cancel}
+  </wa-button>
+  <wa-button
+    slot="footer"
+    variant="brand"
+    disabled={!canTransfer}
+    loading={transfer.isPending}
+    onclick={submit}
+  >
+    {$messages.recipes.addToList}
+  </wa-button>
+</wa-dialog>
+
 <style>
-  .scale-controls {
+  .ingredient-heading {
     display: flex;
-    align-items: end;
+    align-items: center;
+    justify-content: space-between;
     gap: var(--wa-space-s);
   }
 
   wa-number-input {
-    inline-size: 12rem;
-    min-inline-size: 7rem;
+    inline-size: min(12rem, 100%);
   }
 
   wa-select {
@@ -235,7 +268,7 @@
     margin: 0;
   }
 
-  ul.reviewing {
+  ul.selectable {
     grid-template-columns: auto fit-content(45%) minmax(0, 1fr);
   }
 
@@ -248,23 +281,32 @@
 
   .choice {
     align-items: center;
-    min-block-size: 2.75rem;
-    padding-block: var(--wa-space-xs);
     border-bottom: 1px solid var(--wa-color-surface-border);
     overflow-wrap: anywhere;
   }
 
-  input[type="checkbox"] {
-    width: 1.25rem;
-    height: 1.25rem;
-    accent-color: var(--wa-color-brand-fill-loud);
+  div.choice {
+    min-block-size: 2rem;
+    padding-block: var(--wa-space-2xs);
   }
 
-  .actions {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: end;
-    gap: var(--wa-space-s);
-    margin-block-start: var(--wa-space-l);
+  wa-checkbox.choice {
+    min-block-size: 2.75rem;
+    padding-block: var(--wa-space-xs);
+  }
+
+  wa-checkbox::part(checkbox) {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+    align-items: center;
+  }
+
+  wa-checkbox::part(control) {
+    margin-inline-end: 0;
+  }
+
+  wa-checkbox::part(label) {
+    display: contents;
   }
 </style>
