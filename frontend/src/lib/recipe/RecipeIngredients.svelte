@@ -1,7 +1,10 @@
 <script lang="ts">
   import WaNumberInput from "@awesome.me/webawesome/dist/components/number-input/number-input.js";
-  import { createMutation, createQuery } from "@tanstack/svelte-query";
+  import WaSelect from "@awesome.me/webawesome/dist/components/select/select.js";
   import "@awesome.me/webawesome/dist/components/button/button.js";
+  import "@awesome.me/webawesome/dist/components/icon/icon.js";
+  import "@awesome.me/webawesome/dist/components/option/option.js";
+  import { createMutation, createQuery } from "@tanstack/svelte-query";
   import { untrack } from "svelte";
 
   import { p } from "../../router";
@@ -13,6 +16,7 @@
   import { queryClient } from "../query";
   import { session } from "../user/session";
   import type { Recipe } from "./api";
+  import { formatIngredientName } from "./ingredientName";
   import { parsePortions, scaleAmount } from "./scale";
 
   let { recipe, account }: { recipe: Recipe; account: string } = $props();
@@ -44,7 +48,9 @@
   );
   const selected = $derived(scaled.filter(({ index }) => !excluded.includes(index)));
   const lists = createQuery(() => ({ ...summariesQuery(account), enabled: reviewing }));
-  const destination = $derived(lists.data?.find(({ id }) => id === destinationID));
+  const destination = $derived(
+    lists.data?.length === 1 ? lists.data[0] : lists.data?.find(({ id }) => id === destinationID),
+  );
   const canTransfer = $derived(
     Boolean(
       target && destination && selected.length && !selected.some(({ tooPrecise }) => tooPrecise),
@@ -112,7 +118,7 @@
   ></wa-number-input>
   {#if !reviewing}
     <wa-button variant="brand" disabled={target === undefined} onclick={review}>
-      {$messages.recipes.addToList}
+      <wa-icon name="cart-plus" label={$messages.recipes.addToList}></wa-icon>
     </wa-button>
   {/if}
 </div>
@@ -139,7 +145,7 @@
 </ul>
 
 {#snippet ingredient(item: (typeof scaled)[number])}
-  <span class="name">{item.name}</span>
+  <span class="name">{formatIngredientName(item.name)}</span>
   {#if item.label}
     <span>{item.label}{item.tooPrecise ? " *" : ""}</span>
   {/if}
@@ -162,15 +168,20 @@
     <p role="alert">{$messages.errors.loadLists}</p>
     <wa-button onclick={() => lists.refetch()}>{$messages.common.tryAgain}</wa-button>
   {:else if lists.data?.length}
-    <label class="destination">
-      {$messages.recipes.destination}
-      <select bind:value={destinationID} disabled={transfer.isPending}>
-        <option value="">{$messages.recipes.chooseList}</option>
-        {#each lists.data as list (list.id)}
-          <option value={list.id}>{list.name}</option>
-        {/each}
-      </select>
-    </label>
+    <wa-select
+      label={$messages.recipes.destination}
+      placeholder={$messages.recipes.chooseList}
+      value={destination?.id ?? ""}
+      disabled={transfer.isPending}
+      onchange={(event: Event) => {
+        const value = (event.currentTarget as WaSelect).value;
+        destinationID = typeof value === "string" ? value : "";
+      }}
+    >
+      {#each lists.data as list (list.id)}
+        <wa-option value={list.id}>{list.name}</wa-option>
+      {/each}
+    </wa-select>
     {#if destination && destination.memberCount > 1}
       <p>{$messages.recipes.sharedList}</p>
     {/if}
@@ -213,30 +224,8 @@
     min-inline-size: 7rem;
   }
 
-  .scale-controls wa-button {
-    min-inline-size: 0;
-
-    &::part(label) {
-      white-space: normal;
-    }
-  }
-
-  .destination {
-    display: grid;
-    gap: var(--wa-space-2xs);
+  wa-select {
     margin-block-start: var(--wa-space-l);
-  }
-
-  select {
-    box-sizing: border-box;
-    width: 100%;
-    min-block-size: 2.75rem;
-    padding-inline: var(--wa-space-s);
-    border: 1px solid var(--wa-color-surface-border);
-    border-radius: var(--wa-border-radius-m);
-    background: var(--wa-color-surface-default);
-    color: var(--wa-color-text-normal);
-    font: inherit;
   }
 
   ul {

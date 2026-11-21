@@ -21,7 +21,9 @@ export const en = {
     disclosure:
       "Recipes is experimental. The format may change, and you may have to enter some recipes again or remove them. We’ll keep existing recipes where possible.",
     enable: "Enable recipes",
+    emptyTitle: "No recipes yet",
     empty: "Save your first recipe to start your private collection.",
+    create: "Create recipe",
     newRecipe: "New recipe",
     edit: "Edit recipe",
     actionsFor: (name: string) => `Actions for ${name}`,
@@ -40,7 +42,7 @@ export const en = {
     removeIngredient: "Remove ingredient",
     invalidIngredientName: "Enter an ingredient name of up to 200 characters.",
     tooManyIngredients: "A recipe can have up to 100 ingredients.",
-    addToList: "Add to shopping list",
+    addToList: "Add to list",
     review: "Choose ingredients to add",
     destination: "Shopping list",
     chooseList: "Choose a list",

@@ -14,6 +14,7 @@
   import { formatQuantity, parseItemInput } from "../list/quantity";
   import { saveRecipe, type Recipe, type RecipeDraft } from "./api";
   import EditIngredient from "./EditIngredient.svelte";
+  import { formatIngredientName } from "./ingredientName";
   import { parsePortions } from "./scale";
 
   const maxIngredients = 100;
@@ -176,7 +177,7 @@
         {#each rows as { key, ingredient } (key)}
           <li>
             <button type="button" aria-haspopup="dialog" onclick={() => openEditor(key)}>
-              <span class="name">{ingredient.name}</span>
+              <span class="name">{formatIngredientName(ingredient.name)}</span>
               {#if ingredient.amount || ingredient.unit}
                 <span class="quantity">
                   {formatQuantity(

@@ -20,7 +20,9 @@ export const sv: Messages = {
     disclosure:
       "Recept är en experimentell funktion. Formatet kan ändras, och du kan behöva lägga in vissa recept på nytt eller ta bort dem. Vi behåller befintliga recept där det går.",
     enable: "Aktivera recept",
+    emptyTitle: "Inga recept än",
     empty: "Spara ditt första recept för att skapa din privata samling.",
+    create: "Skapa recept",
     newRecipe: "Nytt recept",
     edit: "Redigera recept",
     actionsFor: (name: string) => `Alternativ för ${name}`,
@@ -39,7 +41,7 @@ export const sv: Messages = {
     removeIngredient: "Ta bort ingrediens",
     invalidIngredientName: "Ange ett ingrediensnamn på högst 200 tecken.",
     tooManyIngredients: "Ett recept kan innehålla högst 100 ingredienser.",
-    addToList: "Lägg till i inköpslista",
+    addToList: "Lägg till i lista",
     review: "Välj ingredienser att lägga till",
     destination: "Inköpslista",
     chooseList: "Välj en lista",

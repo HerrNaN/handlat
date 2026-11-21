@@ -26,12 +26,13 @@ test("saves a recipe and adds selected scaled ingredients to a shopping list on 
   await expect(page.getByText(/The format may change/)).toBeVisible();
   await page.getByRole("button", { name: "Enable recipes" }).click();
   await expect(page.getByText(/Save your first recipe/)).toBeVisible();
-  await page.getByRole("link", { name: "New recipe" }).click();
+  await expect(page.getByRole("link", { name: "New recipe" })).toBeVisible();
+  await page.getByRole("link", { name: "Create recipe" }).click();
   await page.getByRole("textbox", { name: "Recipe name" }).fill("Tomato sauce");
   await page.getByRole("spinbutton", { name: "Yield" }).fill("4");
 
   const ingredientInput = page.getByRole("textbox", { name: "Ingredient", exact: true });
-  await ingredientInput.fill("450ml Chopped tomatoes");
+  await ingredientInput.fill("450ml chopped tomatoes");
   const inputY = (await ingredientInput.boundingBox())?.y;
   await ingredientInput.press("Enter");
   await expect(ingredientInput).toHaveValue("");
@@ -45,10 +46,10 @@ test("saves a recipe and adds selected scaled ingredients to a shopping list on 
   const editName = editor.getByRole("textbox", { name: "Ingredient name" });
   const editAmount = editor.getByRole("textbox", { name: "Amount" });
   const editUnit = editor.getByRole("combobox", { name: "Unit" });
-  await expect(editName).toHaveValue("Chopped tomatoes");
+  await expect(editName).toHaveValue("chopped tomatoes");
   await expect(editAmount).toHaveValue("450");
   await expect(editUnit).toHaveValue("ml");
-  await editName.fill("Tomatoes");
+  await editName.fill("tomatoes");
   await editAmount.fill("400");
   await editUnit.click();
   await editor.getByRole("option", { name: "g", exact: true }).click();
@@ -73,9 +74,10 @@ test("saves a recipe and adds selected scaled ingredients to a shopping list on 
 
   const recipeHeading = page.getByRole("heading", { name: "Tomato sauce" });
   await expect(recipeHeading).toBeVisible();
+  await expect(page.getByText("Tomatoes", { exact: true })).toBeVisible();
   await expect(page.getByText("400 g", { exact: true })).toBeVisible();
   const portions = page.getByRole("spinbutton", { name: "Portions", exact: true });
-  const addToList = page.getByRole("button", { name: "Add to shopping list", exact: true });
+  const addToList = page.getByRole("button", { name: "Add to list", exact: true });
   await expect(portions).toHaveValue("4");
 
   await page.setViewportSize({ width: 320, height: 300 });
@@ -107,9 +109,8 @@ test("saves a recipe and adds selected scaled ingredients to a shopping list on 
   const onions = page.getByRole("checkbox", { name: /Onions/ });
   await expect(onions).toBeChecked();
   await onions.uncheck();
-  await page
-    .getByRole("combobox", { name: "Shopping list" })
-    .selectOption({ label: "Shopping List" });
+  const destination = page.getByRole("combobox", { name: "Shopping list" });
+  await expect(destination).toHaveValue("Shopping List");
   await addToList.click();
   await expect(page.getByRole("status")).toHaveText("Ingredients added to Shopping List.");
   await page.getByRole("link", { name: "Open shopping list" }).click();
@@ -119,12 +120,26 @@ test("saves a recipe and adds selected scaled ingredients to a shopping list on 
   await expect(page.getByRole("checkbox", { name: "Basil" })).toBeVisible();
   await expect(page.getByRole("checkbox", { name: /Onions/ })).toHaveCount(0);
 
+  const secondList = await page.request.post("/api/lists", { data: { name: "Weekend" } });
+  await expect(secondList).toBeOK();
   await page.getByRole("button", { name: "Recipes", exact: true }).click();
   await page.getByRole("link", { name: "Tomato sauce" }).click();
   await expect(portions).toHaveValue("4");
   await expect(page.getByText("400 g", { exact: true })).toBeVisible();
+  await addToList.click();
+  await expect(destination).toHaveValue("");
+  await expect(addToList).toBeDisabled();
+  await destination.click();
+  await page.getByRole("option", { name: "Weekend", exact: true }).click();
+  await expect(destination).toHaveValue("Weekend");
+  await expect(addToList).toBeEnabled();
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
   await page.getByRole("button", { name: "Actions for Tomato sauce" }).click();
   await page.getByRole("menuitem", { name: "Edit recipe" }).click();
+  await page.getByRole("button", { name: "Tomatoes 400 g" }).click();
+  await expect(editName).toHaveValue("tomatoes");
+  await editor.getByRole("button", { name: "Cancel" }).click();
+  await expect(editor).toHaveJSProperty("open", false);
   await page.getByRole("textbox", { name: "Recipe name" }).fill("Sunday tomato sauce");
   await page.getByRole("button", { name: "Save recipe" }).click();
   await expect(page.getByRole("heading", { name: "Sunday tomato sauce" })).toBeVisible();
