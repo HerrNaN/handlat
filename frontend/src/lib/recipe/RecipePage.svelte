@@ -9,7 +9,7 @@
   import { messages } from "../i18n";
   import { queryClient } from "../query";
   import { session } from "../user/session";
-  import { getRecipe, getRecipes, recipeKey, recipesKey, type Recipe } from "./api";
+  import { getRecipe, recipeCollectionQuery, recipeKey, recipesKey, type Recipe } from "./api";
   import RecipeActions from "./RecipeActions.svelte";
   import RecipeEditor from "./RecipeEditor.svelte";
   import RecipeIngredients from "./RecipeIngredients.svelte";
@@ -17,8 +17,7 @@
   let { id, account }: { id: string; account: string } = $props();
   const isNew = $derived(id === "new");
   const collection = createQuery(() => ({
-    queryKey: recipesKey(account),
-    queryFn: ({ signal }) => getRecipes(signal),
+    ...recipeCollectionQuery(account),
     enabled: isNew,
   }));
   const detail = createQuery(() => ({
@@ -83,9 +82,6 @@
           {:else if collection.isError}
             <p role="alert">{$messages.recipes.loadFailed}</p>
             <wa-button onclick={() => collection.refetch()}>{$messages.common.tryAgain}</wa-button>
-          {:else}
-            <p>{$messages.recipes.disclosure}</p>
-            <wa-button href="/recipes">{$messages.nav.recipes}</wa-button>
           {/if}
         {:else if detail.isPending}
           <p role="status">{$messages.recipes.loading}</p>
@@ -104,7 +100,7 @@
 
 <style>
   article {
-    --ingredient-row-height: 2rem;
+    --ingredient-row-height: 2.5rem;
 
     height: 100%;
     display: flex;

@@ -9,11 +9,13 @@
   import "@awesome.me/webawesome/dist/components/tab-panel/tab-panel.js";
   import "@awesome.me/webawesome/dist/components/tab/tab.js";
   import "@awesome.me/webawesome/dist/components/button/button.js";
+  import "@awesome.me/webawesome/dist/components/tooltip/tooltip.js";
 
   import { session } from "./lib/user/session";
   import { navigate, route } from "./router";
 
   let { children }: { children?: Snippet } = $props();
+  const recipesEnabled = $derived($session?.recipesEnabled === true);
 
   $effect(() => {
     if (
@@ -35,10 +37,19 @@
 
   <nav>
     <ul>
-      <li class:active={route.pathname.startsWith("/recipes")}>
-        <wa-button onclick={() => navigate("/recipes")} appearance="plain" disabled={!$session}>
-          <wa-icon name="kitchen-set" label={$messages.nav.recipes}></wa-icon>
-        </wa-button>
+      <li class:active={recipesEnabled && route.pathname.startsWith("/recipes")}>
+        {#if recipesEnabled}
+          <wa-button onclick={() => navigate("/recipes")} appearance="plain">
+            <wa-icon name="kitchen-set" label={$messages.nav.recipes}></wa-icon>
+          </wa-button>
+        {:else}
+          <span id="recipes-nav">
+            <wa-button appearance="plain" disabled>
+              <wa-icon name="kitchen-set" label={$messages.nav.recipes}></wa-icon>
+            </wa-button>
+          </span>
+          <wa-tooltip for="recipes-nav" trigger="click">{$messages.nav.recipes}</wa-tooltip>
+        {/if}
       </li>
       <li class:active={route.pathname.startsWith("/lists")}>
         <wa-button
@@ -84,6 +95,16 @@
 
   nav {
     height: 4rem;
+
+    #recipes-nav {
+      display: inline-flex;
+      width: 100%;
+      height: 100%;
+
+      wa-button {
+        pointer-events: none;
+      }
+    }
 
     wa-button {
       width: 100%;

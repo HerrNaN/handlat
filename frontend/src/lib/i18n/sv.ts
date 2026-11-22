@@ -15,11 +15,15 @@ export const sv: Messages = {
     user: "Profil",
   },
   recipes: {
+    description:
+      "Spara dina recept, ändra antalet portioner och lägg till ingredienser i en inköpslista.",
     collection: "Mina recept",
-    experimental: "Prova Recept",
     disclosure:
       "Recept är en experimentell funktion. Formatet kan ändras, och du kan behöva lägga in vissa recept på nytt eller ta bort dem. Vi behåller befintliga recept där det går.",
-    enable: "Aktivera recept",
+    acknowledge: "Jag förstår",
+    enable: "Aktivera",
+    enableTitle: "Aktivera recept",
+    enabled: "Aktiverat",
     emptyTitle: "Inga recept än",
     empty: "Spara ditt första recept för att skapa din privata samling.",
     create: "Skapa recept",
@@ -72,6 +76,7 @@ export const sv: Messages = {
     signedOut: "Du är inte inloggad.",
     loginOrCreate: "Logga in eller skapa konto",
     appearance: "Utseende",
+    previewFeatures: "Experimentella funktioner",
     theme: "Tema",
     light: "Ljust",
     dark: "Mörkt",

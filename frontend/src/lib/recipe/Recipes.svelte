@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { createMutation, createQuery } from "@tanstack/svelte-query";
+  import { createQuery } from "@tanstack/svelte-query";
   import "@awesome.me/webawesome/dist/components/button/button.js";
   import "@awesome.me/webawesome/dist/components/callout/callout.js";
   import "@awesome.me/webawesome/dist/components/icon/icon.js";
@@ -9,25 +9,12 @@
   import { messages } from "../i18n";
   import EmptyState from "../list/EmptyState.svelte";
   import ListSkeleton from "../list/ListSkeleton.svelte";
-  import { queryClient } from "../query";
   import { session } from "../user/session";
-  import { enableRecipes, getRecipes, recipesKey } from "./api";
+  import { recipeCollectionQuery } from "./api";
   import RecipeActions from "./RecipeActions.svelte";
 
   const newRecipeURL = p("/recipes/:recipeId", { params: { recipeId: "new" } });
-  const collection = createQuery(() => ({
-    queryKey: recipesKey($session?.id),
-    queryFn: ({ signal }) => getRecipes(signal),
-    enabled: Boolean($session),
-  }));
-  const optIn = createMutation(() => ({
-    mutationFn: async (account: string) => {
-      await enableRecipes();
-      if (account === $session?.id) {
-        await queryClient.invalidateQueries({ queryKey: recipesKey(account) });
-      }
-    },
-  }));
+  const collection = createQuery(() => recipeCollectionQuery($session?.id));
 </script>
 
 <article>
@@ -54,22 +41,7 @@
         </wa-callout>
         <wa-button onclick={() => collection.refetch()}>{$messages.common.tryAgain}</wa-button>
       </aside>
-    {:else if !collection.data.enabled}
-      <section>
-        <h2>{$messages.recipes.experimental}</h2>
-        <p>{$messages.recipes.disclosure}</p>
-        <wa-button
-          variant="brand"
-          loading={optIn.isPending}
-          onclick={() => $session && optIn.mutate($session.id)}
-        >
-          {$messages.recipes.enable}
-        </wa-button>
-        {#if optIn.isError}
-          <p role="alert">{$messages.recipes.enableFailed}</p>
-        {/if}
-      </section>
-    {:else if collection.data.recipes.length === 0}
+    {:else if collection.data.enabled && collection.data.recipes.length === 0}
       <EmptyState
         icon="kitchen-set"
         heading={$messages.recipes.emptyTitle}
@@ -80,7 +52,7 @@
           {$messages.recipes.create}
         </wa-button>
       </EmptyState>
-    {:else}
+    {:else if collection.data.enabled}
       <ul>
         {#each collection.data.recipes as recipe (recipe.id)}
           <li>
@@ -122,12 +94,6 @@
     display: flex;
     flex-direction: column;
     overflow-y: auto;
-  }
-
-  section {
-    max-inline-size: 40rem;
-    margin-inline: auto;
-    padding: var(--wa-space-l);
   }
 
   aside {

@@ -1,6 +1,7 @@
 import { createRouter, Navigation } from "sv-router";
+import { get } from "svelte/store";
 
-import { hasActiveSession } from "./lib/user/session";
+import { hasActiveSession, session } from "./lib/user/session";
 
 // Use sv-router's supported code splitting to load pages without eager
 // component/router import cycles.
@@ -31,6 +32,11 @@ export const { p, navigate, isActive, route } = createRouter({
       }
 
       if (isAuthPage && isLoggedIn) {
+        throw await navigate("/user", { replace: true });
+      }
+
+      const isRecipePage = pathname === "/recipes" || pathname.startsWith("/recipes/");
+      if (isRecipePage && !get(session)?.recipesEnabled) {
         throw await navigate("/user", { replace: true });
       }
     },

@@ -126,8 +126,9 @@
 
 <div class="ingredient-heading">
   <h2>{$messages.recipes.ingredients}</h2>
-  <wa-button variant="brand" disabled={target === undefined} onclick={review}>
-    <wa-icon name="cart-plus" label={$messages.recipes.addToList}></wa-icon>
+  <wa-button variant="brand" size="s" disabled={target === undefined} onclick={review}>
+    <wa-icon slot="start" name="cart-plus" aria-hidden="true"></wa-icon>
+    {$messages.recipes.addToList}
   </wa-button>
 </div>
 
@@ -251,9 +252,19 @@
 <style>
   .ingredient-heading {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between;
-    gap: var(--wa-space-s);
+    gap: var(--wa-space-xs);
+    margin-block: var(--wa-space-m) var(--wa-space-s);
+  }
+
+  .ingredient-heading h2 {
+    margin: 0;
+    font-size: var(--wa-font-size-l);
+  }
+
+  .ingredient-heading wa-button {
+    margin-inline-start: auto;
   }
 
   wa-number-input {

@@ -40,6 +40,11 @@ export const recipeKey = (account: string | undefined, id: string) =>
 
 export const getRecipes = async (signal?: AbortSignal) =>
   indexSchema.parse(await request(url, { signal }));
+export const recipeCollectionQuery = (account?: string) => ({
+  queryKey: recipesKey(account),
+  queryFn: ({ signal }: { signal: AbortSignal }) => getRecipes(signal),
+  enabled: Boolean(account),
+});
 export const getRecipe = async (id: string, signal?: AbortSignal) =>
   recipeSchema.parse(await request(recipeURL(id), { signal }));
 export const enableRecipes = () => request(`${url}/enable`, { method: "POST" });

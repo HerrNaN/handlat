@@ -23,6 +23,43 @@ test("saves a recipe and adds selected scaled ingredients to a shopping list on 
   await page.goto("/recipes");
   await page.getByRole("button", { name: "Create Account" }).click();
   await expect(page).toHaveURL(/\/user$/);
+  await page.goto("/recipes");
+  await expect(page).toHaveURL(/\/user$/);
+  const recipesNav = page.getByRole("button", { name: "Recipes", exact: true });
+  const preview = page.getByRole("region", { name: "Preview features" });
+  const openOptIn = preview.getByRole("button", { name: "Enable", exact: true });
+  const optIn = page.locator('wa-dialog[label="Enable recipes"]');
+  const optInDialog = page.getByRole("dialog", { name: "Enable recipes" });
+  const acknowledge = optIn.getByRole("checkbox", { name: "I understand" });
+  const enableRecipes = optIn.getByRole("button", { name: "Enable", exact: true });
+  await expect(recipesNav).toBeDisabled();
+  await page.locator("#recipes-nav").click();
+  await expect(page.getByRole("navigation").locator("wa-tooltip")).toHaveJSProperty("open", true);
+  await expect(preview.getByText(/Save your recipes/)).toBeVisible();
+  await openOptIn.click();
+  await expect(optInDialog).toBeVisible();
+  await expect(optIn.locator('wa-callout[variant="warning"]')).toContainText(
+    "The format may change",
+  );
+  await expect(acknowledge).not.toBeChecked();
+  await expect(enableRecipes).toBeDisabled();
+  await optIn.getByText("I understand", { exact: true }).click();
+  await optIn.getByRole("button", { name: "Close", exact: true }).click();
+  await expect(optInDialog).toBeHidden();
+  await openOptIn.click();
+  await expect(acknowledge).not.toBeChecked();
+  await expect(enableRecipes).toBeDisabled();
+  await optIn.getByText("I understand", { exact: true }).click();
+  await expect(acknowledge).toBeChecked();
+  await expect(enableRecipes).toBeEnabled();
+  await enableRecipes.click();
+  await expect(optInDialog).toBeHidden();
+  await expect(recipesNav).toBeEnabled();
+  await page.reload();
+  const enabledStatus = preview.getByRole("status");
+  await expect(enabledStatus).toHaveText("Enabled");
+  await expect(enabledStatus.locator("wa-icon")).toBeVisible();
+  await expect(recipesNav).toBeEnabled();
 
   await page.goto("/lists");
   await page.getByRole("button", { name: "New list", exact: true }).click();
@@ -34,9 +71,7 @@ test("saves a recipe and adds selected scaled ingredients to a shopping list on 
   await itemInput.press("Escape");
   await expect(page.getByText("100 g", { exact: true })).toBeVisible();
 
-  await page.getByRole("button", { name: "Recipes", exact: true }).click();
-  await expect(page.getByText(/The format may change/)).toBeVisible();
-  await page.getByRole("button", { name: "Enable recipes" }).click();
+  await recipesNav.click();
   await expect(page.getByText(/Save your first recipe/)).toBeVisible();
   await expect(page.getByRole("link", { name: "New recipe" })).toBeVisible();
   await page.getByRole("link", { name: "Create recipe" }).click();

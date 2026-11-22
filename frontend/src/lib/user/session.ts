@@ -5,12 +5,22 @@ import { queryClient } from "../query";
 export type Account = {
   id: string;
   name: string;
+  recipesEnabled?: boolean;
 };
 
 /** `undefined` until the first check settles, then the account or `null`. */
 const current = writable<Account | null | undefined>(undefined);
 
 export const session = { subscribe: current.subscribe };
+
+export const markRecipesEnabled = (id: string) => {
+  const account = get(current);
+  if (account?.id === id) {
+    const updated = { ...account, recipesEnabled: true };
+    queryClient.setQueryData(["session"], updated);
+    current.set(updated);
+  }
+};
 
 export const clearSession = () => {
   queryClient.clear();

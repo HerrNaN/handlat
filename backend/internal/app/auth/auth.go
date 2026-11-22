@@ -250,7 +250,7 @@ func (h *Handler) finishRegistration(w http.ResponseWriter, r *http.Request) {
 
 	h.cookie(w, registrationCookie, "", "/api/auth/register", -time.Second)
 	h.cookie(w, sessionCookie, sessionToken, "/", sessionTTL)
-	h.writeAccount(w, http.StatusCreated, u.id, u.name)
+	h.writeAccount(w, http.StatusCreated, u.id, u.name, false)
 }
 
 func (h *Handler) beginLogin(w http.ResponseWriter, r *http.Request) {
@@ -395,7 +395,7 @@ func (h *Handler) finishLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.cookie(w, sessionCookie, sessionToken, "/", sessionTTL)
-	h.writeAccount(w, http.StatusOK, u.WebAuthnID(), u.WebAuthnName())
+	h.writeAccount(w, http.StatusOK, u.WebAuthnID(), u.WebAuthnName(), false)
 }
 
 func (h *Handler) logout(w http.ResponseWriter, r *http.Request) {
@@ -423,7 +423,7 @@ func (h *Handler) me(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.writeAccount(w, http.StatusOK, account.ID, account.Name)
+	h.writeAccount(w, http.StatusOK, account.ID, account.Name, account.RecipesEnabled == 1)
 }
 
 func (h *Handler) rollback(tx *sql.Tx) {
@@ -432,11 +432,22 @@ func (h *Handler) rollback(tx *sql.Tx) {
 	}
 }
 
-func (h *Handler) writeAccount(w http.ResponseWriter, status int, id []byte, name string) {
+func (h *Handler) writeAccount(
+	w http.ResponseWriter,
+	status int,
+	id []byte,
+	name string,
+	recipesEnabled bool,
+) {
 	// User IDs are binary. Base64 makes them JSON strings; this is not URL escaping.
-	h.writeJSON(w, status, map[string]string{
-		"id":   base64.RawURLEncoding.EncodeToString(id),
-		"name": name,
+	h.writeJSON(w, status, struct {
+		ID             string `json:"id"`
+		Name           string `json:"name"`
+		RecipesEnabled bool   `json:"recipesEnabled,omitempty"`
+	}{
+		ID:             base64.RawURLEncoding.EncodeToString(id),
+		Name:           name,
+		RecipesEnabled: recipesEnabled,
 	}, "write account response")
 }
 
