@@ -15,6 +15,7 @@
   import "@awesome.me/webawesome/dist/components/button/button.js";
   import "@awesome.me/webawesome/dist/components/callout/callout.js";
   import "@awesome.me/webawesome/dist/components/icon/icon.js";
+  import "@awesome.me/webawesome/dist/components/tag/tag.js";
   import "@awesome.me/webawesome/dist/components/tooltip/tooltip.js";
   import "@awesome.me/webawesome/dist/components/radio-group/radio-group.js";
   import "@awesome.me/webawesome/dist/components/radio/radio.js";
@@ -118,21 +119,23 @@
     {#if $session}
       <section aria-labelledby="preview-heading">
         <h2 id="preview-heading">{$messages.profile.previewFeatures}</h2>
-        <div class="preview-feature-heading">
-          <h3>{$messages.nav.recipes}</h3>
-          {#if $session.recipesEnabled}
-            <p class="preview-status" role="status">
-              <wa-icon name="check" library="system" aria-hidden="true"></wa-icon>
-              {$messages.recipes.enabled}
-            </p>
-          {:else}
-            <wa-button variant="warning" appearance="plain" onclick={openPreview}>
-              <wa-icon slot="start" name="flask" aria-hidden="true"></wa-icon>
-              {$messages.recipes.enable}
-            </wa-button>
-          {/if}
+        <div class="preview-feature">
+          <div class="preview-feature-heading">
+            <h3>{$messages.nav.recipes}</h3>
+            {#if $session.recipesEnabled}
+              <wa-tag variant="success" appearance="filled" size="s" role="status">
+                <wa-icon name="check" library="system" aria-hidden="true"></wa-icon>
+                {$messages.recipes.enabled}
+              </wa-tag>
+            {:else}
+              <wa-button variant="warning" appearance="filled-outlined" onclick={openPreview}>
+                <wa-icon slot="start" name="flask" aria-hidden="true"></wa-icon>
+                {$messages.recipes.enable}
+              </wa-button>
+            {/if}
+          </div>
+          <p>{$messages.recipes.description}</p>
         </div>
-        <p>{$messages.recipes.description}</p>
       </section>
       <wa-dialog
         bind:this={previewDialog}
@@ -215,26 +218,37 @@
     max-width: 24rem;
   }
 
+  .preview-feature {
+    border: 1px solid var(--wa-color-surface-border);
+    border-radius: var(--wa-border-radius-m);
+    padding: var(--wa-space-m);
+    padding-block-end: var(--wa-space-l);
+  }
+
   .preview-feature-heading {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: var(--wa-space-s);
-    margin-bottom: var(--wa-space-2xs);
+    margin-block-end: var(--wa-space-xs);
+  }
+
+  .preview-feature-heading > :is(wa-button, wa-tag) {
+    margin-inline-start: auto;
   }
 
   h3 {
     margin: 0;
   }
 
-  .preview-status {
+  wa-tag::part(content) {
     display: inline-flex;
     align-items: center;
-    gap: var(--wa-space-xs);
+    gap: var(--wa-space-2xs);
   }
 
-  .preview-status wa-icon {
-    color: var(--wa-color-success-on-quiet);
+  wa-tag wa-icon {
+    translate: 0 -0.1em;
   }
 
   .preview-opt-in {
