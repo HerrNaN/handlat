@@ -117,8 +117,8 @@
       </wa-radio-group>
     </section>
     {#if $session}
-      <section aria-labelledby="preview-heading">
-        <h2 id="preview-heading">{$messages.profile.previewFeatures}</h2>
+      <section aria-labelledby="experimental-features-heading">
+        <h2 id="experimental-features-heading">{$messages.profile.experimentalFeatures}</h2>
         <div class="preview-feature">
           <div class="preview-feature-heading">
             <h3>{$messages.nav.recipes}</h3>

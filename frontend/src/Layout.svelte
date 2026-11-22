@@ -9,7 +9,7 @@
   import "@awesome.me/webawesome/dist/components/tab-panel/tab-panel.js";
   import "@awesome.me/webawesome/dist/components/tab/tab.js";
   import "@awesome.me/webawesome/dist/components/button/button.js";
-  import "@awesome.me/webawesome/dist/components/tooltip/tooltip.js";
+  import "@awesome.me/webawesome/dist/components/popover/popover.js";
 
   import { session } from "./lib/user/session";
   import { navigate, route } from "./router";
@@ -43,12 +43,16 @@
             <wa-icon name="kitchen-set" label={$messages.nav.recipes}></wa-icon>
           </wa-button>
         {:else}
-          <span id="recipes-nav">
-            <wa-button appearance="plain" disabled>
-              <wa-icon name="kitchen-set" label={$messages.nav.recipes}></wa-icon>
-            </wa-button>
-          </span>
-          <wa-tooltip for="recipes-nav" trigger="click">{$messages.nav.recipes}</wa-tooltip>
+          <wa-button id="recipes-nav" appearance="plain">
+            <wa-icon name="kitchen-set" label={$messages.nav.recipesInfo}></wa-icon>
+          </wa-button>
+          <wa-popover for="recipes-nav" placement="top-start">
+            <strong>
+              <wa-icon name="flask" aria-hidden="true"></wa-icon>
+              {$messages.nav.recipesExperimental}
+            </strong>
+            <span>{$messages.nav.recipesEnableInProfile}</span>
+          </wa-popover>
         {/if}
       </li>
       <li class:active={route.pathname.startsWith("/lists")}>
@@ -96,13 +100,19 @@
   nav {
     height: 4rem;
 
-    #recipes-nav {
-      display: inline-flex;
-      width: 100%;
-      height: 100%;
+    #recipes-nav wa-icon {
+      opacity: 0.5;
+    }
 
-      wa-button {
-        pointer-events: none;
+    wa-popover {
+      &::part(body) {
+        padding: var(--wa-space-s) var(--wa-space-m);
+      }
+
+      strong {
+        display: flex;
+        align-items: center;
+        gap: var(--wa-space-xs);
       }
     }
 

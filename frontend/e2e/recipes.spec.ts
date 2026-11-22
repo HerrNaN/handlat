@@ -26,16 +26,17 @@ test("saves a recipe and adds selected scaled ingredients to a shopping list on 
   await page.goto("/recipes");
   await expect(page).toHaveURL(/\/user$/);
   const recipesNav = page.getByRole("button", { name: "Recipes", exact: true });
-  const preview = page.getByRole("region", { name: "Preview features" });
-  const openOptIn = preview.getByRole("button", { name: "Enable", exact: true });
+  const experimentalFeatures = page.getByRole("region", { name: "Experimental features" });
+  const openOptIn = experimentalFeatures.getByRole("button", { name: "Enable", exact: true });
   const optIn = page.locator('wa-dialog[label="Enable recipes"]');
   const optInDialog = page.getByRole("dialog", { name: "Enable recipes" });
   const acknowledge = optIn.getByRole("checkbox", { name: "I understand" });
   const enableRecipes = optIn.getByRole("button", { name: "Enable", exact: true });
-  await expect(recipesNav).toBeDisabled();
-  await page.locator("#recipes-nav").click();
-  await expect(page.getByRole("navigation").locator("wa-tooltip")).toHaveJSProperty("open", true);
-  await expect(preview.getByText(/Save your recipes/)).toBeVisible();
+  const nav = page.getByRole("navigation");
+  await expect(recipesNav).toHaveCount(0);
+  await nav.getByRole("button", { name: "About Recipes" }).tap();
+  await expect(nav.getByText("Enable in profile", { exact: true })).toBeVisible();
+  await expect(experimentalFeatures.getByText(/Save your recipes/)).toBeVisible();
   await openOptIn.click();
   await expect(optInDialog).toBeVisible();
   await expect(optIn.locator('wa-callout[variant="warning"]')).toContainText(
@@ -56,7 +57,7 @@ test("saves a recipe and adds selected scaled ingredients to a shopping list on 
   await expect(optInDialog).toBeHidden();
   await expect(recipesNav).toBeEnabled();
   await page.reload();
-  const enabledStatus = preview.getByRole("status");
+  const enabledStatus = experimentalFeatures.getByRole("status");
   await expect(enabledStatus).toHaveText("Enabled");
   await expect(enabledStatus.locator("wa-icon")).toBeVisible();
   await expect(recipesNav).toBeEnabled();

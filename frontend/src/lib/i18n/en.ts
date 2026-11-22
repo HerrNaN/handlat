@@ -13,6 +13,9 @@ export const en = {
   },
   nav: {
     recipes: "Recipes",
+    recipesInfo: "About Recipes",
+    recipesExperimental: "Experimental",
+    recipesEnableInProfile: "Enable in profile",
     user: "User",
   },
   recipes: {
@@ -76,7 +79,7 @@ export const en = {
     signedOut: "You are not logged in.",
     loginOrCreate: "Login or Create Account",
     appearance: "Appearance",
-    previewFeatures: "Preview features",
+    experimentalFeatures: "Experimental features",
     theme: "Theme",
     light: "Light",
     dark: "Dark",

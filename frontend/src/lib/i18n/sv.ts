@@ -12,6 +12,9 @@ export const sv: Messages = {
   },
   nav: {
     recipes: "Recept",
+    recipesInfo: "Om recept",
+    recipesExperimental: "Experimentellt",
+    recipesEnableInProfile: "Aktivera i profilen",
     user: "Profil",
   },
   recipes: {
@@ -76,7 +79,7 @@ export const sv: Messages = {
     signedOut: "Du är inte inloggad.",
     loginOrCreate: "Logga in eller skapa konto",
     appearance: "Utseende",
-    previewFeatures: "Experimentella funktioner",
+    experimentalFeatures: "Experimentella funktioner",
     theme: "Tema",
     light: "Ljust",
     dark: "Mörkt",
