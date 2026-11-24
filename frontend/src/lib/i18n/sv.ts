@@ -48,7 +48,7 @@ export const sv: Messages = {
     removeIngredient: (name: string) => `Ta bort ${name}`,
     invalidIngredientName: "Ange ett ingrediensnamn på högst 200 tecken.",
     tooManyIngredients: "Ett recept kan innehålla högst 100 ingredienser.",
-    addToList: "Lägg till i lista",
+    addToList: "Lägg till i inköpslista",
     destination: "Inköpslista",
     chooseList: "Välj en lista",
     noLists: "Skapa en inköpslista för att lägga till ingredienserna.",

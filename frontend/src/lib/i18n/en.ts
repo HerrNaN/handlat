@@ -48,7 +48,7 @@ export const en = {
     removeIngredient: (name: string) => `Remove ${name}`,
     invalidIngredientName: "Enter an ingredient name of up to 200 characters.",
     tooManyIngredients: "A recipe can have up to 100 ingredients.",
-    addToList: "Add to list",
+    addToList: "Add to shopping list",
     destination: "Shopping list",
     chooseList: "Choose a list",
     noLists: "Create a shopping list to add these ingredients.",

@@ -183,7 +183,7 @@ test.describe("with Recipes enabled", () => {
     expect(nameX).toBeGreaterThan((await tomatoQuantity.boundingBox())?.x ?? Infinity);
     expect((await basilName.boundingBox())?.x).toBe(nameX);
     const portions = page.getByRole("spinbutton", { name: "Portions", exact: true });
-    const addToList = page.getByRole("button", { name: "Add to list", exact: true });
+    const addToList = page.getByRole("button", { name: "Add to shopping list", exact: true });
     await expect(portions).toHaveValue("4");
 
     await page.setViewportSize({ width: 320, height: 300 });
@@ -235,7 +235,7 @@ test.describe("with Recipes enabled", () => {
 
     await openSavedRecipe(page);
     const portions = page.getByRole("spinbutton", { name: "Portions", exact: true });
-    const addToList = page.getByRole("button", { name: "Add to list", exact: true });
+    const addToList = page.getByRole("button", { name: "Add to shopping list", exact: true });
     await portions.fill("0");
     await expect(page.getByRole("alert")).toHaveText("Enter a positive whole number of portions.");
     await expect(addToList).toBeDisabled();
@@ -246,11 +246,11 @@ test.describe("with Recipes enabled", () => {
     await expect(page.getByText("200 g", { exact: true })).toBeVisible();
     await addToList.click();
 
-    const transferDialog = page.getByRole("dialog", { name: "Add to list", exact: true });
-    const transfer = page.locator('wa-dialog[label="Add to list"]');
+    const transferDialog = page.getByRole("dialog", { name: "Add to shopping list", exact: true });
+    const transfer = page.locator('wa-dialog[label="Add to shopping list"]');
     const transferFooter = transfer.locator('[slot="footer"]');
     const confirmTransfer = transferFooter.getByRole("button", {
-      name: "Add to list",
+      name: "Add to shopping list",
       exact: true,
     });
     const onions = transfer.getByRole("checkbox", { name: /Onions/ });
@@ -283,14 +283,14 @@ test.describe("with Recipes enabled", () => {
     expect(await postFixture(page, "/api/lists", { name: "Shopping List" })).toBe(201);
     await openSavedRecipe(page);
     await page.getByRole("spinbutton", { name: "Portions", exact: true }).fill("2");
-    await page.getByRole("button", { name: "Add to list", exact: true }).click();
+    await page.getByRole("button", { name: "Add to shopping list", exact: true }).click();
 
-    const transferDialog = page.getByRole("dialog", { name: "Add to list", exact: true });
-    const transfer = page.locator('wa-dialog[label="Add to list"]');
+    const transferDialog = page.getByRole("dialog", { name: "Add to shopping list", exact: true });
+    const transfer = page.locator('wa-dialog[label="Add to shopping list"]');
     const transferFooter = transfer.locator('[slot="footer"]');
     await expect(transferDialog).toBeVisible();
     const confirmTransfer = transferFooter.getByRole("button", {
-      name: "Add to list",
+      name: "Add to shopping list",
       exact: true,
     });
     const onionLabel = transfer.getByText("Onions", { exact: true });
@@ -321,14 +321,14 @@ test.describe("with Recipes enabled", () => {
     expect(await postFixture(page, "/api/lists", { name: "Shopping List" })).toBe(201);
     expect(await postFixture(page, "/api/lists", { name: "Weekend" })).toBe(201);
     await openSavedRecipe(page);
-    await page.getByRole("button", { name: "Add to list", exact: true }).click();
+    await page.getByRole("button", { name: "Add to shopping list", exact: true }).click();
 
-    const transferDialog = page.getByRole("dialog", { name: "Add to list", exact: true });
-    const transfer = page.locator('wa-dialog[label="Add to list"]');
+    const transferDialog = page.getByRole("dialog", { name: "Add to shopping list", exact: true });
+    const transfer = page.locator('wa-dialog[label="Add to shopping list"]');
     const transferFooter = transfer.locator('[slot="footer"]');
     const destination = transferFooter.getByRole("combobox", { name: "Shopping list" });
     const confirmTransfer = transferFooter.getByRole("button", {
-      name: "Add to list",
+      name: "Add to shopping list",
       exact: true,
     });
     await expect(destination).toHaveValue("");
@@ -367,7 +367,7 @@ test.describe("with Recipes enabled", () => {
     await page.setViewportSize({ width: 390, height: 800 });
     await expect(page.getByRole("heading", { name: "Sunday tomato sauce" })).toBeVisible();
 
-    await page.getByRole("button", { name: "Back", exact: true }).click();
+    await page.goto("/recipes");
     await page.getByRole("button", { name: "Actions for Sunday tomato sauce" }).click();
     await page.getByRole("menuitem", { name: "Edit recipe" }).click();
     await expect(page.getByRole("textbox", { name: "Recipe name" })).toHaveValue(
@@ -389,7 +389,7 @@ test.describe("with Recipes enabled", () => {
     await expect(page.getByRole("dialog", { name: "Delete recipe?" })).toBeHidden();
     await expect(page.getByRole("heading", { name: "Tomato sauce" })).toBeVisible();
 
-    await page.getByRole("button", { name: "Back", exact: true }).click();
+    await page.goto("/recipes");
     await actions.click();
     await deleteAction.click();
     await expect(confirm).toContainText("Tomato sauce");

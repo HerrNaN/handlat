@@ -252,7 +252,6 @@
 <style>
   .ingredient-heading {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
     gap: var(--wa-space-xs);
     margin-block: var(--wa-space-m) var(--wa-space-s);
@@ -264,7 +263,12 @@
   }
 
   .ingredient-heading wa-button {
+    min-inline-size: 0;
     margin-inline-start: auto;
+
+    &::part(label) {
+      white-space: normal;
+    }
   }
 
   wa-number-input {
