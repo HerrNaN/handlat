@@ -289,6 +289,10 @@ test.describe("with Recipes enabled", () => {
     const transfer = page.locator('wa-dialog[label="Add to shopping list"]');
     const transferFooter = transfer.locator('[slot="footer"]');
     await expect(transferDialog).toBeVisible();
+    await transferDialog.evaluate(async (dialog) => {
+      // The opening animation transforms the dialog while its controls are visible.
+      await Promise.all(dialog.getAnimations().map((animation) => animation.finished));
+    });
     const confirmTransfer = transferFooter.getByRole("button", {
       name: "Add to shopping list",
       exact: true,
