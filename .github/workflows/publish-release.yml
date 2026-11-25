@@ -42,19 +42,29 @@ jobs:
           ref: refs/tags/${{ inputs.tag || github.event.release.tag_name }}
       - uses: jdx/mise-action@v4
 
-      - name: Cache Go dependencies and analysis
-        uses: ./.github/actions/cache-go
-
-      - name: Install frontend dependencies
-        run: pnpm install --frozen-lockfile
-        working-directory: frontend
-
-      - name: Build and publish release image
-        id: image
-        uses: ./.github/actions/build-image
+      - name: Log in to GHCR
+        uses: redhat-actions/podman-login@v1
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          tags: ${{ steps.release.outputs.version }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Promote release image
+        id: image
+        shell: bash
+        env:
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          repository="${REGISTRY}/${GITHUB_REPOSITORY,,}"
+          commit=$(git rev-parse HEAD)
+          source_image="$repository:$commit"
+          release_image="$repository:$RELEASE_VERSION"
+          digest_file="$RUNNER_TEMP/release-image-digest"
+
+          podman pull "$source_image"
+          podman tag "$source_image" "$release_image"
+          podman push --digestfile "$digest_file" "$release_image" "docker://$release_image"
+          echo "digest=$(cat "$digest_file")" >> "$GITHUB_OUTPUT"
 
       - name: Package and publish stable chart
         shell: bash
