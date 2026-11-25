@@ -25,6 +25,7 @@ func ServeStatic(appVersion string) (http.HandlerFunc, error) {
 	}
 
 	const versionMeta = `<meta name="handlat-version" content="`
+
 	indexHTML := strings.Replace(
 		string(index),
 		versionMeta+`"`,
