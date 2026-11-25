@@ -20,7 +20,7 @@ INSERT INTO sessions (token_hash, user_id, expires_at)
 VALUES (@token_hash, @user_id, @expires_at);
 
 -- name: GetUserBySession :one
-SELECT users.id, users.name
+SELECT users.id, users.name, users.recipes_enabled
 FROM sessions
 JOIN users ON users.id = sessions.user_id
 WHERE sessions.token_hash = @token_hash AND sessions.expires_at > unixepoch();

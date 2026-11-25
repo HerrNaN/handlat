@@ -9,12 +9,13 @@
   import "@awesome.me/webawesome/dist/components/tab-panel/tab-panel.js";
   import "@awesome.me/webawesome/dist/components/tab/tab.js";
   import "@awesome.me/webawesome/dist/components/button/button.js";
-  import "@awesome.me/webawesome/dist/components/tooltip/tooltip.js";
+  import "@awesome.me/webawesome/dist/components/popover/popover.js";
 
   import { session } from "./lib/user/session";
   import { navigate, route } from "./router";
 
   let { children }: { children?: Snippet } = $props();
+  const recipesEnabled = $derived($session?.recipesEnabled === true);
 
   $effect(() => {
     if (
@@ -36,13 +37,23 @@
 
   <nav>
     <ul>
-      <li>
-        <span id="recipes-nav">
-          <wa-button label={$messages.nav.recipes} appearance="plain" disabled>
-            <wa-icon name="kitchen-set"></wa-icon>
+      <li class:active={recipesEnabled && route.pathname.startsWith("/recipes")}>
+        {#if recipesEnabled}
+          <wa-button onclick={() => navigate("/recipes")} appearance="plain">
+            <wa-icon name="kitchen-set" label={$messages.nav.recipes}></wa-icon>
           </wa-button>
-        </span>
-        <wa-tooltip for="recipes-nav" trigger="click">{$messages.nav.recipes}</wa-tooltip>
+        {:else}
+          <wa-button id="recipes-nav" appearance="plain">
+            <wa-icon name="kitchen-set" label={$messages.nav.recipesInfo}></wa-icon>
+          </wa-button>
+          <wa-popover for="recipes-nav" placement="top-start">
+            <strong>
+              <wa-icon name="flask" aria-hidden="true"></wa-icon>
+              {$messages.nav.recipesExperimental}
+            </strong>
+            <span>{$messages.nav.recipesEnableInProfile}</span>
+          </wa-popover>
+        {/if}
       </li>
       <li class:active={route.pathname.startsWith("/lists")}>
         <wa-button
@@ -89,13 +100,19 @@
   nav {
     height: 4rem;
 
-    #recipes-nav {
-      display: inline-flex;
-      width: 100%;
-      height: 100%;
+    #recipes-nav wa-icon {
+      opacity: 0.5;
+    }
 
-      wa-button {
-        pointer-events: none;
+    wa-popover {
+      &::part(body) {
+        padding: var(--wa-space-s) var(--wa-space-m);
+      }
+
+      strong {
+        display: flex;
+        align-items: center;
+        gap: var(--wa-space-xs);
       }
     }
 

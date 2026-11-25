@@ -44,21 +44,22 @@ func (q *Queries) GetUserByCredential(ctx context.Context, arg GetUserByCredenti
 }
 
 const getUserBySession = `-- name: GetUserBySession :one
-SELECT users.id, users.name
+SELECT users.id, users.name, users.recipes_enabled
 FROM sessions
 JOIN users ON users.id = sessions.user_id
 WHERE sessions.token_hash = ?1 AND sessions.expires_at > unixepoch()
 `
 
 type GetUserBySessionRow struct {
-	ID   []byte
-	Name string
+	ID             []byte
+	Name           string
+	RecipesEnabled int64
 }
 
 func (q *Queries) GetUserBySession(ctx context.Context, tokenHash []byte) (GetUserBySessionRow, error) {
 	row := q.db.QueryRowContext(ctx, getUserBySession, tokenHash)
 	var i GetUserBySessionRow
-	err := row.Scan(&i.ID, &i.Name)
+	err := row.Scan(&i.ID, &i.Name, &i.RecipesEnabled)
 	return i, err
 }
 

@@ -2,10 +2,13 @@
   import { messages } from "../i18n";
   import "@awesome.me/webawesome/dist/components/skeleton/skeleton.js";
 
-  let { overview = false }: { overview?: boolean } = $props();
+  let { overview = false, label }: { overview?: boolean; label?: string } = $props();
 </script>
 
-<div role="status" aria-label={overview ? $messages.lists.loading : $messages.lists.loadingList}>
+<div
+  role="status"
+  aria-label={label ?? (overview ? $messages.lists.loading : $messages.lists.loadingList)}
+>
   <div class:overview aria-hidden="true">
     {#if !overview}
       <wa-skeleton class="department" effect="none"></wa-skeleton>

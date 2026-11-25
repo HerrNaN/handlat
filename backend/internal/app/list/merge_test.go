@@ -216,3 +216,54 @@ func addAndRead(t *testing.T, f fixture, req *http.Request) additionResponse {
 
 	return result
 }
+
+func TestBatchAdditionIsAtomicAndRetryable(t *testing.T) {
+	f := newMergeFixture(t)
+	first := uuid.NewString()
+	addAndRead(t, f, additionRequest(t, f, first, "Tomatoes", "100", "g"))
+
+	itemID := uuid.NewString()
+	batch := `[{"id":"` + itemID + `","text":"Tomatoes","amount":"200","unit":"g"},` +
+		`{"id":"` + uuid.NewString() + `","text":"Basil"}]`
+	request := func(body string) *httptest.ResponseRecorder {
+		t.Helper()
+
+		req := httptest.NewRequest(
+			http.MethodPost,
+			"/lists/list/items/batch",
+			strings.NewReader(body),
+		)
+		req.AddCookie(&http.Cookie{Name: "laga_session", Value: f.owner})
+
+		response := httptest.NewRecorder()
+		f.handler.ServeHTTP(response, req)
+
+		return response
+	}
+
+	invalid := request(strings.Replace(batch, "Basil", "", 1))
+	require.Equal(t, http.StatusBadRequest, invalid.Code, invalid.Body.String())
+	current := addAndRead(t, f, additionRequest(t, f, first, "Tomatoes", "100", "g"))
+	require.Len(t, current.Items, 1)
+	require.Equal(t, "100", *current.Items[0].Amount)
+
+	response := request(batch)
+	require.Equal(t, http.StatusOK, response.Code, response.Body.String())
+
+	var result listapi.List
+	require.NoError(t, json.Unmarshal(response.Body.Bytes(), &result))
+	require.Len(t, result.Items, 2)
+
+	for _, item := range result.Items {
+		if item.ID == first {
+			require.Equal(t, "300", *item.Amount)
+		} else {
+			require.Equal(t, "Basil", item.Text)
+			require.Nil(t, item.Amount)
+		}
+	}
+
+	retry := request(batch)
+	require.Equal(t, http.StatusOK, retry.Code, retry.Body.String())
+	require.JSONEq(t, response.Body.String(), retry.Body.String())
+}
