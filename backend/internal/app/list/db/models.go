@@ -10,6 +10,11 @@ type Credential struct {
 	Data   string
 }
 
+type DefaultShoppingList struct {
+	UserID []byte
+	ListID string
+}
+
 type Item struct {
 	ID         string
 	ListID     string

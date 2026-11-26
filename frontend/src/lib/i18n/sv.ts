@@ -88,6 +88,11 @@ export const sv: Messages = {
     system: "System",
     language: "Språk",
     browserLanguage: "Auto",
+    defaultShoppingList: "Förvald inköpslista",
+    defaultShoppingListHint:
+      "Öppnas från fliken Listor och väljs när du lägger till ingredienser från recept.",
+    automaticShoppingList: "Automatisk",
+    saveDefaultShoppingListFailed: "Det gick inte att spara din förvalda inköpslista. Försök igen.",
   },
   auth: {
     welcome: `Välkommen till ${appName}`,

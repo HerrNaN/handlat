@@ -88,6 +88,11 @@ export const en = {
     system: "System",
     language: "Language",
     browserLanguage: "Auto",
+    defaultShoppingList: "Default shopping list",
+    defaultShoppingListHint:
+      "Opens from the Lists tab and is selected when adding ingredients from recipes.",
+    automaticShoppingList: "Automatic",
+    saveDefaultShoppingListFailed: "Could not save your default shopping list. Try again.",
   },
   auth: {
     welcome: `Welcome to ${appName}`,

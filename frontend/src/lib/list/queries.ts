@@ -15,6 +15,7 @@ import {
   leaveList,
   getLists,
   renameList,
+  setDefaultShoppingList,
   setItemChecked,
   updateItem,
   type ItemChanges,
@@ -43,6 +44,9 @@ export const summariesQuery = (account?: string) => ({
   refetchOnMount: refetchOnWindowFocus,
   queryFn: ({ signal }: QueryFunctionContext) => getLists(signal),
 });
+
+export const preferredList = (lists: ListSummary[]) =>
+  lists.length === 1 ? lists[0] : lists.find(({ isDefault }) => isDefault);
 
 export const listQuery = (account: string | undefined, id: string, onDeleted: () => void) => ({
   queryKey: listKey(account, id),
@@ -103,6 +107,20 @@ export const createListMutation = () => ({
 export const renameListMutation = () => ({
   ...listMutationOptions,
   mutationFn: ({ listID, name }: ListTarget & { name: string }) => renameList(listID, name),
+});
+
+export const defaultShoppingListMutation = () => ({
+  ...listMutationOptions,
+  mutationFn: ({ listID }: Account & { listID: string | null }) => setDefaultShoppingList(listID),
+  onSuccess: async (_data: void, { account, listID }: Account & { listID: string | null }) => {
+    const key = summariesKey(account);
+    await queryClient.cancelQueries({ queryKey: key });
+    if (account === get(session)?.id) {
+      queryClient.setQueryData<ListSummary[]>(key, (lists) =>
+        lists?.map((list) => ({ ...list, isDefault: list.id === listID })),
+      );
+    }
+  },
 });
 
 export const leaveListMutation = () => ({

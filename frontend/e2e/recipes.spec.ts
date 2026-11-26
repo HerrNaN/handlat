@@ -345,6 +345,55 @@ test.describe("with Recipes enabled", () => {
     await expect(transferDialog).toBeHidden();
   });
 
+  test("uses the account's default shopping list for navigation and recipe transfers", async ({
+    page,
+  }) => {
+    expect(await postFixture(page, "/api/lists", { name: "Shopping List" })).toBe(201);
+    expect(await postFixture(page, "/api/lists", { name: "Weekend" })).toBe(201);
+    await page.reload();
+
+    const preference = page.getByRole("combobox", { name: "Default shopping list" });
+    await expect(preference).toHaveValue("Automatic");
+    await preference.click();
+    await page.getByRole("option", { name: "Weekend", exact: true }).click();
+    await expect(preference).toHaveValue("Weekend");
+    await expect(preference).toBeEnabled();
+    await page.reload();
+    await expect(preference).toHaveValue("Weekend");
+
+    const listsTab = page.getByRole("navigation").getByRole("button", { name: "Lists" });
+    await listsTab.click();
+    await expect(page.getByRole("heading", { name: "Weekend" })).toBeVisible();
+    await page.getByRole("button", { name: "Back", exact: true }).click();
+    await expect(page).toHaveURL(/\/lists$/);
+    await expect(page.getByRole("link", { name: /Shopping List/ })).toBeVisible();
+
+    await openSavedRecipe(page);
+    const openTransfer = page.getByRole("button", { name: "Add to shopping list", exact: true });
+    const dialog = page.getByRole("dialog", { name: "Add to shopping list", exact: true });
+    const destination = dialog.getByRole("combobox", { name: "Shopping list" });
+    await openTransfer.click();
+    await expect(destination).toHaveValue("Weekend");
+    await destination.click();
+    await dialog.getByRole("option", { name: "Shopping List", exact: true }).click();
+    await expect(destination).toHaveValue("Shopping List");
+    await dialog.getByRole("button", { name: "Add to shopping list", exact: true }).click();
+    await expect(dialog).toBeHidden();
+    await expect(page.getByRole("status")).toHaveText("Ingredients added to Shopping List.");
+    await openTransfer.click();
+    await expect(destination).toHaveValue("Weekend");
+    await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+    await expect(dialog).toBeHidden();
+
+    await page.goto("/user");
+    await preference.click();
+    await page.getByRole("option", { name: "Automatic", exact: true }).click();
+    await expect(preference).toHaveValue("Automatic");
+    await expect(preference).toBeEnabled();
+    await listsTab.click();
+    await expect(page).toHaveURL(/\/lists$/);
+  });
+
   test("edits a saved recipe and keeps the save action pinned on mobile", async ({ page }) => {
     await openSavedRecipe(page);
     const viewRowHeights = await page

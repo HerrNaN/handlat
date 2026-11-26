@@ -14,7 +14,7 @@
   import { addItems, type ListSummary, type NewItem, type ShoppingList } from "../list/api";
   import { classify, departments } from "../list/classifier";
   import { formatQuantity, maxAmountLength } from "../list/quantity";
-  import { listKey, summariesKey, summariesQuery } from "../list/queries";
+  import { listKey, preferredList, summariesKey, summariesQuery } from "../list/queries";
   import { queryClient } from "../query";
   import { session } from "../user/session";
   import type { Recipe } from "./api";
@@ -28,6 +28,7 @@
   let reviewing = $state(false);
   let excluded = $state<number[]>([]);
   let destinationID = $state("");
+  let lastDestinationID = $state("");
   let addedTo = $state<ShoppingList>();
   const target = $derived(parsePortions(portions));
   const scaled = $derived(
@@ -52,7 +53,9 @@
   const selected = $derived(scaled.filter(({ index }) => !excluded.includes(index)));
   const lists = createQuery(() => ({ ...summariesQuery(account), enabled: reviewing }));
   const destination = $derived(
-    lists.data?.length === 1 ? lists.data[0] : lists.data?.find(({ id }) => id === destinationID),
+    destinationID
+      ? lists.data?.find(({ id }) => id === destinationID)
+      : (preferredList(lists.data ?? []) ?? lists.data?.find(({ id }) => id === lastDestinationID)),
   );
   const canTransfer = $derived(
     Boolean(
@@ -80,6 +83,7 @@
   const review = () => {
     reviewing = true;
     excluded = [];
+    destinationID = "";
     addedTo = undefined;
     transfer.reset();
     if (dialog) {
@@ -216,6 +220,7 @@
           onchange={(event: Event) => {
             const value = (event.currentTarget as WaSelect).value;
             destinationID = typeof value === "string" ? value : "";
+            lastDestinationID = destinationID;
           }}
         >
           {#each lists.data as list (list.id)}

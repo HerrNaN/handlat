@@ -171,6 +171,76 @@ func TestInvitationAcceptedOnceConcurrently(t *testing.T) {
 	require.EqualValues(t, 2, count)
 }
 
+func TestDefaultShoppingListFollowsMembership(t *testing.T) {
+	f := newFixture(t)
+	other := f.user(t, "other")
+	q := listdb.New(f.conn)
+
+	for _, id := range []string{"list", "weekend"} {
+		require.NoError(t, seedList(t.Context(), q, seedListParams{
+			ID: id, UserID: []byte("owner"), Name: id, Now: time.Now().Unix(),
+		}))
+	}
+
+	const preference = "/lists/default"
+
+	setDefault := func(token, id string) int {
+		return f.request(http.MethodPut, preference, token, `{"listId":"`+id+`"}`).Code
+	}
+	defaults := func(token string) []string {
+		response := f.request(http.MethodGet, "/lists", token, "")
+		require.Equal(t, http.StatusOK, response.Code)
+
+		var summaries []listapi.Summary
+		require.NoError(t, json.Unmarshal(response.Body.Bytes(), &summaries))
+
+		var ids []string
+
+		for _, summary := range summaries {
+			if summary.IsDefault {
+				ids = append(ids, summary.ID)
+			}
+		}
+
+		return ids
+	}
+
+	require.Equal(t, http.StatusUnauthorized, setDefault("", "list"))
+	require.Equal(t, http.StatusNotFound, setDefault(other, "list"))
+	require.Empty(t, defaults(f.owner))
+	require.Equal(t, http.StatusNoContent, setDefault(f.owner, "weekend"))
+	require.Equal(t, []string{"weekend"}, defaults(f.owner))
+	require.Equal(t, http.StatusNoContent, setDefault(f.owner, "list"))
+	require.Equal(t, []string{"list"}, defaults(f.owner))
+
+	require.Equal(
+		t,
+		http.StatusOK,
+		f.request(http.MethodPost, f.invite(t, f.owner)+"/accept", other, "").Code,
+	)
+	require.Empty(t, defaults(other))
+	require.Equal(t, http.StatusNoContent, setDefault(other, "list"))
+	require.Equal(
+		t,
+		http.StatusNoContent,
+		f.request(http.MethodDelete, preference, f.owner, "").Code,
+	)
+	require.Empty(t, defaults(f.owner))
+	require.Equal(t, []string{"list"}, defaults(other))
+
+	require.Equal(
+		t,
+		http.StatusNoContent,
+		f.request(http.MethodDelete, "/lists/list", other, "").Code,
+	)
+	require.Equal(
+		t,
+		http.StatusOK,
+		f.request(http.MethodPost, f.invite(t, f.owner)+"/accept", other, "").Code,
+	)
+	require.Empty(t, defaults(other))
+}
+
 func TestLeavingRevokesStreamsAndPreservesOtherMembers(t *testing.T) {
 	f := newFixture(t)
 	other := f.user(t, "other")
