@@ -21,9 +21,6 @@ export const sv: Messages = {
     title: `Installera ${appName}`,
     description: "Öppna dina inköpslistor direkt från hemskärmen.",
     action: "Installera",
-    instructionsAction: "Så installerar du",
-    iosInstructions:
-      "Öppna delningsmenyn och tryck på Lägg till på hemskärmen. Slå på Öppna som webbapp om valet visas och tryck sedan på Lägg till.",
     dismiss: "Stäng installationsmeddelandet",
   },
   recipes: {

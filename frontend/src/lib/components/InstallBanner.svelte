@@ -1,48 +1,25 @@
 <script lang="ts">
   import "@awesome.me/webawesome/dist/components/button/button.js";
-  import WaDialog from "@awesome.me/webawesome/dist/components/dialog/dialog.js";
   import "@awesome.me/webawesome/dist/components/icon/icon.js";
-
   import { messages } from "../i18n";
-  import { dismissInstallBanner, installBannerOffer, requestInstall } from "../installPrompt";
-
-  let instructionsDialog = $state<WaDialog>();
-
-  const showInstructions = () => {
-    if (instructionsDialog) {
-      instructionsDialog.open = true;
-    }
-  };
+  import { dismissInstallBanner, requestInstall, showInstallBanner } from "../installPrompt";
 </script>
 
-{#if $installBannerOffer}
+{#if $showInstallBanner}
   <aside aria-labelledby="install-title">
     <div class="message">
       <strong id="install-title">{$messages.install.title}</strong>
       <p>{$messages.install.description}</p>
     </div>
     <div class="actions">
-      {#if $installBannerOffer === "native"}
-        <wa-button size="s" variant="brand" onclick={requestInstall}>
-          {$messages.install.action}
-        </wa-button>
-      {:else}
-        <wa-button size="s" variant="brand" onclick={showInstructions}>
-          {$messages.install.instructionsAction}
-        </wa-button>
-      {/if}
+      <wa-button size="s" variant="brand" onclick={requestInstall}>
+        {$messages.install.action}
+      </wa-button>
       <wa-button size="s" appearance="plain" onclick={dismissInstallBanner}>
         <wa-icon name="xmark" library="system" label={$messages.install.dismiss}></wa-icon>
       </wa-button>
     </div>
   </aside>
-
-  {#if $installBannerOffer === "ios"}
-    <wa-dialog bind:this={instructionsDialog} label={$messages.install.title} light-dismiss>
-      <p>{$messages.install.iosInstructions}</p>
-      <wa-button slot="footer" data-dialog="close">{$messages.common.done}</wa-button>
-    </wa-dialog>
-  {/if}
 {/if}
 
 <style>

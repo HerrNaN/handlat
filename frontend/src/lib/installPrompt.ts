@@ -3,22 +3,13 @@ import { derived, get, writable } from "svelte/store";
 type InstallPromptEvent = Event & { prompt: () => Promise<unknown> };
 
 const storageKey = "handlat-install-dismissed";
-const browserContext = writable<"browser" | "ios" | null>(null);
 const nativePrompt = writable<InstallPromptEvent | null>(null);
 const bannerDismissed = writable(false);
 
-export const installOffer = derived([browserContext, nativePrompt], ([$context, $prompt]) => {
-  if (!$context) {
-    return null;
-  }
-  if ($prompt) {
-    return "native";
-  }
-  return $context === "ios" ? "ios" : null;
-});
-
-export const installBannerOffer = derived([installOffer, bannerDismissed], ([$offer, $dismissed]) =>
-  $dismissed ? null : $offer,
+export const canInstall = derived(nativePrompt, ($prompt) => $prompt !== null);
+export const showInstallBanner = derived(
+  [canInstall, bannerDismissed],
+  ([$canInstall, $dismissed]) => $canInstall && !$dismissed,
 );
 
 export const dismissInstallBanner = () => {
@@ -32,7 +23,7 @@ export const dismissInstallBanner = () => {
 
 export const requestInstall = async () => {
   const prompt = get(nativePrompt);
-  if (!prompt || !get(browserContext)) {
+  if (!prompt) {
     return;
   }
 
@@ -55,24 +46,11 @@ export const initializeInstallPrompt = () => {
 
   const standalone = window.matchMedia("(display-mode: standalone)");
   const appleNavigator: Navigator & { standalone?: boolean } = navigator;
-  // iPad Safari can identify itself as a Mac. In-app web views usually omit Safari.
-  const isiOSBrowser =
-    window.isSecureContext &&
-    /Safari\//.test(navigator.userAgent) &&
-    (/iPhone|iPad|iPod/.test(navigator.userAgent) ||
-      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
-
+  const isStandalone = () => standalone.matches || appleNavigator.standalone === true;
   let installed = false;
-  const updateBrowserContext = () => {
-    if (installed || standalone.matches || appleNavigator.standalone) {
-      browserContext.set(null);
-    } else {
-      browserContext.set(isiOSBrowser ? "ios" : "browser");
-    }
-  };
 
   window.addEventListener("beforeinstallprompt", (event) => {
-    if (!get(browserContext)) {
+    if (installed || isStandalone() || !("prompt" in event) || typeof event.prompt !== "function") {
       return;
     }
     event.preventDefault();
@@ -80,10 +58,12 @@ export const initializeInstallPrompt = () => {
   });
   window.addEventListener("appinstalled", () => {
     installed = true;
-    updateBrowserContext();
     nativePrompt.set(null);
     dismissInstallBanner();
   });
-  standalone.addEventListener("change", updateBrowserContext);
-  updateBrowserContext();
+  standalone.addEventListener("change", () => {
+    if (isStandalone()) {
+      nativePrompt.set(null);
+    }
+  });
 };

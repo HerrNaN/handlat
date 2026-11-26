@@ -22,9 +22,6 @@ export const en = {
     title: `Install ${appName}`,
     description: "Get to your shopping lists from your home screen.",
     action: "Install",
-    instructionsAction: "How to install",
-    iosInstructions:
-      "Open the Share menu and tap Add to Home Screen. Turn on Open as Web App if shown, then tap Add.",
     dismiss: "Dismiss install banner",
   },
   recipes: {

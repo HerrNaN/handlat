@@ -129,36 +129,23 @@ test("does not show installation controls in standalone display mode", async ({ 
   await expect(profileInstall(page)).toHaveCount(0);
 });
 
-test.describe("iPhone installation", () => {
+test.describe("browser without native installation", () => {
   test.use({
     userAgent:
       "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1",
     viewport: { width: 375, height: 667 },
   });
 
-  test("offers home-screen steps in a browser tab", async ({ page }) => {
+  test("keeps both install entry points hidden without a native prompt", async ({ page }) => {
     await openProfile(page);
 
-    const banner = installBanner(page);
-    await expect(banner).toBeVisible();
-    const instructions = page.locator('wa-dialog[label="Install Handlat"]');
-    const dialog = instructions.getByRole("dialog", { name: "Install Handlat" });
-    await expect(dialog).toBeHidden();
-    await banner.getByRole("button", { name: "How to install" }).click();
-    await expect(dialog).toBeVisible();
-    await expect(instructions.getByText(/Add to Home Screen/)).toBeVisible();
-    await instructions.getByRole("button", { name: "Done" }).click();
-    await expect(dialog).toBeHidden();
-    await banner.getByRole("button", { name: "Dismiss install banner" }).click();
-    await expect(banner).toHaveCount(0);
-    await expect(profileInstall(page).getByText(/Add to Home Screen/)).toBeVisible();
-  });
+    await expect(installBanner(page)).toHaveCount(0);
+    await expect(profileInstall(page)).toHaveCount(0);
 
-  test("hides installation controls when launched from the home screen", async ({ page }) => {
-    await page.addInitScript(() => {
-      Object.defineProperty(navigator, "standalone", { value: true });
-    });
-    await openProfile(page);
+    const allowed = await page.evaluate(() =>
+      window.dispatchEvent(new Event("beforeinstallprompt", { cancelable: true })),
+    );
+    expect(allowed).toBe(true);
     await expect(installBanner(page)).toHaveCount(0);
     await expect(profileInstall(page)).toHaveCount(0);
   });

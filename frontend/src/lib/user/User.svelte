@@ -8,7 +8,7 @@
   import PageHeader from "../components/PageHeader.svelte";
   import { languagePreference, messages, setLanguage } from "../i18n";
   import { errorMessage } from "../i18n/errors";
-  import { installOffer, requestInstall } from "../installPrompt";
+  import { canInstall, requestInstall } from "../installPrompt";
   import { queryClient } from "../query";
   import { enableRecipes, recipesKey } from "../recipe/api";
   import { setTheme, theme } from "../theme";
@@ -121,19 +121,13 @@
         <wa-radio appearance="button" value="browser">{$messages.profile.browserLanguage}</wa-radio>
       </wa-radio-group>
     </section>
-    {#if $installOffer}
+    {#if $canInstall}
       <section class="install-details" aria-labelledby="install-heading">
         <div>
           <h2 id="install-heading">{$messages.install.title}</h2>
-          <p>
-            {$installOffer === "native"
-              ? $messages.install.description
-              : $messages.install.iosInstructions}
-          </p>
+          <p>{$messages.install.description}</p>
         </div>
-        {#if $installOffer === "native"}
-          <wa-button variant="brand" onclick={requestInstall}>{$messages.install.action}</wa-button>
-        {/if}
+        <wa-button variant="brand" onclick={requestInstall}>{$messages.install.action}</wa-button>
       </section>
     {/if}
     {#if $session}
