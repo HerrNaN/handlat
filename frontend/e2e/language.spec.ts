@@ -7,6 +7,7 @@ test.describe("browser language preference", () => {
     await page.route("**/api/auth/me", (route) =>
       route.fulfill({ json: { id: "language-user", name: "Language User" } }),
     );
+    await page.route("**/api/lists", (route) => route.fulfill({ json: [] }));
     await page.goto("/user");
     await expect(page.getByRole("heading", { name: "Profil", exact: true })).toBeVisible();
     await expect(page.locator("html")).toHaveAttribute("lang", "sv");

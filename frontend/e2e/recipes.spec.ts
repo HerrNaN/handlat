@@ -367,22 +367,25 @@ test.describe("with Recipes enabled", () => {
     await page.getByRole("button", { name: "Back", exact: true }).click();
     await expect(page).toHaveURL(/\/lists$/);
     await expect(page.getByRole("link", { name: /Shopping List/ })).toBeVisible();
+    await page.goto("/");
+    await expect(page.getByRole("heading", { name: "Weekend" })).toBeVisible();
 
     await openSavedRecipe(page);
     const openTransfer = page.getByRole("button", { name: "Add to shopping list", exact: true });
     const dialog = page.getByRole("dialog", { name: "Add to shopping list", exact: true });
-    const destination = dialog.getByRole("combobox", { name: "Shopping list" });
+    const footer = page.locator('wa-dialog[label="Add to shopping list"] [slot="footer"]');
+    const destination = footer.getByRole("combobox", { name: "Shopping list" });
     await openTransfer.click();
     await expect(destination).toHaveValue("Weekend");
     await destination.click();
-    await dialog.getByRole("option", { name: "Shopping List", exact: true }).click();
+    await page.getByRole("option", { name: "Shopping List", exact: true }).click();
     await expect(destination).toHaveValue("Shopping List");
-    await dialog.getByRole("button", { name: "Add to shopping list", exact: true }).click();
+    await footer.getByRole("button", { name: "Add to shopping list", exact: true }).click();
     await expect(dialog).toBeHidden();
     await expect(page.getByRole("status")).toHaveText("Ingredients added to Shopping List.");
     await openTransfer.click();
     await expect(destination).toHaveValue("Weekend");
-    await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+    await footer.getByRole("button", { name: "Cancel", exact: true }).click();
     await expect(dialog).toBeHidden();
 
     await page.goto("/user");
