@@ -113,7 +113,7 @@ func TestInvitationLifecycle(t *testing.T) {
 	summaries := f.request(http.MethodGet, "/lists", other, "")
 	require.JSONEq(
 		t,
-		`[{"id":"list","name":"Weekend","itemCount":0,"memberCount":2}]`,
+		`[{"id":"list","name":"Weekend","itemCount":0,"memberCount":2,"isDefault":true}]`,
 		summaries.Body.String(),
 	)
 	// Every member can invite; expiry, invalid tokens and list deletion invalidate links.
@@ -182,10 +182,8 @@ func TestDefaultShoppingListFollowsMembership(t *testing.T) {
 		}))
 	}
 
-	const preference = "/lists/default"
-
 	setDefault := func(token, id string) int {
-		return f.request(http.MethodPut, preference, token, `{"listId":"`+id+`"}`).Code
+		return f.request(http.MethodPut, "/lists/default", token, `{"listId":"`+id+`"}`).Code
 	}
 	defaults := func(token string) []string {
 		response := f.request(http.MethodGet, "/lists", token, "")
@@ -218,27 +216,22 @@ func TestDefaultShoppingListFollowsMembership(t *testing.T) {
 		http.StatusOK,
 		f.request(http.MethodPost, f.invite(t, f.owner)+"/accept", other, "").Code,
 	)
-	require.Empty(t, defaults(other))
-	require.Equal(t, http.StatusNoContent, setDefault(other, "list"))
-	require.Equal(
-		t,
-		http.StatusNoContent,
-		f.request(http.MethodDelete, preference, f.owner, "").Code,
-	)
-	require.Empty(t, defaults(f.owner))
 	require.Equal(t, []string{"list"}, defaults(other))
 
 	require.Equal(
 		t,
 		http.StatusNoContent,
-		f.request(http.MethodDelete, "/lists/list", other, "").Code,
+		f.request(http.MethodDelete, "/lists/list", f.owner, "").Code,
 	)
+	require.Equal(t, []string{"weekend"}, defaults(f.owner))
+	require.Equal(t, []string{"list"}, defaults(other))
+
 	require.Equal(
 		t,
 		http.StatusOK,
-		f.request(http.MethodPost, f.invite(t, f.owner)+"/accept", other, "").Code,
+		f.request(http.MethodPost, f.invite(t, other)+"/accept", f.owner, "").Code,
 	)
-	require.Empty(t, defaults(other))
+	require.Equal(t, []string{"weekend"}, defaults(f.owner))
 }
 
 func TestLeavingRevokesStreamsAndPreservesOtherMembers(t *testing.T) {

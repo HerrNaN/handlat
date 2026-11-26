@@ -19,9 +19,11 @@
   const {
     list,
     onleave,
+    onSetDefault,
   }: {
     list: Pick<ListSummary, "id" | "name" | "memberCount">;
     onleave?: () => void;
+    onSetDefault?: () => void;
   } = $props();
   const rename = createMutation(() => renameListMutation());
   const departure = createMutation(() => leaveListMutation());
@@ -88,6 +90,7 @@
         const action = (event.detail.item as WaDropdownItem).value;
         if (action === "rename") void openRename();
         if (action === "share") void share();
+        if (action === "set-default") onSetDefault?.();
         if (action === "leave") confirmLeave();
       }}
     >
@@ -102,6 +105,12 @@
         <wa-icon slot="icon" name="share-nodes"></wa-icon>
         {$messages.lists.share}
       </wa-dropdown-item>
+      {#if onSetDefault}
+        <wa-dropdown-item value="set-default">
+          <wa-icon slot="icon" name="star"></wa-icon>
+          {$messages.lists.setDefault}
+        </wa-dropdown-item>
+      {/if}
       <wa-dropdown-item value="leave" variant="danger">
         <wa-icon
           slot="icon"

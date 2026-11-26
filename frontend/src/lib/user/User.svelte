@@ -1,15 +1,13 @@
 <script lang="ts">
   import WaCheckbox from "@awesome.me/webawesome/dist/components/checkbox/checkbox.js";
   import WaDialog from "@awesome.me/webawesome/dist/components/dialog/dialog.js";
-  import WaSelect from "@awesome.me/webawesome/dist/components/select/select.js";
-  import { createMutation, createQuery } from "@tanstack/svelte-query";
+  import { createMutation } from "@tanstack/svelte-query";
 
   import { p } from "../../router";
   import { post } from "../api";
   import PageHeader from "../components/PageHeader.svelte";
   import { languagePreference, messages, setLanguage } from "../i18n";
   import { errorMessage } from "../i18n/errors";
-  import { defaultShoppingListMutation, summariesQuery } from "../list/queries";
   import { queryClient } from "../query";
   import { enableRecipes, recipesKey } from "../recipe/api";
   import { setTheme, theme } from "../theme";
@@ -17,33 +15,12 @@
   import "@awesome.me/webawesome/dist/components/button/button.js";
   import "@awesome.me/webawesome/dist/components/callout/callout.js";
   import "@awesome.me/webawesome/dist/components/icon/icon.js";
-  import "@awesome.me/webawesome/dist/components/option/option.js";
   import "@awesome.me/webawesome/dist/components/tag/tag.js";
   import "@awesome.me/webawesome/dist/components/tooltip/tooltip.js";
   import "@awesome.me/webawesome/dist/components/radio-group/radio-group.js";
   import "@awesome.me/webawesome/dist/components/radio/radio.js";
 
   import { session, clearSession, markRecipesEnabled } from "./session";
-
-  const lists = createQuery(() => summariesQuery($session?.id));
-  const saveDefault = createMutation(() => defaultShoppingListMutation());
-  const defaultListID = $derived(lists.data?.find(({ isDefault }) => isDefault)?.id ?? "automatic");
-  const changeDefault = (event: Event) => {
-    const select = event.currentTarget as WaSelect;
-    const value = select.value;
-    if (
-      !$session ||
-      typeof value !== "string" ||
-      value === defaultListID ||
-      saveDefault.isPending
-    ) {
-      return;
-    }
-    saveDefault.mutate(
-      { account: $session.id, listID: value === "automatic" ? null : value },
-      { onError: () => (select.value = defaultListID) },
-    );
-  };
 
   const appVersion = document.querySelector<HTMLMetaElement>(
     'meta[name="handlat-version"]',
@@ -144,37 +121,6 @@
       </wa-radio-group>
     </section>
     {#if $session}
-      {#if lists.data?.length}
-        <div class="list-preference">
-          <wa-select
-            label={$messages.profile.defaultShoppingList}
-            hint={$messages.profile.defaultShoppingListHint}
-            value={defaultListID}
-            disabled={saveDefault.isPending || lists.isError}
-            onchange={changeDefault}
-          >
-            <wa-option value="automatic">{$messages.profile.automaticShoppingList}</wa-option>
-            {#each lists.data as list (list.id)}
-              <wa-option value={list.id}>{list.name}</wa-option>
-            {/each}
-          </wa-select>
-          {#if saveDefault.isError}
-            <p role="alert">
-              {errorMessage(
-                saveDefault.error,
-                $messages,
-                $messages.profile.saveDefaultShoppingListFailed,
-              )}
-            </p>
-          {/if}
-        </div>
-      {/if}
-      {#if lists.isError}
-        <div>
-          <p role="alert">{$messages.errors.loadLists}</p>
-          <wa-button onclick={() => lists.refetch()}>{$messages.common.tryAgain}</wa-button>
-        </div>
-      {/if}
       <section aria-labelledby="experimental-features-heading">
         <h2 id="experimental-features-heading">{$messages.profile.experimentalFeatures}</h2>
         <div class="preview-feature">
@@ -293,13 +239,8 @@
     margin-top: var(--wa-space-m);
   }
 
-  wa-radio-group,
-  .list-preference {
+  wa-radio-group {
     max-width: 24rem;
-  }
-
-  .list-preference p {
-    margin-block-start: var(--wa-space-s);
   }
 
   .preview-feature {

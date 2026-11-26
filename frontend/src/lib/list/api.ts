@@ -53,11 +53,8 @@ const requestList = async (url: string, init?: RequestInit) =>
 
 export const getLists = async (signal?: AbortSignal) =>
   SummariesSchema.parse(await request("/api/lists", { signal }));
-export const setDefaultShoppingList = async (listId: string | null): Promise<void> => {
-  await request(
-    "/api/lists/default",
-    listId === null ? { method: "DELETE" } : { method: "PUT", ...jsonBody({ listId }) },
-  );
+export const setDefaultShoppingList = async (listId: string): Promise<void> => {
+  await request("/api/lists/default", { method: "PUT", ...jsonBody({ listId }) });
 };
 export const getList = (id: string, signal?: AbortSignal) => requestList(listURL(id), { signal });
 export const createList = (name: string) =>

@@ -88,11 +88,6 @@ export const sv: Messages = {
     system: "System",
     language: "Språk",
     browserLanguage: "Auto",
-    defaultShoppingList: "Förvald inköpslista",
-    defaultShoppingListHint:
-      "Öppnas från fliken Listor och väljs när du lägger till ingredienser från recept.",
-    automaticShoppingList: "Automatisk",
-    saveDefaultShoppingListFailed: "Det gick inte att spara din förvalda inköpslista. Försök igen.",
   },
   auth: {
     welcome: `Välkommen till ${appName}`,
@@ -111,6 +106,8 @@ export const sv: Messages = {
     emptyTitle: "Här börjar din första lista",
     emptyDescription: "För veckohandlingen, en snabb tur eller något du vill komma ihåg.",
     shared: "Delad",
+    defaultBadge: "Förvald",
+    setDefault: "Ange som förvald",
     loading: "Laddar listor",
     loadingList: "Laddar listan",
     actions: "Listalternativ",
@@ -166,6 +163,7 @@ export const sv: Messages = {
     loadList: "Det gick inte att ladda listan. Försök igen.",
     saveList: "Det gick inte att spara listan. Försök igen.",
     loadLists: "Det gick inte att ladda dina listor. Försök igen.",
+    setDefaultList: "Det gick inte att ändra din förvalda inköpslista. Försök igen.",
     createList: "Det gick inte att skapa listan. Försök igen.",
     renameList: "Det gick inte att byta namn på listan. Försök igen.",
     leaveList: "Det gick inte att lämna listan. Försök igen.",

@@ -55,15 +55,6 @@ func (q *Queries) AddMember(ctx context.Context, arg AddMemberParams) error {
 	return err
 }
 
-const clearDefaultShoppingList = `-- name: ClearDefaultShoppingList :exec
-DELETE FROM default_shopping_lists WHERE user_id = ?1
-`
-
-func (q *Queries) ClearDefaultShoppingList(ctx context.Context, userID []byte) error {
-	_, err := q.db.ExecContext(ctx, clearDefaultShoppingList, userID)
-	return err
-}
-
 const consumeInvitation = `-- name: ConsumeInvitation :one
 DELETE FROM list_invitations WHERE token_hash = ?1 AND expires_at > ?2
 RETURNING list_id
@@ -170,6 +161,21 @@ type DeleteItemParams struct {
 
 func (q *Queries) DeleteItem(ctx context.Context, arg DeleteItemParams) error {
 	_, err := q.db.ExecContext(ctx, deleteItem, arg.Now, arg.ID, arg.ListID)
+	return err
+}
+
+const ensureDefaultShoppingList = `-- name: EnsureDefaultShoppingList :exec
+INSERT INTO default_shopping_lists (user_id, list_id)
+SELECT list_members.user_id, lists.id FROM lists
+JOIN list_members ON list_members.list_id = lists.id
+WHERE list_members.user_id = ?1
+ORDER BY lists.created_at, lists.id
+LIMIT 1
+ON CONFLICT (user_id) DO NOTHING
+`
+
+func (q *Queries) EnsureDefaultShoppingList(ctx context.Context, userID []byte) error {
+	_, err := q.db.ExecContext(ctx, ensureDefaultShoppingList, userID)
 	return err
 }
 

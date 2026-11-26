@@ -88,11 +88,6 @@ export const en = {
     system: "System",
     language: "Language",
     browserLanguage: "Auto",
-    defaultShoppingList: "Default shopping list",
-    defaultShoppingListHint:
-      "Opens from the Lists tab and is selected when adding ingredients from recipes.",
-    automaticShoppingList: "Automatic",
-    saveDefaultShoppingListFailed: "Could not save your default shopping list. Try again.",
   },
   auth: {
     welcome: `Welcome to ${appName}`,
@@ -111,6 +106,8 @@ export const en = {
     emptyTitle: "Your first list starts here",
     emptyDescription: "For the weekly shop, a quick stop, or anything you don’t want to forget.",
     shared: "Shared",
+    defaultBadge: "Default",
+    setDefault: "Set as default",
     loading: "Loading lists",
     loadingList: "Loading list",
     actions: "List actions",
@@ -166,6 +163,7 @@ export const en = {
     loadList: "Could not load the list. Try again.",
     saveList: "Could not save the list. Try again.",
     loadLists: "Could not load your lists. Try again.",
+    setDefaultList: "Could not set your default shopping list. Try again.",
     createList: "Could not create the list. Try again.",
     renameList: "Could not rename the list. Try again.",
     leaveList: "Could not leave the list. Try again.",

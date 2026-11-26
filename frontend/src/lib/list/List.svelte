@@ -23,9 +23,11 @@
     addItemMutation,
     checkItemMutation,
     clearCheckedMutation,
+    defaultShoppingListMutation,
     deleteItemMutation,
     dismissListErrors,
     listQuery,
+    summariesQuery,
     updateItemMutation,
   } from "./queries";
 
@@ -36,12 +38,20 @@
     }),
   );
   const loading = $derived(query.isPending && !query.data);
+  const summaries = createQuery(() => summariesQuery($session?.id));
+  const setDefault = createMutation(() => defaultShoppingListMutation());
+  const canSetDefault = $derived(
+    summaries.data &&
+      summaries.data.length > 1 &&
+      summaries.data.some((list) => list.id === target.listID && !list.isDefault) &&
+      !setDefault.isPending,
+  );
   const addition = createMutation(() => addItemMutation());
   const update = createMutation(() => updateItemMutation());
   const check = createMutation(() => checkItemMutation());
   const remove = createMutation(() => deleteItemMutation());
   const clear = createMutation(() => clearCheckedMutation());
-  const mutations = [addition, update, check, remove, clear];
+  const mutations = [addition, update, check, remove, clear, setDefault];
   const writes = useMutationState({
     filters: { mutationKey: ["private-lists"] },
     select: (mutation) => ({
@@ -110,7 +120,11 @@
     {/snippet}
     {#snippet actions()}
       {#if query.data}
-        <ListActions list={query.data} onleave={() => navigate("/lists")} />
+        <ListActions
+          list={query.data}
+          onleave={() => navigate("/lists")}
+          onSetDefault={canSetDefault ? () => setDefault.mutate(target) : undefined}
+        />
       {:else if loading}
         <wa-button
           class="loading-actions"

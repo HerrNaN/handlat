@@ -111,16 +111,7 @@ export const renameListMutation = () => ({
 
 export const defaultShoppingListMutation = () => ({
   ...listMutationOptions,
-  mutationFn: ({ listID }: Account & { listID: string | null }) => setDefaultShoppingList(listID),
-  onSuccess: async (_data: void, { account, listID }: Account & { listID: string | null }) => {
-    const key = summariesKey(account);
-    await queryClient.cancelQueries({ queryKey: key });
-    if (account === get(session)?.id) {
-      queryClient.setQueryData<ListSummary[]>(key, (lists) =>
-        lists?.map((list) => ({ ...list, isDefault: list.id === listID })),
-      );
-    }
-  },
+  mutationFn: ({ listID }: ListTarget) => setDefaultShoppingList(listID),
 });
 
 export const leaveListMutation = () => ({

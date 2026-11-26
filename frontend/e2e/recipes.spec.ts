@@ -319,9 +319,7 @@ test.describe("with Recipes enabled", () => {
     await expect(confirmTransfer).toBeInViewport();
   });
 
-  test("requires a destination when several shopping lists exist and can cancel", async ({
-    page,
-  }) => {
+  test("preselects the first shopping list when several exist and can cancel", async ({ page }) => {
     expect(await postFixture(page, "/api/lists", { name: "Shopping List" })).toBe(201);
     expect(await postFixture(page, "/api/lists", { name: "Weekend" })).toBe(201);
     await openSavedRecipe(page);
@@ -335,8 +333,8 @@ test.describe("with Recipes enabled", () => {
       name: "Add to shopping list",
       exact: true,
     });
-    await expect(destination).toHaveValue("");
-    await expect(confirmTransfer).toBeDisabled();
+    await expect(destination).toHaveValue("Shopping List");
+    await expect(confirmTransfer).toBeEnabled();
     await destination.click();
     await page.getByRole("option", { name: "Weekend", exact: true }).click();
     await expect(destination).toHaveValue("Weekend");
@@ -345,28 +343,39 @@ test.describe("with Recipes enabled", () => {
     await expect(transferDialog).toBeHidden();
   });
 
-  test("uses the account's default shopping list for navigation and recipe transfers", async ({
-    page,
-  }) => {
+  test("switches the default shopping list from the list actions", async ({ page }) => {
     expect(await postFixture(page, "/api/lists", { name: "Shopping List" })).toBe(201);
+    await page.goto("/lists");
+
+    const firstList = page.getByRole("link", { name: /Shopping List/ });
+    const weekendList = page.getByRole("link", { name: /Weekend/ });
+    const firstBadge = firstList.getByText("Default", { exact: true });
+    const weekendBadge = weekendList.getByText("Default", { exact: true });
+    const firstActions = page.getByRole("button", { name: "Actions for Shopping List" });
+    const setDefault = page.getByRole("menuitem", { name: "Set as default", exact: true });
+    await expect(firstBadge).toBeVisible();
+    await firstActions.click();
+    await expect(page.getByRole("menuitem", { name: "Rename", exact: true })).toBeVisible();
+    await expect(setDefault).toHaveCount(0);
+    await page.keyboard.press("Escape");
+
     expect(await postFixture(page, "/api/lists", { name: "Weekend" })).toBe(201);
     await page.reload();
-
-    const preference = page.getByRole("combobox", { name: "Default shopping list" });
-    await expect(preference).toHaveValue("Automatic");
-    await preference.click();
-    await page.getByRole("option", { name: "Weekend", exact: true }).click();
-    await expect(preference).toHaveValue("Weekend");
-    await expect(preference).toBeEnabled();
+    await expect(firstBadge).toBeVisible();
+    await expect(weekendBadge).toHaveCount(0);
+    await page.getByRole("button", { name: "Actions for Weekend" }).click();
+    await setDefault.click();
+    await expect(weekendBadge).toBeVisible();
+    await expect(firstBadge).toHaveCount(0);
     await page.reload();
-    await expect(preference).toHaveValue("Weekend");
+    await expect(weekendBadge).toBeVisible();
 
     const listsTab = page.getByRole("navigation").getByRole("button", { name: "Lists" });
     await listsTab.click();
     await expect(page.getByRole("heading", { name: "Weekend" })).toBeVisible();
     await page.getByRole("button", { name: "Back", exact: true }).click();
     await expect(page).toHaveURL(/\/lists$/);
-    await expect(page.getByRole("link", { name: /Shopping List/ })).toBeVisible();
+    await expect(firstList).toBeVisible();
     await page.goto("/");
     await expect(page.getByRole("heading", { name: "Weekend" })).toBeVisible();
 
@@ -388,13 +397,12 @@ test.describe("with Recipes enabled", () => {
     await footer.getByRole("button", { name: "Cancel", exact: true }).click();
     await expect(dialog).toBeHidden();
 
-    await page.goto("/user");
-    await preference.click();
-    await page.getByRole("option", { name: "Automatic", exact: true }).click();
-    await expect(preference).toHaveValue("Automatic");
-    await expect(preference).toBeEnabled();
-    await listsTab.click();
-    await expect(page).toHaveURL(/\/lists$/);
+    await page.goto("/lists");
+    await firstList.click();
+    await firstActions.click();
+    await setDefault.click();
+    await page.getByRole("button", { name: "Back", exact: true }).click();
+    await expect(firstBadge).toBeVisible();
   });
 
   test("edits a saved recipe and keeps the save action pinned on mobile", async ({ page }) => {

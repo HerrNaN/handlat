@@ -110,6 +110,14 @@ func TestSharingPreservesExistingLists(t *testing.T) {
 	)
 	require.Equal(t, []byte("existing"), member)
 
+	var defaultList string
+	require.NoError(
+		t,
+		conn.QueryRowContext(ctx, "SELECT list_id FROM default_shopping_lists WHERE user_id = ?", member).
+			Scan(&defaultList),
+	)
+	require.Equal(t, "groceries", defaultList)
+
 	var text string
 	require.NoError(
 		t,

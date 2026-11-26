@@ -75,7 +75,6 @@ func (h *Handler) Register(mux *http.ServeMux, requireSession func(http.Handler)
 	routes.HandleFunc("GET /lists", h.index)
 	routes.HandleFunc("POST /lists", h.create)
 	routes.HandleFunc("PUT /lists/default", h.setDefault)
-	routes.HandleFunc("DELETE /lists/default", h.clearDefault)
 	routes.HandleFunc("GET /lists/{id}", h.get)
 	routes.HandleFunc("GET /lists/{id}/events", h.stream)
 	routes.HandleFunc("PATCH /lists/{id}", h.rename)
@@ -138,19 +137,6 @@ func (h *Handler) setDefault(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h *Handler) clearDefault(w http.ResponseWriter, r *http.Request) {
-	if err := h.queries.ClearDefaultShoppingList(
-		r.Context(),
-		auth.UserID(r.Context()),
-	); err != nil {
-		h.fail(w, err)
-		return
-	}
-
-	w.Header().Set("Cache-Control", "no-store")
-	w.WriteHeader(http.StatusNoContent)
-}
-
 func (h *Handler) create(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Name string `json:"name"`
@@ -193,10 +179,7 @@ func (h *Handler) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := q.AddMember(
-		r.Context(),
-		db.AddMemberParams{ListID: id.String(), UserID: auth.UserID(r.Context())},
-	); err != nil {
+	if err := addMember(r.Context(), q, id.String(), auth.UserID(r.Context())); err != nil {
 		h.fail(w, err)
 		return
 	}
@@ -363,6 +346,10 @@ func (h *Handler) commitLeave(r *http.Request) error {
 		r.Context(),
 		db.RemoveMemberParams{ListID: value.ID, UserID: auth.UserID(r.Context())},
 	); err != nil {
+		return err
+	}
+
+	if err := q.EnsureDefaultShoppingList(r.Context(), auth.UserID(r.Context())); err != nil {
 		return err
 	}
 

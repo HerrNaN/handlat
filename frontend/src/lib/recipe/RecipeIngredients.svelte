@@ -28,7 +28,6 @@
   let reviewing = $state(false);
   let excluded = $state<number[]>([]);
   let destinationID = $state("");
-  let lastDestinationID = $state("");
   let addedTo = $state<ShoppingList>();
   const target = $derived(parsePortions(portions));
   const scaled = $derived(
@@ -55,7 +54,7 @@
   const destination = $derived(
     destinationID
       ? lists.data?.find(({ id }) => id === destinationID)
-      : (preferredList(lists.data ?? []) ?? lists.data?.find(({ id }) => id === lastDestinationID)),
+      : preferredList(lists.data ?? []),
   );
   const canTransfer = $derived(
     Boolean(
@@ -220,7 +219,6 @@
           onchange={(event: Event) => {
             const value = (event.currentTarget as WaSelect).value;
             destinationID = typeof value === "string" ? value : "";
-            lastDestinationID = destinationID;
           }}
         >
           {#each lists.data as list (list.id)}

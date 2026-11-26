@@ -9,14 +9,16 @@
   import EmptyState from "./EmptyState.svelte";
   import ListActions from "./ListActions.svelte";
   import ListSkeleton from "./ListSkeleton.svelte";
-  import { createListMutation, summariesQuery } from "./queries";
+  import { createListMutation, defaultShoppingListMutation, summariesQuery } from "./queries";
   import "@awesome.me/webawesome/dist/components/icon/icon.js";
   import "@awesome.me/webawesome/dist/components/button/button.js";
   import "@awesome.me/webawesome/dist/components/callout/callout.js";
   import "@awesome.me/webawesome/dist/components/badge/badge.js";
 
   const createList = createMutation(() => createListMutation());
+  const setDefault = createMutation(() => defaultShoppingListMutation());
   const query = createQuery(() => summariesQuery($session?.id));
+  const canChangeDefault = $derived((query.data?.length ?? 0) > 1 && !setDefault.isPending);
   const handleCreateList = () => {
     if (!$session) {
       return;
@@ -32,6 +34,11 @@
       },
     );
   };
+  const changeDefault = (listID: string) => {
+    if ($session && canChangeDefault) {
+      setDefault.mutate({ account: $session.id, listID });
+    }
+  };
 </script>
 
 <article>
@@ -42,14 +49,18 @@
       </wa-button>
     {/snippet}
   </PageHeader>
-  {#if createList.error ?? query.error}
+  {#if createList.error ?? setDefault.error ?? query.error}
     <aside role="alert">
       <wa-callout variant="danger">
         <wa-icon slot="icon" name="circle-exclamation"></wa-icon>
         {errorMessage(
-          createList.error ?? query.error,
+          createList.error ?? setDefault.error ?? query.error,
           $messages,
-          createList.error ? $messages.errors.createList : $messages.errors.loadLists,
+          createList.error
+            ? $messages.errors.createList
+            : setDefault.error
+              ? $messages.errors.setDefaultList
+              : $messages.errors.loadLists,
         )}
       </wa-callout>
     </aside>
@@ -75,6 +86,11 @@
             <a href={p("/lists/:id", { params: { id: list.id } })}>
               <wa-icon name="list-check"></wa-icon>
               <span class="name">{list.name}</span>
+              {#if list.isDefault}
+                <wa-badge variant="brand" appearance="filled" pill
+                  >{$messages.lists.defaultBadge}</wa-badge
+                >
+              {/if}
               {#if list.memberCount > 1}
                 <wa-badge variant="neutral" appearance="filled" pill
                   >{$messages.lists.shared}</wa-badge
@@ -82,7 +98,12 @@
               {/if}
               <span class="count">{list.itemCount}</span>
             </a>
-            <ListActions {list} />
+            <ListActions
+              {list}
+              onSetDefault={canChangeDefault && !list.isDefault
+                ? () => changeDefault(list.id)
+                : undefined}
+            />
           </li>
         {/each}
       </ul>

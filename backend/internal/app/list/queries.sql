@@ -21,8 +21,14 @@ WHERE list_members.list_id = @list_id AND list_members.user_id = @user_id
 ON CONFLICT (user_id) DO UPDATE SET list_id = excluded.list_id
 RETURNING default_shopping_lists.list_id;
 
--- name: ClearDefaultShoppingList :exec
-DELETE FROM default_shopping_lists WHERE user_id = @user_id;
+-- name: EnsureDefaultShoppingList :exec
+INSERT INTO default_shopping_lists (user_id, list_id)
+SELECT list_members.user_id, lists.id FROM lists
+JOIN list_members ON list_members.list_id = lists.id
+WHERE list_members.user_id = @user_id
+ORDER BY lists.created_at, lists.id
+LIMIT 1
+ON CONFLICT (user_id) DO NOTHING;
 
 -- name: TouchList :exec
 UPDATE lists SET updated_at = @now
