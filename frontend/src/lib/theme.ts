@@ -42,7 +42,12 @@ export const initializeTheme = () => {
     root.classList.toggle("wa-light", !dark);
     root.style.colorScheme = dark ? "dark" : "light";
     if (themeColor) {
-      themeColor.content = getComputedStyle(root).backgroundColor;
+      const headerBackground = getComputedStyle(root)
+        .getPropertyValue("--handlat-header-background")
+        .trim();
+      if (headerBackground) {
+        themeColor.content = headerBackground;
+      }
     }
   };
   const onStorage = (event: StorageEvent) => {

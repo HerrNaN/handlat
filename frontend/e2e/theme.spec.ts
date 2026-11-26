@@ -9,13 +9,18 @@ test.beforeEach(async ({ page }) => {
 const expectScheme = async (page: Page, scheme: "light" | "dark") => {
   const root = page.locator("html");
   const background = scheme === "light" ? "rgb(247, 243, 237)" : "rgb(32, 28, 25)";
+  const headerBackground = scheme === "light" ? "rgb(239, 232, 222)" : "rgb(32, 28, 25)";
+  const themeColor = scheme === "light" ? "#efe8de" : "#201c19";
   await expect(root).toHaveCSS("color-scheme", scheme);
   await expect(root).toHaveClass(`wa-${scheme}`);
-  await expect(root).toHaveCSS("background-color", background);
+  await expect(root).toHaveCSS("background-color", headerBackground);
+  await expect(page.locator("#app")).toHaveCSS("background-color", background);
+  await expect(page.locator("body")).toHaveCSS("background-color", headerBackground);
+  await expect(page.locator("article > header")).toHaveCSS("background-color", headerBackground);
   await expect(page.locator('meta[name="theme-color"]')).toHaveCount(1);
   await expect(page.locator('meta[name="theme-color"]:not([media])')).toHaveAttribute(
     "content",
-    background,
+    themeColor,
   );
 };
 
@@ -25,13 +30,15 @@ const selectTheme = async (page: Page, theme: "Light" | "Dark" | "System") => {
   await expect(radio).toBeChecked();
 };
 
-test("provides matching launch and theme colors for the installed app", async ({ request }) => {
+test("provides the light palette’s page and header colors for the installed app", async ({
+  request,
+}) => {
   const manifest = await request.get("/manifest.webmanifest");
   await expect(manifest).toBeOK();
   expect(await manifest.json()).toMatchObject({
     display: "standalone",
     background_color: "#f7f3ed",
-    theme_color: "#f7f3ed",
+    theme_color: "#efe8de",
   });
 });
 
