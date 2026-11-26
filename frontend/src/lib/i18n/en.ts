@@ -18,6 +18,15 @@ export const en = {
     recipesEnableInProfile: "Enable in profile",
     user: "User",
   },
+  install: {
+    title: `Install ${appName}`,
+    description: "Get to your shopping lists from your home screen.",
+    action: "Install",
+    instructionsAction: "How to install",
+    iosInstructions:
+      "Open the Share menu and tap Add to Home Screen. Turn on Open as Web App if shown, then tap Add.",
+    dismiss: "Not now",
+  },
   recipes: {
     description: "Save your recipes, scale portions, and add ingredients to a shopping list.",
     collection: "My recipes",
