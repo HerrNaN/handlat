@@ -1,31 +1,51 @@
 import { get, writable } from "svelte/store";
 
-export type ThemePreference = "light" | "dark" | "system";
+type ColorMode = "light" | "dark" | "system";
+type Theme = "warm" | "soft-white";
 
-const storageKey = "handlat-theme";
+// Keep the existing key for saved Light, Dark, and System preferences.
+const colorModeStorageKey = "handlat-theme";
+const paletteStorageKey = "handlat-palette";
 
-const parsePreference = (value: unknown): ThemePreference =>
+const parseColorMode = (value: string | null): ColorMode =>
   value === "light" || value === "dark" ? value : "system";
 
-const readPreference = (): ThemePreference => {
+const parseTheme = (value: string | null): Theme => (value === "soft-white" ? value : "warm");
+
+const readPreference = (key: string): string | null => {
   try {
-    return parsePreference(localStorage.getItem(storageKey));
+    return localStorage.getItem(key);
   } catch {
-    return "system";
+    return null;
   }
 };
 
-const current = writable<ThemePreference>(readPreference());
-export const theme = { subscribe: current.subscribe };
+const readAppearance = () => ({
+  colorMode: parseColorMode(readPreference(colorModeStorageKey)),
+  theme: parseTheme(readPreference(paletteStorageKey)),
+});
 
-export const setTheme = (value: string) => {
-  const preference = parsePreference(value);
-  current.set(preference);
+const current = writable(readAppearance());
+export const appearance = { subscribe: current.subscribe };
+
+const savePreference = (key: string, value: string) => {
   try {
-    localStorage.setItem(storageKey, preference);
+    localStorage.setItem(key, value);
   } catch {
     // The choice still applies for this visit when storage is unavailable.
   }
+};
+
+export const setColorMode = (value: string) => {
+  const colorMode = parseColorMode(value);
+  current.update((settings) => ({ ...settings, colorMode }));
+  savePreference(colorModeStorageKey, colorMode);
+};
+
+export const setTheme = (value: string) => {
+  const theme = parseTheme(value);
+  current.update((settings) => ({ ...settings, theme }));
+  savePreference(paletteStorageKey, theme);
 };
 
 export const initializeTheme = () => {
@@ -35,9 +55,10 @@ export const initializeTheme = () => {
   );
   const initialDarkThemeColor = document.querySelector('meta[name="theme-color"][media]');
   const applyTheme = () => {
-    const preference = get(current);
-    const dark = preference === "dark" || (preference === "system" && system.matches);
+    const { colorMode, theme } = get(current);
+    const dark = colorMode === "dark" || (colorMode === "system" && system.matches);
     const root = document.documentElement;
+    root.dataset.theme = theme;
     root.classList.toggle("wa-dark", dark);
     root.classList.toggle("wa-light", !dark);
     root.style.colorScheme = dark ? "dark" : "light";
@@ -51,8 +72,12 @@ export const initializeTheme = () => {
     }
   };
   const onStorage = (event: StorageEvent) => {
-    if (event.key === storageKey || event.key === null) {
-      current.set(readPreference());
+    if (
+      event.key === colorModeStorageKey ||
+      event.key === paletteStorageKey ||
+      event.key === null
+    ) {
+      current.set(readAppearance());
     }
   };
 

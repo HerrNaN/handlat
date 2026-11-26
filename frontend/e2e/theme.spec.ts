@@ -1,18 +1,32 @@
 import { expect, test, type Page } from "@playwright/test";
 
-test.beforeEach(async ({ page }) => {
-  await page.route("**/api/auth/me", (route) =>
+test.beforeEach(async ({ context }) => {
+  await context.route("**/api/auth/me", (route) =>
     route.fulfill({ json: { id: "theme-user", name: "Theme User" } }),
   );
 });
 
-const expectScheme = async (page: Page, scheme: "light" | "dark") => {
+const themeColors = {
+  warm: {
+    light: ["rgb(247, 243, 237)", "rgb(239, 232, 222)", "#efe8de"],
+    dark: ["rgb(32, 28, 25)", "rgb(32, 28, 25)", "#201c19"],
+  },
+  "soft-white": {
+    light: ["rgb(252, 251, 249)", "rgb(241, 235, 226)", "#f1ebe2"],
+    dark: ["rgb(37, 34, 31)", "rgb(37, 34, 31)", "#25221f"],
+  },
+} as const;
+
+const expectScheme = async (
+  page: Page,
+  scheme: "light" | "dark",
+  theme: keyof typeof themeColors = "warm",
+) => {
   const root = page.locator("html");
-  const background = scheme === "light" ? "rgb(247, 243, 237)" : "rgb(32, 28, 25)";
-  const headerBackground = scheme === "light" ? "rgb(239, 232, 222)" : "rgb(32, 28, 25)";
-  const themeColor = scheme === "light" ? "#efe8de" : "#201c19";
+  const [background, headerBackground, themeColor] = themeColors[theme][scheme];
   await expect(root).toHaveCSS("color-scheme", scheme);
   await expect(root).toHaveClass(`wa-${scheme}`);
+  await expect(root).toHaveAttribute("data-theme", theme);
   await expect(root).toHaveCSS("background-color", headerBackground);
   await expect(page.locator("#app")).toHaveCSS("background-color", background);
   await expect(page.locator("body")).toHaveCSS("background-color", headerBackground);
@@ -24,8 +38,8 @@ const expectScheme = async (page: Page, scheme: "light" | "dark") => {
   );
 };
 
-const selectTheme = async (page: Page, theme: "Light" | "Dark" | "System") => {
-  const radio = page.getByRole("radio", { name: theme, exact: true });
+const selectRadio = async (page: Page, name: string) => {
+  const radio = page.getByRole("radio", { name, exact: true });
   await radio.click();
   await expect(radio).toBeChecked();
 };
@@ -55,23 +69,23 @@ test("defaults to System and follows device appearance changes", async ({ page }
   await expectScheme(page, "light");
 });
 
-test("remembers explicit choices and can return to System", async ({ page }) => {
+test("remembers explicit color modes and can return to System", async ({ page }) => {
   await page.emulateMedia({ colorScheme: "light" });
   await page.goto("/user");
-  await selectTheme(page, "Dark");
+  await selectRadio(page, "Dark");
   await expectScheme(page, "dark");
   await page.reload();
   await expect(page.getByRole("radio", { name: "Dark", exact: true })).toBeChecked();
   await expectScheme(page, "dark");
 
   await page.emulateMedia({ colorScheme: "dark" });
-  await selectTheme(page, "Light");
+  await selectRadio(page, "Light");
   await expectScheme(page, "light");
   await page.reload();
   await expect(page.getByRole("radio", { name: "Light", exact: true })).toBeChecked();
   await expectScheme(page, "light");
 
-  await selectTheme(page, "System");
+  await selectRadio(page, "System");
   await expectScheme(page, "dark");
   await page.reload();
   await expect(page.getByRole("radio", { name: "System", exact: true })).toBeChecked();
@@ -79,18 +93,60 @@ test("remembers explicit choices and can return to System", async ({ page }) => 
   await expectScheme(page, "light");
 });
 
-test("falls back to System for an invalid stored preference", async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem("handlat-theme", "invalid"));
-  await page.emulateMedia({ colorScheme: "dark" });
+test("compares the two themes and remembers the choice independently of color mode", async ({
+  page,
+}) => {
+  await page.emulateMedia({ colorScheme: "light" });
   await page.goto("/user");
-  await expect(page.getByRole("radio", { name: "System", exact: true })).toBeChecked();
+  const warm = page.getByRole("radio", { name: "Warm", exact: true });
+  const softWhite = page.getByRole("radio", { name: "Soft White", exact: true });
+  await expect(warm).toBeChecked();
+  await expectScheme(page, "light");
+
+  await warm.press("ArrowRight");
+  await expect(softWhite).toBeChecked();
+  await expect(softWhite).toBeFocused();
+  await expectScheme(page, "light", "soft-white");
+  await expect(warm).toHaveCSS("background-color", "rgb(255, 255, 255)");
+
+  await page.reload();
+  await expect(softWhite).toBeChecked();
+  await expectScheme(page, "light", "soft-white");
+  await selectRadio(page, "Dark");
+  await expect(softWhite).toBeChecked();
+  await expectScheme(page, "dark", "soft-white");
+  await selectRadio(page, "Warm");
+  await expect(page.getByRole("radio", { name: "Dark", exact: true })).toBeChecked();
   await expectScheme(page, "dark");
 });
 
-test("changes theme using the segmented control's arrow keys", async ({ page }) => {
+test("syncs the theme across open tabs", async ({ page, context }) => {
+  await page.goto("/user");
+  const other = await context.newPage();
+  await other.goto("/user");
+  await expect(other.getByRole("radio", { name: "Warm", exact: true })).toBeChecked();
+
+  await selectRadio(page, "Soft White");
+  await expect(other.getByRole("radio", { name: "Soft White", exact: true })).toBeChecked();
+  await expect(other.locator("html")).toHaveAttribute("data-theme", "soft-white");
+});
+
+test("falls back to System and Warm for invalid stored preferences", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("handlat-theme", "invalid");
+    localStorage.setItem("handlat-palette", "invalid");
+  });
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.goto("/user");
+  await expect(page.getByRole("radio", { name: "System", exact: true })).toBeChecked();
+  await expect(page.getByRole("radio", { name: "Warm", exact: true })).toBeChecked();
+  await expectScheme(page, "dark");
+});
+
+test("changes color mode using the segmented control's arrow keys", async ({ page }) => {
   await page.emulateMedia({ colorScheme: "light" });
   await page.goto("/user");
-  await expect(page.getByRole("radiogroup", { name: "Theme" })).toBeVisible();
+  await expect(page.getByRole("radiogroup", { name: "Color mode" })).toBeVisible();
   const system = page.getByRole("radio", { name: "System", exact: true });
   await expect(system).toBeChecked();
   await system.press("ArrowLeft");
@@ -138,7 +194,8 @@ for (const scheme of ["light", "dark"] as const) {
     await page.getByRole("button", { name: "Log out" }).focus();
 
     for (const [name, current, other] of [
-      ["Theme", "System", "Light"],
+      ["Theme", "Warm", "Soft White"],
+      ["Color mode", "System", "Light"],
       ["Language", "Auto", "English"],
     ] as const) {
       await expect(page.getByRole("radiogroup", { name, exact: true })).toBeVisible();
@@ -218,8 +275,10 @@ test("allows theme changes when browser storage is unavailable", async ({ page }
   await page.emulateMedia({ colorScheme: "dark" });
   await page.goto("/user");
   await expectScheme(page, "dark");
-  await selectTheme(page, "Light");
-  await expectScheme(page, "light");
+  await selectRadio(page, "Soft White");
+  await expectScheme(page, "dark", "soft-white");
+  await selectRadio(page, "Light");
+  await expectScheme(page, "light", "soft-white");
 });
 
 test("applies the palette to shopping-list rows and actions", async ({ page }) => {

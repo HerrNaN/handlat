@@ -93,6 +93,12 @@
   --wa-form-control-placeholder-color: var(--wa-color-text-quiet);
 }
 
+:root[data-theme="soft-white"] {
+  --handlat-header-background: #f1ebe2;
+  --wa-color-surface-default: #fcfbf9;
+  --wa-color-surface-raised: #ffffff;
+}
+
 /* The mode class keeps the palette in sync with Handlat's preference after CSS compilation. */
 :root.wa-dark {
   --handlat-header-background: var(--wa-color-surface-default);
@@ -119,6 +125,11 @@
   --wa-color-danger-fill-quiet: #38262b;
   --wa-color-danger-fill-normal: #432831;
   --wa-color-danger-fill-loud: #f0a2ae;
+}
+
+:root.wa-dark[data-theme="soft-white"] {
+  --wa-color-surface-default: #25221f;
+  --wa-color-surface-raised: #2e2925;
 }
 
 :root,

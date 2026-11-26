@@ -10,7 +10,7 @@
   import { errorMessage } from "../i18n/errors";
   import { queryClient } from "../query";
   import { enableRecipes, recipesKey } from "../recipe/api";
-  import { setTheme, theme } from "../theme";
+  import { appearance, setColorMode, setTheme } from "../theme";
   import type { ChangeEvent } from "../utils/events";
   import "@awesome.me/webawesome/dist/components/button/button.js";
   import "@awesome.me/webawesome/dist/components/callout/callout.js";
@@ -93,8 +93,20 @@
         label={$messages.profile.theme}
         name="theme"
         orientation="horizontal"
-        value={$theme}
+        value={$appearance.theme}
         onchange={(event: ChangeEvent) => setTheme(event.target.value)}
+      >
+        <wa-radio appearance="button" value="warm">{$messages.profile.warmTheme}</wa-radio>
+        <wa-radio appearance="button" value="soft-white"
+          >{$messages.profile.softWhiteTheme}</wa-radio
+        >
+      </wa-radio-group>
+      <wa-radio-group
+        label={$messages.profile.colorMode}
+        name="color-mode"
+        orientation="horizontal"
+        value={$appearance.colorMode}
+        onchange={(event: ChangeEvent) => setColorMode(event.target.value)}
       >
         <wa-radio appearance="button" value="light">
           <span><wa-icon name="sun" aria-hidden="true"></wa-icon>{$messages.profile.light}</span>
