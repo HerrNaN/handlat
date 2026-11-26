@@ -15,6 +15,10 @@ const themeColors = {
     light: ["rgb(252, 251, 249)", "rgb(241, 235, 226)", "#f1ebe2"],
     dark: ["rgb(37, 34, 31)", "rgb(37, 34, 31)", "#25221f"],
   },
+  neutral: {
+    light: ["rgb(252, 251, 249)", "rgb(232, 234, 236)", "#e8eaec"],
+    dark: ["rgb(37, 34, 31)", "rgb(38, 40, 43)", "#26282b"],
+  },
 } as const;
 
 const expectScheme = async (
@@ -93,13 +97,12 @@ test("remembers explicit color modes and can return to System", async ({ page })
   await expectScheme(page, "light");
 });
 
-test("compares the two themes and remembers the choice independently of color mode", async ({
-  page,
-}) => {
+test("compares themes and remembers the choice independently of color mode", async ({ page }) => {
   await page.emulateMedia({ colorScheme: "light" });
   await page.goto("/user");
   const warm = page.getByRole("radio", { name: "Warm", exact: true });
   const softWhite = page.getByRole("radio", { name: "Soft White", exact: true });
+  const neutral = page.getByRole("radio", { name: "Neutral", exact: true });
   await expect(warm).toBeChecked();
   await expectScheme(page, "light");
 
@@ -109,11 +112,18 @@ test("compares the two themes and remembers the choice independently of color mo
   await expectScheme(page, "light", "soft-white");
   await expect(warm).toHaveCSS("background-color", "rgb(255, 255, 255)");
 
+  await softWhite.press("ArrowRight");
+  await expect(neutral).toBeChecked();
+  await expect(neutral).toBeFocused();
+  await expectScheme(page, "light", "neutral");
+
   await page.reload();
-  await expect(softWhite).toBeChecked();
-  await expectScheme(page, "light", "soft-white");
+  await expect(neutral).toBeChecked();
+  await expectScheme(page, "light", "neutral");
   await selectRadio(page, "Dark");
-  await expect(softWhite).toBeChecked();
+  await expect(neutral).toBeChecked();
+  await expectScheme(page, "dark", "neutral");
+  await selectRadio(page, "Soft White");
   await expectScheme(page, "dark", "soft-white");
   await selectRadio(page, "Warm");
   await expect(page.getByRole("radio", { name: "Dark", exact: true })).toBeChecked();

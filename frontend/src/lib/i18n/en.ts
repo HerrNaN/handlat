@@ -85,6 +85,7 @@ export const en = {
     theme: "Theme",
     warmTheme: "Warm",
     softWhiteTheme: "Soft White",
+    neutralTheme: "Neutral",
     colorMode: "Color mode",
     light: "Light",
     dark: "Dark",

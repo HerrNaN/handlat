@@ -93,10 +93,17 @@
   --wa-form-control-placeholder-color: var(--wa-color-text-quiet);
 }
 
-:root[data-theme="soft-white"] {
-  --handlat-header-background: #f1ebe2;
+:root:is([data-theme="soft-white"], [data-theme="neutral"]) {
   --wa-color-surface-default: #fcfbf9;
   --wa-color-surface-raised: #ffffff;
+}
+
+:root[data-theme="soft-white"] {
+  --handlat-header-background: #f1ebe2;
+}
+
+:root[data-theme="neutral"] {
+  --handlat-header-background: #e8eaec;
 }
 
 /* The mode class keeps the palette in sync with Handlat's preference after CSS compilation. */
@@ -127,9 +134,13 @@
   --wa-color-danger-fill-loud: #f0a2ae;
 }
 
-:root.wa-dark[data-theme="soft-white"] {
+:root.wa-dark:is([data-theme="soft-white"], [data-theme="neutral"]) {
   --wa-color-surface-default: #25221f;
   --wa-color-surface-raised: #2e2925;
+}
+
+:root.wa-dark[data-theme="neutral"] {
+  --handlat-header-background: #26282b;
 }
 
 :root,

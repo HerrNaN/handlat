@@ -1,7 +1,7 @@
 import { get, writable } from "svelte/store";
 
 type ColorMode = "light" | "dark" | "system";
-type Theme = "warm" | "soft-white";
+type Theme = "warm" | "soft-white" | "neutral";
 
 // Keep the existing key for saved Light, Dark, and System preferences.
 const colorModeStorageKey = "handlat-theme";
@@ -10,7 +10,8 @@ const paletteStorageKey = "handlat-palette";
 const parseColorMode = (value: string | null): ColorMode =>
   value === "light" || value === "dark" ? value : "system";
 
-const parseTheme = (value: string | null): Theme => (value === "soft-white" ? value : "warm");
+const parseTheme = (value: string | null): Theme =>
+  value === "soft-white" || value === "neutral" ? value : "warm";
 
 const readPreference = (key: string): string | null => {
   try {
