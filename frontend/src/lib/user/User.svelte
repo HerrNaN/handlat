@@ -22,6 +22,10 @@
 
   import { session, clearSession, markRecipesEnabled } from "./session";
 
+  const appVersion = document.querySelector<HTMLMetaElement>(
+    'meta[name="handlat-version"]',
+  )?.content;
+
   const logout = createMutation(() => ({
     mutationKey: ["auth", "logout"],
     mutationFn: () => post("/api/auth/logout"),
@@ -175,6 +179,15 @@
         </wa-button>
       </wa-dialog>
     {/if}
+    {#if appVersion}
+      <section aria-labelledby="about-heading">
+        <h2 id="about-heading">{$messages.profile.about}</h2>
+        <dl>
+          <dt>{$messages.profile.version}</dt>
+          <dd>{appVersion}</dd>
+        </dl>
+      </section>
+    {/if}
   </div>
 </article>
 
@@ -203,6 +216,18 @@
 
   p {
     margin: 0;
+  }
+
+  dl {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    column-gap: var(--wa-space-xs);
+    margin: 0;
+  }
+
+  dd {
+    margin: 0;
+    overflow-wrap: anywhere;
   }
 
   .username {

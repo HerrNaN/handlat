@@ -80,6 +80,8 @@ export const en = {
     loginOrCreate: "Login or Create Account",
     appearance: "Appearance",
     experimentalFeatures: "Experimental features",
+    about: "About",
+    version: "Version",
     theme: "Theme",
     light: "Light",
     dark: "Dark",

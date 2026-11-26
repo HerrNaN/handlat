@@ -4,6 +4,7 @@ import "log/slog"
 
 type Config struct {
 	LogLevel                 slog.Level `envconfig:"LOG_LEVEL"`
+	AppVersion               string     `envconfig:"APP_VERSION"`
 	Port                     int        `envconfig:"PORT"                        required:"true"`
 	ExternalWebServerAddress string     `envconfig:"EXTERNAL_WEB_SERVER_ADDRESS"`
 	DatabasePath             string     `envconfig:"DATABASE_PATH"               required:"true"`

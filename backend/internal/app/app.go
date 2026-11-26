@@ -70,7 +70,7 @@ func Run(ctx context.Context, log *slog.Logger, cfg Config) error {
 		)
 		mux.HandleFunc("/", serveWeb)
 	} else {
-		serveWeb, err := web.ServeStatic()
+		serveWeb, err := web.ServeStatic(cfg.AppVersion)
 		if err != nil {
 			return fmt.Errorf("create static web server: %w", err)
 		}

@@ -80,6 +80,8 @@ export const sv: Messages = {
     loginOrCreate: "Logga in eller skapa konto",
     appearance: "Utseende",
     experimentalFeatures: "Experimentella funktioner",
+    about: "Om",
+    version: "Version",
     theme: "Tema",
     light: "Ljust",
     dark: "Mörkt",
