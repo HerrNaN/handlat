@@ -48,9 +48,8 @@
 <style>
   aside {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
-    gap: var(--wa-space-xs) var(--wa-space-m);
+    gap: var(--wa-space-m);
     flex-shrink: 0;
     padding: var(--wa-space-s) var(--wa-space-l);
     border-block-end: 1px solid var(--wa-color-surface-border);
@@ -58,15 +57,15 @@
   }
 
   .message {
-    flex: 1 1 14rem;
+    flex: 1;
+    min-inline-size: 0;
+    overflow-wrap: anywhere;
   }
 
   .actions {
     display: flex;
-    flex-wrap: wrap;
-    justify-content: end;
+    flex: none;
     gap: var(--wa-space-xs);
-    margin-inline-start: auto;
   }
 
   p {

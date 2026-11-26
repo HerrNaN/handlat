@@ -122,17 +122,17 @@
       </wa-radio-group>
     </section>
     {#if $installOffer}
-      <section aria-labelledby="install-heading">
-        <h2 id="install-heading">{$messages.install.title}</h2>
+      <section class="install-details" aria-labelledby="install-heading">
+        <div>
+          <h2 id="install-heading">{$messages.install.title}</h2>
+          <p>
+            {$installOffer === "native"
+              ? $messages.install.description
+              : $messages.install.iosInstructions}
+          </p>
+        </div>
         {#if $installOffer === "native"}
-          <div class="install-details">
-            <p>{$messages.install.description}</p>
-            <wa-button variant="brand" onclick={requestInstall}>
-              {$messages.install.action}
-            </wa-button>
-          </div>
-        {:else}
-          <p>{$messages.install.iosInstructions}</p>
+          <wa-button variant="brand" onclick={requestInstall}>{$messages.install.action}</wa-button>
         {/if}
       </section>
     {/if}
@@ -236,13 +236,18 @@
 
   .install-details {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
-    gap: var(--wa-space-s) var(--wa-space-m);
+    gap: var(--wa-space-m);
+  }
+
+  .install-details > div {
+    flex: 1;
+    min-inline-size: 0;
+    overflow-wrap: anywhere;
   }
 
   .install-details > wa-button {
-    margin-inline-start: auto;
+    flex: none;
   }
 
   dl {

@@ -48,6 +48,24 @@ test("offers installation from an event received before the route loads", async 
   await expect(banner).toHaveCount(0);
 });
 
+test("keeps the install controls beside the text on a narrow screen", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 720 });
+  await openProfile(page);
+  expect(await offerNativeInstall(page)).toBe(false);
+
+  for (const region of [installBanner(page), profileInstall(page)]) {
+    await expect(region.getByRole("button", { name: "Install", exact: true })).toBeVisible();
+    const buttonsBesideText = await region.evaluate((element) => {
+      const text = element.querySelector("p")!.parentElement!.getBoundingClientRect();
+      return Array.from(element.querySelectorAll("wa-button"), (button) => {
+        const { left, top, bottom } = button.getBoundingClientRect();
+        return left >= text.right && top < text.bottom && bottom > text.top;
+      });
+    });
+    expect(buttonsBesideText).not.toContain(false);
+  }
+});
+
 test("waits for browser eligibility and remembers dismissal in the tab", async ({ page }) => {
   await openProfile(page);
 
