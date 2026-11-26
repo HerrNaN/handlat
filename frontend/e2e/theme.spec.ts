@@ -7,11 +7,11 @@ test.beforeEach(async ({ page }) => {
 });
 
 const expectScheme = async (page: Page, scheme: "light" | "dark") => {
-  await expect(page.locator("html")).toHaveCSS("color-scheme", scheme);
-  await expect(page.locator("html")).toHaveClass(`wa-${scheme}`);
-  const background = await page
-    .locator("html")
-    .evaluate((root) => getComputedStyle(root).backgroundColor);
+  const root = page.locator("html");
+  const background = scheme === "light" ? "rgb(247, 243, 237)" : "rgb(32, 28, 25)";
+  await expect(root).toHaveCSS("color-scheme", scheme);
+  await expect(root).toHaveClass(`wa-${scheme}`);
+  await expect(root).toHaveCSS("background-color", background);
   const themeColors = page.locator('meta[name="theme-color"]');
   await expect(themeColors).toHaveCount(2);
   for (const meta of await themeColors.all()) {
@@ -30,13 +30,9 @@ test("defaults to System and follows device appearance changes", async ({ page }
   await page.goto("/user");
   await expect(page.getByRole("radio", { name: "System", exact: true })).toBeChecked();
   await expectScheme(page, "light");
-  const lightBackground = await page
-    .locator("html")
-    .evaluate((root) => getComputedStyle(root).backgroundColor);
 
   await page.emulateMedia({ colorScheme: "dark" });
   await expectScheme(page, "dark");
-  await expect(page.locator("html")).not.toHaveCSS("background-color", lightBackground);
 
   await page.emulateMedia({ colorScheme: "light" });
   await expectScheme(page, "light");
@@ -105,6 +101,31 @@ test("allows theme changes when browser storage is unavailable", async ({ page }
   await expectScheme(page, "light");
 });
 
+test("applies the palette to shopping-list rows and the add button", async ({ page }) => {
+  const list = {
+    id: "theme-list",
+    name: "Shopping List",
+    items: [{ id: "milk", text: "Milk", createdAt: "2026-01-01T00:00:00Z" }],
+    memberCount: 1,
+  };
+  await page.route("**/api/lists/theme-list/events", (route) =>
+    route.fulfill({ contentType: "text/event-stream", body: `data: ${JSON.stringify(list)}\n\n` }),
+  );
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.goto("/lists/theme-list");
+
+  const row = page.getByRole("button", { name: "Edit Milk", exact: true }).locator("..");
+  const add = page.getByRole("button", { name: "Add item", exact: true });
+  await expect(row).toHaveCSS("background-color", "rgb(255, 252, 248)");
+  await expect(add).toHaveCSS("background-color", "rgb(168, 62, 50)");
+  await expect(add).toHaveCSS("color", "rgb(255, 255, 255)");
+
+  await page.emulateMedia({ colorScheme: "dark" });
+  await expect(row).toHaveCSS("background-color", "rgb(43, 37, 33)");
+  await expect(add).toHaveCSS("background-color", "rgb(229, 141, 120)");
+  await expect(add).toHaveCSS("color", "rgb(43, 24, 18)");
+});
+
 test("updates the empty-list illustration when the theme changes", async ({ page }) => {
   await page.route("**/api/lists/theme-list/events", (route) =>
     route.fulfill({
@@ -130,7 +151,7 @@ test("updates the empty-list illustration when the theme changes", async ({ page
 
   await page.emulateMedia({ colorScheme: "dark" });
   await expectScheme(page, "dark");
-  // Only the background circle changes; the artwork retains its light-theme colors.
+  // The basket and carton keep the same gradient colors in both themes.
   await expect(circle).not.toHaveCSS("fill", lightBackground);
   for (let index = 0; index < lightColors.length; index++) {
     await expect(stops.nth(index)).toHaveCSS("stop-color", lightColors[index]!);

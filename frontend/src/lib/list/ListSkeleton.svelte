@@ -63,14 +63,13 @@
     flex-shrink: 0;
     height: 3rem;
     padding-inline: var(--wa-space-m);
-    background-color: var(--wa-color-surface-default);
+    background-color: var(--wa-color-surface-raised);
     border-radius: var(--wa-border-radius-s);
   }
 
   .overview .row {
     height: auto;
     padding-block: var(--wa-space-m);
-    background-color: var(--wa-color-neutral-fill-quiet);
   }
 
   .icon {

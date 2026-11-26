@@ -120,7 +120,7 @@
     display: flex;
     align-items: center;
     padding-inline-end: var(--wa-space-xs);
-    background-color: var(--wa-color-neutral-fill-quiet);
+    background-color: var(--wa-color-surface-raised);
     border-radius: var(--wa-border-radius-s);
   }
 

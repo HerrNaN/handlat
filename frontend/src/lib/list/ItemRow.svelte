@@ -61,7 +61,7 @@
     min-height: 3rem;
     display: grid;
     grid-template-columns: var(--wa-space-2xs) auto minmax(0, 1fr);
-    background-color: var(--wa-color-surface-default);
+    background-color: var(--wa-color-surface-raised);
     border-radius: var(--wa-border-radius-s);
   }
   button {

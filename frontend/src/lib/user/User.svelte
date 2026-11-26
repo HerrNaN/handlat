@@ -244,6 +244,7 @@
   }
 
   .preview-feature {
+    background-color: var(--wa-color-surface-raised);
     border: 1px solid var(--wa-color-surface-border);
     border-radius: var(--wa-border-radius-m);
     padding: var(--wa-space-m);
