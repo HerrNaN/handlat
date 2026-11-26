@@ -363,6 +363,11 @@ test.describe("with Recipes enabled", () => {
     await page.reload();
     await expect(firstBadge).toBeVisible();
     await expect(weekendBadge).toHaveCount(0);
+    const [firstRowHeight, secondRowHeight] = await page
+      .getByRole("listitem")
+      .filter({ has: page.getByRole("link") })
+      .evaluateAll((rows) => rows.map((row) => row.getBoundingClientRect().height));
+    expect(firstRowHeight).toBe(secondRowHeight);
     await page.getByRole("button", { name: "Actions for Weekend" }).click();
     await setDefault.click();
     await expect(weekendBadge).toBeVisible();

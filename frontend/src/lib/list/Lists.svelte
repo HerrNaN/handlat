@@ -178,6 +178,10 @@
     flex-shrink: 0;
   }
 
+  wa-badge {
+    padding-block: 0.25em;
+  }
+
   .count {
     color: var(--wa-color-text-quiet);
     font-size: var(--wa-font-size-s);
