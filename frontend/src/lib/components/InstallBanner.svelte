@@ -1,6 +1,7 @@
 <script lang="ts">
   import "@awesome.me/webawesome/dist/components/button/button.js";
   import WaDialog from "@awesome.me/webawesome/dist/components/dialog/dialog.js";
+  import "@awesome.me/webawesome/dist/components/icon/icon.js";
 
   import { messages } from "../i18n";
   import { dismissInstallBanner, installBannerOffer, requestInstall } from "../installPrompt";
@@ -31,7 +32,7 @@
         </wa-button>
       {/if}
       <wa-button size="s" appearance="plain" onclick={dismissInstallBanner}>
-        {$messages.install.dismiss}
+        <wa-icon name="xmark" library="system" label={$messages.install.dismiss}></wa-icon>
       </wa-button>
     </div>
   </aside>
@@ -63,7 +64,9 @@
   .actions {
     display: flex;
     flex-wrap: wrap;
+    justify-content: end;
     gap: var(--wa-space-xs);
+    margin-inline-start: auto;
   }
 
   p {

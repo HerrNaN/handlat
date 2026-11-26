@@ -24,7 +24,7 @@ export const sv: Messages = {
     instructionsAction: "Så installerar du",
     iosInstructions:
       "Öppna delningsmenyn och tryck på Lägg till på hemskärmen. Slå på Öppna som webbapp om valet visas och tryck sedan på Lägg till.",
-    dismiss: "Inte nu",
+    dismiss: "Stäng installationsmeddelandet",
   },
   recipes: {
     description:

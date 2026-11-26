@@ -25,7 +25,7 @@ export const en = {
     instructionsAction: "How to install",
     iosInstructions:
       "Open the Share menu and tap Add to Home Screen. Turn on Open as Web App if shown, then tap Add.",
-    dismiss: "Not now",
+    dismiss: "Dismiss install banner",
   },
   recipes: {
     description: "Save your recipes, scale portions, and add ingredients to a shopping list.",

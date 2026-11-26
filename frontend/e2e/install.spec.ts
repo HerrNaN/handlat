@@ -56,7 +56,7 @@ test("waits for browser eligibility and remembers dismissal in the tab", async (
   await expect(banner).toHaveCount(0);
   await expect(section).toHaveCount(0);
   expect(await offerNativeInstall(page)).toBe(false);
-  await banner.getByRole("button", { name: "Not now" }).click();
+  await banner.getByRole("button", { name: "Dismiss install banner" }).click();
   await expect(banner).toHaveCount(0);
   await expect(section.getByRole("button", { name: "Install", exact: true })).toBeVisible();
 
@@ -74,7 +74,7 @@ test("can install from Profile after dismissing the banner without reloading", a
   expect(await offerNativeInstall(page)).toBe(false);
 
   const banner = installBanner(page);
-  await banner.getByRole("button", { name: "Not now" }).click();
+  await banner.getByRole("button", { name: "Dismiss install banner" }).click();
   await expect(banner).toHaveCount(0);
   await profileInstall(page).getByRole("button", { name: "Install", exact: true }).click();
   await expect(page.locator("html")).toHaveAttribute("data-install-prompts", "1");
@@ -131,7 +131,7 @@ test.describe("iPhone installation", () => {
     await expect(instructions.getByText(/Add to Home Screen/)).toBeVisible();
     await instructions.getByRole("button", { name: "Done" }).click();
     await expect(dialog).toBeHidden();
-    await banner.getByRole("button", { name: "Not now" }).click();
+    await banner.getByRole("button", { name: "Dismiss install banner" }).click();
     await expect(banner).toHaveCount(0);
     await expect(profileInstall(page).getByText(/Add to Home Screen/)).toBeVisible();
   });

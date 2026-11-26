@@ -125,8 +125,12 @@
       <section aria-labelledby="install-heading">
         <h2 id="install-heading">{$messages.install.title}</h2>
         {#if $installOffer === "native"}
-          <p>{$messages.install.description}</p>
-          <wa-button variant="brand" onclick={requestInstall}>{$messages.install.action}</wa-button>
+          <div class="install-details">
+            <p>{$messages.install.description}</p>
+            <wa-button variant="brand" onclick={requestInstall}>
+              {$messages.install.action}
+            </wa-button>
+          </div>
         {:else}
           <p>{$messages.install.iosInstructions}</p>
         {/if}
@@ -230,8 +234,15 @@
     margin: 0;
   }
 
-  section > p + wa-button {
-    margin-block-start: var(--wa-space-s);
+  .install-details {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--wa-space-s) var(--wa-space-m);
+  }
+
+  .install-details > wa-button {
+    margin-inline-start: auto;
   }
 
   dl {
