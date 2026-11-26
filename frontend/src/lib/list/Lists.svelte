@@ -86,15 +86,19 @@
             <a href={p("/lists/:id", { params: { id: list.id } })}>
               <wa-icon name="list-check"></wa-icon>
               <span class="name">{list.name}</span>
-              {#if list.isDefault}
-                <wa-badge variant="brand" appearance="filled" pill
-                  >{$messages.lists.defaultBadge}</wa-badge
-                >
-              {/if}
-              {#if list.memberCount > 1}
-                <wa-badge variant="neutral" appearance="filled" pill
-                  >{$messages.lists.shared}</wa-badge
-                >
+              {#if list.isDefault || list.memberCount > 1}
+                <span class="badges">
+                  {#if list.isDefault}
+                    <wa-badge variant="brand" appearance="filled" pill
+                      >{$messages.lists.defaultBadge}</wa-badge
+                    >
+                  {/if}
+                  {#if list.memberCount > 1}
+                    <wa-badge variant="neutral" appearance="filled" pill
+                      >{$messages.lists.shared}</wa-badge
+                    >
+                  {/if}
+                </span>
               {/if}
               <span class="count">{list.itemCount}</span>
             </a>
@@ -173,13 +177,16 @@
   }
 
   a > wa-icon,
-  wa-badge,
+  .badges,
   .count {
     flex-shrink: 0;
   }
 
-  wa-badge {
-    padding-block: 0.25em;
+  .badges {
+    display: flex;
+    align-items: center;
+    gap: inherit;
+    block-size: 1lh;
   }
 
   .count {
