@@ -1,18 +1,28 @@
-import { writable } from "svelte/store";
+import { derived, get, writable } from "svelte/store";
 
 type InstallPromptEvent = Event & { prompt: () => Promise<unknown> };
 
 const storageKey = "handlat-install-dismissed";
-const offer = writable<"native" | "ios" | null>(null);
-export const installOffer = { subscribe: offer.subscribe };
+const browserContext = writable<"browser" | "ios" | null>(null);
+const nativePrompt = writable<InstallPromptEvent | null>(null);
+const bannerDismissed = writable(false);
 
-let deferredPrompt: InstallPromptEvent | undefined;
-let dismissed = false;
+export const installOffer = derived([browserContext, nativePrompt], ([$context, $prompt]) => {
+  if (!$context) {
+    return null;
+  }
+  if ($prompt) {
+    return "native";
+  }
+  return $context === "ios" ? "ios" : null;
+});
 
-export const dismissInstallOffer = () => {
-  deferredPrompt = undefined;
-  dismissed = true;
-  offer.set(null);
+export const installBannerOffer = derived([installOffer, bannerDismissed], ([$offer, $dismissed]) =>
+  $dismissed ? null : $offer,
+);
+
+export const dismissInstallBanner = () => {
+  bannerDismissed.set(true);
   try {
     sessionStorage.setItem(storageKey, "true");
   } catch {
@@ -21,13 +31,14 @@ export const dismissInstallOffer = () => {
 };
 
 export const requestInstall = async () => {
-  const prompt = deferredPrompt;
-  if (!prompt) {
+  const prompt = get(nativePrompt);
+  if (!prompt || !get(browserContext)) {
     return;
   }
 
   // Each event can open the native prompt once, directly from the click.
-  dismissInstallOffer();
+  nativePrompt.set(null);
+  dismissInstallBanner();
   try {
     await prompt.prompt();
   } catch {
@@ -37,14 +48,13 @@ export const requestInstall = async () => {
 
 export const initializeInstallPrompt = () => {
   try {
-    dismissed = sessionStorage.getItem(storageKey) === "true";
+    bannerDismissed.set(sessionStorage.getItem(storageKey) === "true");
   } catch {
     // Installation is still available when storage is blocked.
   }
 
   const standalone = window.matchMedia("(display-mode: standalone)");
   const appleNavigator: Navigator & { standalone?: boolean } = navigator;
-  const isBrowserTab = () => !standalone.matches && !appleNavigator.standalone;
   // iPad Safari can identify itself as a Mac. In-app web views usually omit Safari.
   const isiOSBrowser =
     window.isSecureContext &&
@@ -52,25 +62,28 @@ export const initializeInstallPrompt = () => {
     (/iPhone|iPad|iPod/.test(navigator.userAgent) ||
       (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
 
-  const updateOffer = () => {
-    if (dismissed || !isBrowserTab()) {
-      offer.set(null);
-    } else if (deferredPrompt) {
-      offer.set("native");
+  let installed = false;
+  const updateBrowserContext = () => {
+    if (installed || standalone.matches || appleNavigator.standalone) {
+      browserContext.set(null);
     } else {
-      offer.set(isiOSBrowser ? "ios" : null);
+      browserContext.set(isiOSBrowser ? "ios" : "browser");
     }
   };
 
   window.addEventListener("beforeinstallprompt", (event) => {
-    if (dismissed || !isBrowserTab()) {
+    if (!get(browserContext)) {
       return;
     }
     event.preventDefault();
-    deferredPrompt = event as InstallPromptEvent;
-    updateOffer();
+    nativePrompt.set(event as InstallPromptEvent);
   });
-  window.addEventListener("appinstalled", dismissInstallOffer);
-  standalone.addEventListener("change", updateOffer);
-  updateOffer();
+  window.addEventListener("appinstalled", () => {
+    installed = true;
+    updateBrowserContext();
+    nativePrompt.set(null);
+    dismissInstallBanner();
+  });
+  standalone.addEventListener("change", updateBrowserContext);
+  updateBrowserContext();
 };

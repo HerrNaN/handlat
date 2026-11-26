@@ -3,7 +3,7 @@
   import WaDialog from "@awesome.me/webawesome/dist/components/dialog/dialog.js";
 
   import { messages } from "../i18n";
-  import { dismissInstallOffer, installOffer, requestInstall } from "../installPrompt";
+  import { dismissInstallBanner, installBannerOffer, requestInstall } from "../installPrompt";
 
   let instructionsDialog = $state<WaDialog>();
 
@@ -14,14 +14,14 @@
   };
 </script>
 
-{#if $installOffer}
+{#if $installBannerOffer}
   <aside aria-labelledby="install-title">
     <div class="message">
       <strong id="install-title">{$messages.install.title}</strong>
       <p>{$messages.install.description}</p>
     </div>
     <div class="actions">
-      {#if $installOffer === "native"}
+      {#if $installBannerOffer === "native"}
         <wa-button size="s" variant="brand" onclick={requestInstall}>
           {$messages.install.action}
         </wa-button>
@@ -30,13 +30,13 @@
           {$messages.install.instructionsAction}
         </wa-button>
       {/if}
-      <wa-button size="s" appearance="plain" onclick={dismissInstallOffer}>
+      <wa-button size="s" appearance="plain" onclick={dismissInstallBanner}>
         {$messages.install.dismiss}
       </wa-button>
     </div>
   </aside>
 
-  {#if $installOffer === "ios"}
+  {#if $installBannerOffer === "ios"}
     <wa-dialog bind:this={instructionsDialog} label={$messages.install.title} light-dismiss>
       <p>{$messages.install.iosInstructions}</p>
       <wa-button slot="footer" data-dialog="close">{$messages.common.done}</wa-button>

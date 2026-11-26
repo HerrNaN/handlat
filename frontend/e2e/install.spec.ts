@@ -13,6 +13,14 @@ const offerNativeInstall = (page: Page) =>
   });
 
 const installBanner = (page: Page) => page.getByRole("complementary", { name: "Install Handlat" });
+const profileInstall = (page: Page) => page.getByRole("region", { name: "Install Handlat" });
+const openProfile = async (page: Page) => {
+  await page.route("**/api/auth/me", (route) =>
+    route.fulfill({ json: { id: "install-user", name: "Install User" } }),
+  );
+  await page.goto("/user");
+  await expect(page.getByRole("heading", { name: "Profile" })).toBeVisible();
+};
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
@@ -41,23 +49,51 @@ test("offers installation from an event received before the route loads", async 
 });
 
 test("waits for browser eligibility and remembers dismissal in the tab", async ({ page }) => {
-  await page.route("**/api/auth/me", (route) => route.fulfill({ status: 401 }));
-  await page.goto("/login");
-  await expect(page.getByRole("heading", { name: "Welcome to Handlat" })).toBeVisible();
+  await openProfile(page);
 
   const banner = installBanner(page);
+  const section = profileInstall(page);
   await expect(banner).toHaveCount(0);
+  await expect(section).toHaveCount(0);
   expect(await offerNativeInstall(page)).toBe(false);
   await banner.getByRole("button", { name: "Not now" }).click();
   await expect(banner).toHaveCount(0);
+  await expect(section.getByRole("button", { name: "Install", exact: true })).toBeVisible();
 
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Welcome to Handlat" })).toBeVisible();
-  expect(await offerNativeInstall(page)).toBe(true);
+  await expect(page.getByRole("heading", { name: "Profile" })).toBeVisible();
+  expect(await offerNativeInstall(page)).toBe(false);
+  await expect(banner).toHaveCount(0);
+  await section.getByRole("button", { name: "Install", exact: true }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-install-prompts", "1");
+  await expect(section).toHaveCount(0);
+});
+
+test("can install from Profile after dismissing the banner without reloading", async ({ page }) => {
+  await openProfile(page);
+  expect(await offerNativeInstall(page)).toBe(false);
+
+  const banner = installBanner(page);
+  await banner.getByRole("button", { name: "Not now" }).click();
+  await expect(banner).toHaveCount(0);
+  await profileInstall(page).getByRole("button", { name: "Install", exact: true }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-install-prompts", "1");
+});
+
+test("hides installation controls when the browser reports installation", async ({ page }) => {
+  await openProfile(page);
+  expect(await offerNativeInstall(page)).toBe(false);
+  const banner = installBanner(page);
+  const section = profileInstall(page);
+  await expect(banner).toBeVisible();
+  await expect(section).toBeVisible();
+
+  await page.evaluate(() => window.dispatchEvent(new Event("appinstalled")));
+  await expect(section).toHaveCount(0);
   await expect(banner).toHaveCount(0);
 });
 
-test("does not show the banner in standalone display mode", async ({ page }) => {
+test("does not show installation controls in standalone display mode", async ({ page }) => {
   await page.addInitScript(() => {
     const matchMedia = window.matchMedia.bind(window);
     window.matchMedia = (query) => {
@@ -68,12 +104,11 @@ test("does not show the banner in standalone display mode", async ({ page }) => 
       return result;
     };
   });
-  await page.route("**/api/auth/me", (route) => route.fulfill({ status: 401 }));
-  await page.goto("/login");
-  await expect(page.getByRole("heading", { name: "Welcome to Handlat" })).toBeVisible();
+  await openProfile(page);
 
   expect(await offerNativeInstall(page)).toBe(true);
   await expect(installBanner(page)).toHaveCount(0);
+  await expect(profileInstall(page)).toHaveCount(0);
 });
 
 test.describe("iPhone installation", () => {
@@ -83,12 +118,8 @@ test.describe("iPhone installation", () => {
     viewport: { width: 375, height: 667 },
   });
 
-  test.beforeEach(async ({ page }) => {
-    await page.route("**/api/auth/me", (route) => route.fulfill({ status: 401 }));
-  });
-
   test("offers home-screen steps in a browser tab", async ({ page }) => {
-    await page.goto("/login");
+    await openProfile(page);
 
     const banner = installBanner(page);
     await expect(banner).toBeVisible();
@@ -100,14 +131,17 @@ test.describe("iPhone installation", () => {
     await expect(instructions.getByText(/Add to Home Screen/)).toBeVisible();
     await instructions.getByRole("button", { name: "Done" }).click();
     await expect(dialog).toBeHidden();
+    await banner.getByRole("button", { name: "Not now" }).click();
+    await expect(banner).toHaveCount(0);
+    await expect(profileInstall(page).getByText(/Add to Home Screen/)).toBeVisible();
   });
 
-  test("hides the banner when launched from the home screen", async ({ page }) => {
+  test("hides installation controls when launched from the home screen", async ({ page }) => {
     await page.addInitScript(() => {
       Object.defineProperty(navigator, "standalone", { value: true });
     });
-    await page.goto("/login");
-    await expect(page.getByRole("heading", { name: "Welcome to Handlat" })).toBeVisible();
+    await openProfile(page);
     await expect(installBanner(page)).toHaveCount(0);
+    await expect(profileInstall(page)).toHaveCount(0);
   });
 });
