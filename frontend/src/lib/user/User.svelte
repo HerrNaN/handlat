@@ -282,9 +282,53 @@
     gap: var(--wa-space-m);
   }
 
-  wa-radio {
+  wa-radio[appearance="button"] {
     flex: 1;
     justify-content: center;
+    background-color: var(--wa-color-surface-raised);
+    padding-inline: var(--wa-space-xs);
+    transition: none;
+
+    @media (hover: hover) {
+      &:hover:not(:state(checked), :state(disabled)) {
+        background-color: var(--wa-color-neutral-fill-quiet);
+        border-color: var(--wa-color-text-quiet);
+      }
+    }
+
+    &:state(checked) {
+      background-color: var(--wa-color-brand-fill-loud);
+      border-color: var(--wa-color-brand-fill-loud);
+      color: var(--wa-color-brand-on-loud);
+
+      &::after {
+        content: "";
+        position: absolute;
+        inset-inline: 0;
+        inset-block-end: var(--wa-space-2xs);
+        margin-inline: auto;
+        inline-size: 1em;
+        border-block-end: 2px solid currentColor;
+      }
+    }
+
+    &:focus-visible {
+      outline-color: var(--wa-color-text-normal);
+      outline-offset: 2px;
+    }
+
+    @media (forced-colors: active) {
+      &:state(checked) {
+        forced-color-adjust: none;
+        background-color: Highlight;
+        border-color: Highlight;
+        color: HighlightText;
+      }
+
+      &:focus-visible {
+        outline-color: CanvasText;
+      }
+    }
   }
 
   wa-radio span {

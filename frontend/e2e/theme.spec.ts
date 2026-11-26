@@ -86,6 +86,110 @@ test("changes theme using the segmented control's arrow keys", async ({ page }) 
   await expectScheme(page, "light");
 });
 
+const channels = (color: string) =>
+  color
+    .slice(color.indexOf("(") + 1, -1)
+    .split(",")
+    .map(Number);
+
+const luminance = (rgb: number[]) => {
+  const [red, green, blue] = rgb
+    .map((channel) => channel / 255)
+    .map((channel) => (channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * red! + 0.7152 * green! + 0.0722 * blue!;
+};
+
+const contrast = (foreground: string, background: string, backdrop = "rgb(255, 255, 255)") => {
+  const fill = channels(background);
+  const surface = channels(backdrop);
+  const opacity = fill[3] ?? 1;
+  const visibleFill = fill
+    .slice(0, 3)
+    .map((channel, index) => channel * opacity + surface[index]! * (1 - opacity));
+  const a = luminance(channels(foreground));
+  const b = luminance(visibleFill);
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+};
+
+for (const scheme of ["light", "dark"] as const) {
+  test(`keeps selection and keyboard focus distinct in ${scheme} mode`, async ({ page }) => {
+    await page.emulateMedia({ colorScheme: scheme });
+    await page.goto("/user");
+    const pageBackground = await page
+      .locator("html")
+      .evaluate((root) => getComputedStyle(root).backgroundColor);
+    await page.getByRole("button", { name: "Log out" }).focus();
+
+    for (const [name, current, other] of [
+      ["Theme", "System", "Light"],
+      ["Language", "Auto", "English"],
+    ] as const) {
+      await expect(page.getByRole("radiogroup", { name, exact: true })).toBeVisible();
+      const selected = page.getByRole("radio", { name: current, exact: true, checked: true });
+      const unselected = page.getByRole("radio", { name: other, exact: true, checked: false });
+      await page.keyboard.press("Tab");
+      await expect(selected).toBeFocused();
+      await expect(selected).toHaveCSS("outline-style", "solid");
+      await expect(selected).toHaveCSS("outline-width", "3px");
+      await expect(selected).toHaveCSS("outline-offset", "2px");
+
+      const active = await selected.evaluate((radio) => {
+        const style = getComputedStyle(radio);
+        const marker = getComputedStyle(radio, "::after");
+        return {
+          text: style.color,
+          fill: style.backgroundColor,
+          focus: style.outlineColor,
+          marker: marker.borderBlockEndColor,
+          markerWidth: marker.borderBlockEndWidth,
+        };
+      });
+      const idle = await unselected.evaluate((radio) => {
+        const style = getComputedStyle(radio);
+        return {
+          text: style.color,
+          fill: style.backgroundColor,
+          border: style.borderBlockEndColor,
+        };
+      });
+      expect(contrast(active.text, active.fill)).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(idle.text, idle.fill)).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(active.fill, idle.fill)).toBeGreaterThanOrEqual(3);
+      expect(contrast(idle.border, idle.fill)).toBeGreaterThanOrEqual(3);
+      expect(contrast(idle.border, pageBackground)).toBeGreaterThanOrEqual(3);
+      expect(contrast(active.focus, pageBackground)).toBeGreaterThanOrEqual(3);
+      expect(contrast(active.focus, idle.fill)).toBeGreaterThanOrEqual(3);
+      expect(active.markerWidth).toBe("2px");
+      expect(contrast(active.marker, active.fill)).toBeGreaterThanOrEqual(3);
+    }
+  });
+}
+
+test("keeps the selected segment readable in forced colors", async ({ page }) => {
+  await page.emulateMedia({ forcedColors: "active" });
+  await page.goto("/user");
+  const selected = page.getByRole("radio", { name: "System", exact: true, checked: true });
+  const unselected = page.getByRole("radio", { name: "Light", exact: true, checked: false });
+  const background = await unselected.evaluate((radio) => getComputedStyle(radio).backgroundColor);
+  await expect(selected).not.toHaveCSS("background-color", background);
+  await expect(selected.getByText("System", { exact: true })).toHaveCSS(
+    "forced-color-adjust",
+    "none",
+  );
+  const active = await selected.evaluate((radio) => {
+    const style = getComputedStyle(radio);
+    const marker = getComputedStyle(radio, "::after");
+    return {
+      fill: style.backgroundColor,
+      text: style.color,
+      markerWidth: marker.borderBlockEndWidth,
+      backdrop: getComputedStyle(radio.closest("article")!).backgroundColor,
+    };
+  });
+  expect(contrast(active.text, active.fill, active.backdrop)).toBeGreaterThanOrEqual(4.5);
+  expect(active.markerWidth).toBe("2px");
+});
+
 test("allows theme changes when browser storage is unavailable", async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(window, "localStorage", {
