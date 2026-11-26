@@ -9,26 +9,17 @@ export default defineConfig({
     browserName: "chromium",
     locale: "en-US",
   },
-  webServer: [
-    {
-      command: "pnpm dev",
-      cwd: fileURLToPath(new URL(".", import.meta.url)),
-      url: "http://localhost:5173",
-      reuseExistingServer: false,
+  webServer: {
+    command: "pnpm --dir ../frontend build --emptyOutDir=false && go run ./cmd/handlat",
+    cwd: fileURLToPath(new URL("../backend/", import.meta.url)),
+    env: {
+      PORT: "8080",
+      DATABASE_PATH: ":memory:",
+      WEBAUTHN_RP_ID: "localhost",
+      WEBAUTHN_ORIGIN: "http://localhost:8080",
     },
-    {
-      command: "go run ./cmd/handlat",
-      cwd: fileURLToPath(new URL("../backend/", import.meta.url)),
-      env: {
-        PORT: "8080",
-        DATABASE_PATH: ":memory:",
-        WEBAUTHN_RP_ID: "localhost",
-        WEBAUTHN_ORIGIN: "http://localhost:8080",
-        EXTERNAL_WEB_SERVER_ADDRESS: "http://localhost:5173",
-      },
-      url: "http://localhost:8080/api/auth/me",
-      reuseExistingServer: false,
-      timeout: 120_000,
-    },
-  ],
+    url: "http://localhost:8080/api/auth/me",
+    reuseExistingServer: false,
+    timeout: 120_000,
+  },
 });

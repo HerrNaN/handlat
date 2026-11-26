@@ -2,22 +2,22 @@
   color-scheme: light dark;
   background-color: var(--wa-color-surface-default);
 
-  --wa-color-surface-default: light-dark(#f7f3ed, #201c19);
-  --wa-color-surface-raised: light-dark(#fffcf8, #2b2521);
+  --wa-color-surface-default: #f7f3ed;
+  --wa-color-surface-raised: #fffcf8;
   --wa-color-surface-lowered: var(--wa-color-surface-default);
-  --wa-color-surface-border: light-dark(#e6ded5, #443a33);
-  --wa-color-text-normal: light-dark(#352b28, #f2e9de);
-  --wa-color-text-quiet: light-dark(#756a63, #baada1);
+  --wa-color-surface-border: #e6ded5;
+  --wa-color-text-normal: #352b28;
+  --wa-color-text-quiet: #756a63;
   --wa-color-text-link: var(--wa-color-brand-fill-loud);
   --wa-color-focus: var(--wa-color-brand-fill-loud);
 
-  --wa-color-brand-fill-normal: light-dark(#f4e1d9, #422d26);
+  --wa-color-brand-fill-normal: #f4e1d9;
   --wa-color-brand-fill-quiet: color-mix(
     in srgb,
     var(--wa-color-brand-fill-normal),
     var(--wa-color-surface-raised)
   );
-  --wa-color-brand-fill-loud: light-dark(#a83e32, #e58d78);
+  --wa-color-brand-fill-loud: #a83e32;
   --wa-color-brand-border-quiet: var(--wa-color-brand-fill-normal);
   --wa-color-brand-border-normal: color-mix(
     in srgb,
@@ -27,7 +27,7 @@
   --wa-color-brand-border-loud: var(--wa-color-brand-fill-loud);
   --wa-color-brand-on-quiet: var(--wa-color-brand-fill-loud);
   --wa-color-brand-on-normal: var(--wa-color-brand-fill-loud);
-  --wa-color-brand-on-loud: light-dark(#ffffff, #2b1812);
+  --wa-color-brand-on-loud: #ffffff;
 
   --wa-color-neutral-fill-quiet: color-mix(
     in srgb,
@@ -42,14 +42,14 @@
     var(--wa-color-surface-border),
     var(--wa-color-neutral-border-loud)
   );
-  --wa-color-neutral-border-loud: light-dark(#847568, #817267);
+  --wa-color-neutral-border-loud: #847568;
   --wa-color-neutral-on-quiet: var(--wa-color-text-quiet);
   --wa-color-neutral-on-normal: var(--wa-color-text-normal);
   --wa-color-neutral-on-loud: var(--wa-color-surface-raised);
 
-  --wa-color-success-fill-quiet: light-dark(#edf0e4, #293123);
-  --wa-color-success-fill-normal: light-dark(#e0e8d4, #313c29);
-  --wa-color-success-fill-loud: light-dark(#48613a, #a9c28d);
+  --wa-color-success-fill-quiet: #edf0e4;
+  --wa-color-success-fill-normal: #e0e8d4;
+  --wa-color-success-fill-loud: #48613a;
   --wa-color-success-border-quiet: var(--wa-color-success-fill-normal);
   --wa-color-success-border-normal: color-mix(
     in srgb,
@@ -61,9 +61,9 @@
   --wa-color-success-on-normal: var(--wa-color-success-fill-loud);
   --wa-color-success-on-loud: var(--wa-color-surface-raised);
 
-  --wa-color-warning-fill-quiet: light-dark(#faf0e0, #36291d);
-  --wa-color-warning-fill-normal: light-dark(#f6e5c8, #45321f);
-  --wa-color-warning-fill-loud: light-dark(#805414, #edbc73);
+  --wa-color-warning-fill-quiet: #faf0e0;
+  --wa-color-warning-fill-normal: #f6e5c8;
+  --wa-color-warning-fill-loud: #805414;
   --wa-color-warning-border-quiet: var(--wa-color-warning-fill-normal);
   --wa-color-warning-border-normal: color-mix(
     in srgb,
@@ -75,9 +75,9 @@
   --wa-color-warning-on-normal: var(--wa-color-warning-fill-loud);
   --wa-color-warning-on-loud: var(--wa-color-surface-raised);
 
-  --wa-color-danger-fill-quiet: light-dark(#f8ecec, #38262b);
-  --wa-color-danger-fill-normal: light-dark(#f4dfe3, #432831);
-  --wa-color-danger-fill-loud: light-dark(#933447, #f0a2ae);
+  --wa-color-danger-fill-quiet: #f8ecec;
+  --wa-color-danger-fill-normal: #f4dfe3;
+  --wa-color-danger-fill-loud: #933447;
   --wa-color-danger-border-quiet: var(--wa-color-danger-fill-normal);
   --wa-color-danger-border-normal: color-mix(
     in srgb,
@@ -90,6 +90,33 @@
   --wa-color-danger-on-loud: var(--wa-color-surface-raised);
 
   --wa-form-control-placeholder-color: var(--wa-color-text-quiet);
+}
+
+/* The mode class keeps the palette in sync with Handlat's preference after CSS compilation. */
+:root.wa-dark {
+  --wa-color-surface-default: #201c19;
+  --wa-color-surface-raised: #2b2521;
+  --wa-color-surface-border: #443a33;
+  --wa-color-text-normal: #f2e9de;
+  --wa-color-text-quiet: #baada1;
+
+  --wa-color-brand-fill-normal: #422d26;
+  --wa-color-brand-fill-loud: #e58d78;
+  --wa-color-brand-on-loud: #2b1812;
+
+  --wa-color-neutral-border-loud: #817267;
+
+  --wa-color-success-fill-quiet: #293123;
+  --wa-color-success-fill-normal: #313c29;
+  --wa-color-success-fill-loud: #a9c28d;
+
+  --wa-color-warning-fill-quiet: #36291d;
+  --wa-color-warning-fill-normal: #45321f;
+  --wa-color-warning-fill-loud: #edbc73;
+
+  --wa-color-danger-fill-quiet: #38262b;
+  --wa-color-danger-fill-normal: #432831;
+  --wa-color-danger-fill-loud: #f0a2ae;
 }
 
 a {
