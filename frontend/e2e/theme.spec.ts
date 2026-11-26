@@ -12,11 +12,11 @@ const expectScheme = async (page: Page, scheme: "light" | "dark") => {
   await expect(root).toHaveCSS("color-scheme", scheme);
   await expect(root).toHaveClass(`wa-${scheme}`);
   await expect(root).toHaveCSS("background-color", background);
-  const themeColors = page.locator('meta[name="theme-color"]');
-  await expect(themeColors).toHaveCount(2);
-  for (const meta of await themeColors.all()) {
-    await expect(meta).toHaveAttribute("content", background);
-  }
+  await expect(page.locator('meta[name="theme-color"]')).toHaveCount(1);
+  await expect(page.locator('meta[name="theme-color"]:not([media])')).toHaveAttribute(
+    "content",
+    background,
+  );
 };
 
 const selectTheme = async (page: Page, theme: "Light" | "Dark" | "System") => {
@@ -24,6 +24,16 @@ const selectTheme = async (page: Page, theme: "Light" | "Dark" | "System") => {
   await radio.click();
   await expect(radio).toBeChecked();
 };
+
+test("provides matching launch and theme colors for the installed app", async ({ request }) => {
+  const manifest = await request.get("/manifest.webmanifest");
+  await expect(manifest).toBeOK();
+  expect(await manifest.json()).toMatchObject({
+    display: "standalone",
+    background_color: "#f7f3ed",
+    theme_color: "#f7f3ed",
+  });
+});
 
 test("defaults to System and follows device appearance changes", async ({ page }) => {
   await page.emulateMedia({ colorScheme: "light" });

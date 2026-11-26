@@ -30,6 +30,10 @@ export const setTheme = (value: string) => {
 
 export const initializeTheme = () => {
   const system = matchMedia("(prefers-color-scheme: dark)");
+  const themeColor = document.querySelector<HTMLMetaElement>(
+    'meta[name="theme-color"]:not([media])',
+  );
+  const initialDarkThemeColor = document.querySelector('meta[name="theme-color"][media]');
   const applyTheme = () => {
     const preference = get(current);
     const dark = preference === "dark" || (preference === "system" && system.matches);
@@ -37,10 +41,9 @@ export const initializeTheme = () => {
     root.classList.toggle("wa-dark", dark);
     root.classList.toggle("wa-light", !dark);
     root.style.colorScheme = dark ? "dark" : "light";
-    const background = getComputedStyle(root).backgroundColor;
-    document.querySelectorAll('meta[name="theme-color"]').forEach((meta) => {
-      meta.setAttribute("content", background);
-    });
+    if (themeColor) {
+      themeColor.content = getComputedStyle(root).backgroundColor;
+    }
   };
   const onStorage = (event: StorageEvent) => {
     if (event.key === storageKey || event.key === null) {
@@ -49,6 +52,8 @@ export const initializeTheme = () => {
   };
 
   current.subscribe(applyTheme);
+  // The media-qualified color is only needed before the app resolves its theme.
+  initialDarkThemeColor?.remove();
   system.addEventListener("change", applyTheme);
   window.addEventListener("storage", onStorage);
 };
