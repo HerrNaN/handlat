@@ -101,11 +101,18 @@ test("allows theme changes when browser storage is unavailable", async ({ page }
   await expectScheme(page, "light");
 });
 
-test("applies the palette to shopping-list rows and the add button", async ({ page }) => {
+test("applies the palette to shopping-list rows and actions", async ({ page }) => {
   const list = {
     id: "theme-list",
     name: "Shopping List",
-    items: [{ id: "milk", text: "Milk", createdAt: "2026-01-01T00:00:00Z" }],
+    items: [
+      {
+        id: "milk",
+        text: "Milk",
+        createdAt: "2026-01-01T00:00:00Z",
+        checkedAt: "2026-01-01T00:01:00Z",
+      },
+    ],
     memberCount: 1,
   };
   await page.route("**/api/lists/theme-list/events", (route) =>
@@ -116,14 +123,39 @@ test("applies the palette to shopping-list rows and the add button", async ({ pa
 
   const row = page.getByRole("button", { name: "Edit Milk", exact: true }).locator("..");
   const add = page.getByRole("button", { name: "Add item", exact: true });
+  const checkbox = row.locator("wa-checkbox");
+  const checkmark = checkbox.locator('[part~="control"]');
+  const swipeDelete = page.locator('.underlay:has(> wa-icon[name="trash"])');
+  await expect(page.getByRole("checkbox", { name: "Milk" })).toBeChecked();
   await expect(row).toHaveCSS("background-color", "rgb(255, 252, 248)");
   await expect(add).toHaveCSS("background-color", "rgb(168, 62, 50)");
   await expect(add).toHaveCSS("color", "rgb(255, 255, 255)");
+  await expect(checkbox).toHaveCSS("background-color", "rgb(237, 240, 228)");
+  await expect(checkmark).toHaveCSS("background-color", "rgb(72, 97, 58)");
+  await expect(checkmark).toHaveCSS("color", "rgb(255, 252, 248)");
+  await expect(swipeDelete).toHaveCSS("background-color", "rgb(147, 52, 71)");
 
   await page.emulateMedia({ colorScheme: "dark" });
   await expect(row).toHaveCSS("background-color", "rgb(43, 37, 33)");
   await expect(add).toHaveCSS("background-color", "rgb(229, 141, 120)");
   await expect(add).toHaveCSS("color", "rgb(43, 24, 18)");
+  await expect(checkbox).toHaveCSS("background-color", "rgb(41, 49, 35)");
+  await expect(checkmark).toHaveCSS("background-color", "rgb(169, 194, 141)");
+  await expect(checkmark).toHaveCSS("color", "rgb(43, 37, 33)");
+  await expect(swipeDelete).toHaveCSS("background-color", "rgb(240, 162, 174)");
+});
+
+test("uses the warning palette for the recipe opt-in", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.goto("/user");
+
+  const enable = page.getByRole("button", { name: "Enable", exact: true });
+  await expect(enable).toHaveCSS("background-color", "rgb(246, 229, 200)");
+  await expect(enable).toHaveCSS("color", "rgb(128, 84, 20)");
+
+  await page.emulateMedia({ colorScheme: "dark" });
+  await expect(enable).toHaveCSS("background-color", "rgb(69, 50, 31)");
+  await expect(enable).toHaveCSS("color", "rgb(237, 188, 115)");
 });
 
 test("updates the empty-list illustration when the theme changes", async ({ page }) => {
