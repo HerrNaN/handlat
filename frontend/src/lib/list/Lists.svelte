@@ -18,7 +18,8 @@
   const createList = createMutation(() => createListMutation());
   const setDefault = createMutation(() => defaultShoppingListMutation());
   const query = createQuery(() => summariesQuery($session?.id));
-  const canChangeDefault = $derived((query.data?.length ?? 0) > 1 && !setDefault.isPending);
+  const hasMultipleLists = $derived((query.data?.length ?? 0) > 1);
+  const canChangeDefault = $derived(hasMultipleLists && !setDefault.isPending);
   const handleCreateList = () => {
     if (!$session) {
       return;
@@ -82,13 +83,14 @@
     {:else}
       <ul>
         {#each query.data ?? [] as list (list.id)}
+          {@const showDefaultBadge = hasMultipleLists && list.isDefault}
           <li>
             <a href={p("/lists/:id", { params: { id: list.id } })}>
               <wa-icon name="list-check"></wa-icon>
               <span class="name">{list.name}</span>
-              {#if list.isDefault || list.memberCount > 1}
+              {#if showDefaultBadge || list.memberCount > 1}
                 <span class="badges">
-                  {#if list.isDefault}
+                  {#if showDefaultBadge}
                     <wa-badge variant="brand" appearance="filled" pill
                       >{$messages.lists.defaultBadge}</wa-badge
                     >

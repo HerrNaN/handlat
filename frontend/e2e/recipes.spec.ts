@@ -353,7 +353,8 @@ test.describe("with Recipes enabled", () => {
     const weekendBadge = weekendList.getByText("Default", { exact: true });
     const firstActions = page.getByRole("button", { name: "Actions for Shopping List" });
     const setDefault = page.getByRole("menuitem", { name: "Set as default", exact: true });
-    await expect(firstBadge).toBeVisible();
+    await expect(firstList).toBeVisible();
+    await expect(firstBadge).toHaveCount(0);
     await firstActions.click();
     await expect(page.getByRole("menuitem", { name: "Rename", exact: true })).toBeVisible();
     await expect(setDefault).toHaveCount(0);

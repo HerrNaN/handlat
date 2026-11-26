@@ -62,11 +62,13 @@ test("shares a list with a logged-out invitee who creates an account and accepts
     await expect(invitee.getByRole("checkbox", { name: "Milk", exact: true })).toBeChecked();
 
     await invitee.getByRole("button", { name: "Back", exact: true }).click();
-    await expect(invitee.getByRole("link", { name: /Shopping List/ })).toBeVisible();
+    const sharedList = invitee.getByRole("link", { name: /Shopping List/ });
+    await expect(sharedList.getByText("Shared", { exact: true })).toBeVisible();
+    await expect(sharedList.getByText("Default", { exact: true })).toHaveCount(0);
     await invitee.getByRole("button", { name: "Actions for Shopping List", exact: true }).click();
     await invitee.getByRole("menuitem", { name: "Leave list", exact: true }).click();
     await invitee.getByRole("button", { name: "Leave list", exact: true }).click();
-    await expect(invitee.getByRole("link", { name: /Shopping List/ })).toHaveCount(0);
+    await expect(sharedList).toHaveCount(0);
     await expect(page.getByRole("checkbox", { name: "Milk", exact: true })).toBeChecked();
 
     await invitee.goto(link);
