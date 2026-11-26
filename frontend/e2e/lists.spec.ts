@@ -327,7 +327,11 @@ test("parses quantities and edits amount and unit independently", async ({ page,
   await page.getByText("Salt 1.75 tsp", { exact: true }).click();
   const dialog = page.locator('wa-dialog[label="Edit Item"]');
   const amount = dialog.getByRole("textbox", { name: "Amount", exact: true });
-  const unit = dialog.getByRole("combobox", { name: "Unit", exact: true });
+  const unitSelect = dialog.locator("wa-select").filter({
+    has: page.getByRole("combobox", { name: "Unit", exact: true }),
+  });
+  const unit = unitSelect.getByRole("combobox");
+  const unitOptions = unitSelect.getByRole("listbox", { includeHidden: true });
   await expect(amount).toHaveValue("1.75");
 
   const patch = () => page.waitForRequest((request) => request.method() === "PATCH");
@@ -344,6 +348,8 @@ test("parses quantities and edits amount and unit independently", async ({ page,
   await unit.click();
   await page.getByRole("option", { name: "pk", exact: true }).click();
   expect((await update).postDataJSON()).toEqual({ unit: "pkt" });
+  // The select can finish closing after the change event triggers the save.
+  await expect(unitOptions).toHaveJSProperty("hidden", true);
   await expect(amount).toBeEnabled();
   await expect(amount).toHaveValue("2.25");
 
