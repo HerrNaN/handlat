@@ -405,6 +405,7 @@ test.describe("with Recipes enabled", () => {
 
     await page.goto("/lists");
     await firstList.click();
+    await expect(page.getByRole("heading", { name: "Shopping List", exact: true })).toBeVisible();
     await firstActions.click();
     await setDefault.click();
     await page.getByRole("button", { name: "Back", exact: true }).click();
