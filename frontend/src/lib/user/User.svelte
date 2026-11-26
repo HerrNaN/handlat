@@ -182,7 +182,10 @@
     {#if appVersion}
       <section aria-labelledby="about-heading">
         <h2 id="about-heading">{$messages.profile.about}</h2>
-        <p class="app-version">{$messages.profile.version} {appVersion}</p>
+        <dl>
+          <dt>{$messages.profile.version}</dt>
+          <dd>{appVersion}</dd>
+        </dl>
       </section>
     {/if}
   </div>
@@ -215,7 +218,15 @@
     margin: 0;
   }
 
-  .app-version {
+  dl {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    column-gap: var(--wa-space-xs);
+    margin: 0;
+  }
+
+  dd {
+    margin: 0;
     overflow-wrap: anywhere;
   }
 
