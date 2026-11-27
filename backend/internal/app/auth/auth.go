@@ -1,7 +1,9 @@
 package auth
 
 import (
+	"bytes"
 	"crypto/rand"
+	"crypto/sha256"
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
@@ -253,7 +255,23 @@ func (h *Handler) finishRegistration(w http.ResponseWriter, r *http.Request) {
 	h.writeAccount(w, http.StatusCreated, u.id, u.name, false)
 }
 
+func passkeyTokenHash(hash []byte, path string) []byte {
+	// Keep existing login challenges valid across deployments.
+	if path == "/api/auth/login" {
+		return hash
+	}
+
+	scoped := sha256.Sum256(append(hash, path...))
+
+	return scoped[:]
+}
+
 func (h *Handler) beginLogin(w http.ResponseWriter, r *http.Request) {
+	h.BeginPasskey(w, r, "/api/auth/login")
+}
+
+// BeginPasskey starts a discoverable passkey ceremony bound to a browser path.
+func (h *Handler) BeginPasskey(w http.ResponseWriter, r *http.Request, path string) {
 	options, ceremony, err := h.wa.BeginDiscoverableLogin(
 		webauthn.WithUserVerification(protocol.VerificationRequired),
 	)
@@ -275,7 +293,7 @@ func (h *Handler) beginLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = h.queries.InsertLoginAttempt(r.Context(), db.InsertLoginAttemptParams{
-		TokenHash: hash,
+		TokenHash: passkeyTokenHash(hash, path),
 		Ceremony:  string(ceremonyJSON),
 		ExpiresAt: time.Now().Add(loginTTL).Unix(),
 	})
@@ -284,39 +302,43 @@ func (h *Handler) beginLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.cookie(w, loginCookie, loginToken, "/api/auth/login", loginTTL)
+	h.cookie(w, loginCookie, loginToken, path, loginTTL)
 	h.writeJSON(w, http.StatusOK, options.Response, "write login options")
 }
 
-func (h *Handler) finishLogin(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) verifyPasskey(
+	w http.ResponseWriter,
+	r *http.Request,
+	path string,
+) (webauthn.User, *webauthn.Credential) {
 	cookie, err := r.Cookie(loginCookie)
 	if err != nil {
 		util.WriteAPIError(w, http.StatusBadRequest, "sign_in_expired", nil)
-		return
+		return nil, nil
 	}
 
 	hash, err := tokenHash(cookie.Value)
 	if err != nil {
 		util.WriteAPIError(w, http.StatusBadRequest, "sign_in_expired", nil)
-		return
+		return nil, nil
 	}
 
 	// Consume the challenge atomically to prevent replaying a login ceremony.
-	ceremonyJSON, err := h.queries.PopLoginAttempt(r.Context(), hash)
+	ceremonyJSON, err := h.queries.PopLoginAttempt(r.Context(), passkeyTokenHash(hash, path))
 	if errors.Is(err, sql.ErrNoRows) {
 		util.WriteAPIError(w, http.StatusBadRequest, "sign_in_expired", nil)
-		return
+		return nil, nil
 	} else if err != nil {
 		h.fail(w, "consume login attempt", err)
-		return
+		return nil, nil
 	}
 
-	h.cookie(w, loginCookie, "", "/api/auth/login", -time.Second)
+	h.cookie(w, loginCookie, "", path, -time.Second)
 
 	var ceremony webauthn.SessionData
 	if err = json.Unmarshal([]byte(ceremonyJSON), &ceremony); err != nil {
 		h.fail(w, "decode login", err)
-		return
+		return nil, nil
 	}
 
 	ctx := r.Context()
@@ -347,6 +369,51 @@ func (h *Handler) finishLogin(w http.ResponseWriter, r *http.Request) {
 		h.log.Error("Passkey verification failed", "err", err)
 		util.WriteAPIError(w, http.StatusBadRequest, "passkey_verification_failed", nil)
 
+		return nil, nil
+	}
+
+	return u, credential
+}
+
+// ConfirmPasskey verifies a fresh ceremony for the signed-in account, or
+// identifies the account from the passkey when the browser has no session.
+func (h *Handler) ConfirmPasskey(w http.ResponseWriter, r *http.Request, path string) []byte {
+	u, credential := h.verifyPasskey(w, r, path)
+	if u == nil {
+		return nil
+	}
+
+	account, err := h.sessionAccount(r)
+	if err == nil && !bytes.Equal(account.ID, u.WebAuthnID()) {
+		util.WriteAPIError(w, http.StatusForbidden, "passkey_account_mismatch", nil)
+		return nil
+	}
+
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		h.fail(w, "load session for passkey confirmation", err)
+		return nil
+	}
+
+	credentialJSON, err := json.Marshal(credential)
+	if err != nil {
+		h.fail(w, "encode confirmed passkey", err)
+		return nil
+	}
+
+	err = h.queries.UpdateCredential(r.Context(), db.UpdateCredentialParams{
+		ID: credential.ID, UserID: u.WebAuthnID(), Data: string(credentialJSON),
+	})
+	if err != nil {
+		h.fail(w, "update confirmed passkey", err)
+		return nil
+	}
+
+	return u.WebAuthnID()
+}
+
+func (h *Handler) finishLogin(w http.ResponseWriter, r *http.Request) {
+	u, credential := h.verifyPasskey(w, r, "/api/auth/login")
+	if u == nil {
 		return
 	}
 

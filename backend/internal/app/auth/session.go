@@ -12,10 +12,15 @@ import (
 
 type accountKey struct{}
 
-// UserID is only populated by RequireSession, never from client input.
+// UserID is set by the authentication middleware.
 func UserID(ctx context.Context) []byte {
-	account, _ := ctx.Value(accountKey{}).(db.GetUserBySessionRow)
-	return account.ID
+	id, _ := ctx.Value(accountKey{}).([]byte)
+	return id
+}
+
+// WithUserID attaches an already authenticated account to an internal request.
+func WithUserID(ctx context.Context, id []byte) context.Context {
+	return context.WithValue(ctx, accountKey{}, id)
 }
 
 func (h *Handler) sessionAccount(r *http.Request) (db.GetUserBySessionRow, error) {
@@ -50,6 +55,6 @@ func (h *Handler) RequireSession(next http.Handler) http.Handler {
 			return
 		}
 
-		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), accountKey{}, account)))
+		next.ServeHTTP(w, r.WithContext(WithUserID(r.Context(), account.ID)))
 	})
 }

@@ -22,6 +22,7 @@
     if (
       $session === null &&
       route.pathname !== "/login" &&
+      route.pathname !== "/connect" &&
       !route.pathname.startsWith("/invitations/")
     ) {
       void navigate("/login", { replace: true });
@@ -30,14 +31,16 @@
 </script>
 
 <main>
-  <InstallBanner />
+  {#if route.pathname !== "/connect"}
+    <InstallBanner />
+  {/if}
   <div class="wrapper">
     {#if children}
       {@render children()}
     {/if}
   </div>
 
-  <nav>
+  <nav hidden={route.pathname === "/connect"}>
     <ul>
       <li class:active={recipesEnabled && route.pathname.startsWith("/recipes")}>
         {#if recipesEnabled}
