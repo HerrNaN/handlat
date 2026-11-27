@@ -153,7 +153,7 @@
     display: flex;
     align-items: center;
     padding-inline-end: var(--wa-space-xs);
-    background-color: var(--wa-color-neutral-fill-quiet);
+    background-color: var(--handlat-row-background);
     border-radius: var(--wa-border-radius-s);
   }
 
@@ -166,7 +166,6 @@
     padding: var(--wa-space-m);
     text-decoration: none;
     color: var(--wa-color-text-normal);
-    background-color: var(--wa-color-neutral-fill-quiet);
     border-radius: var(--wa-border-radius-s);
   }
 

@@ -61,7 +61,7 @@
     min-height: 3rem;
     display: grid;
     grid-template-columns: var(--wa-space-2xs) auto minmax(0, 1fr);
-    background-color: var(--wa-color-surface-default);
+    background-color: var(--handlat-row-background);
     border-radius: var(--wa-border-radius-s);
   }
   button {
@@ -91,10 +91,16 @@
     -webkit-tap-highlight-color: transparent;
     padding: 0.675rem;
     border-radius: var(--wa-border-radius-s);
-    background-color: var(--wa-color-neutral-fill-quiet);
+    background-color: var(
+      --handlat-checkbox-padding-background,
+      var(--wa-color-neutral-fill-quiet)
+    );
 
     &:state(checked) {
-      background-color: var(--wa-color-success-fill-quiet);
+      background-color: var(
+        --handlat-checked-checkbox-padding-background,
+        var(--wa-color-success-fill-quiet)
+      );
 
       &::part(control) {
         color: var(--wa-color-success-on-loud);
