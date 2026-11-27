@@ -101,6 +101,8 @@
 
 :root.wa-light:is([data-theme="soft-white"], [data-theme="neutral"]) {
   --handlat-row-background: #f7f5f1;
+  --handlat-checkbox-padding-background: var(--wa-color-neutral-fill-normal);
+  --handlat-checked-checkbox-padding-background: var(--wa-color-success-fill-normal);
 }
 
 :root[data-theme="soft-white"] {

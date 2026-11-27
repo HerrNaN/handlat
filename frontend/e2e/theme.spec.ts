@@ -336,10 +336,11 @@ test("applies the palette to shopping-list rows and actions", async ({ page }) =
 });
 
 test("uses a subtle tint for Soft White rows on shopping lists and recipes", async ({ page }) => {
-  const summary = { id: "theme-list", name: "Shopping List", itemCount: 1, memberCount: 1 };
+  const summary = { id: "theme-list", name: "Shopping List", itemCount: 2, memberCount: 1 };
   const snapshot = {
     ...summary,
     items: [
+      { id: "apples", text: "Apples", createdAt: "2026-01-01T00:00:00Z" },
       {
         id: "milk",
         text: "Milk",
@@ -373,7 +374,18 @@ test("uses a subtle tint for Soft White rows on shopping lists and recipes", asy
   const list = page.getByRole("link", { name: /Shopping List/ });
   await expectRow(list.locator(".."));
   await list.click();
-  await expectRow(page.getByRole("button", { name: "Edit Milk", exact: true }).locator(".."));
+  const checkedRow = page.getByRole("button", { name: "Edit Milk", exact: true }).locator("..");
+  const uncheckedRow = page.getByRole("button", { name: "Edit Apples", exact: true }).locator("..");
+  await expectRow(checkedRow);
+  await expectRow(uncheckedRow);
+  await expect(checkedRow.locator("wa-checkbox")).toHaveCSS(
+    "background-color",
+    "rgb(224, 232, 212)",
+  );
+  await expect(uncheckedRow.locator("wa-checkbox")).toHaveCSS(
+    "background-color",
+    "rgb(230, 222, 213)",
+  );
   const checkedText = await page.getByText("Milk", { exact: true }).evaluate((label) => {
     const row = label.closest(".content")!;
     return { color: getComputedStyle(label).color, fill: getComputedStyle(row).backgroundColor };
