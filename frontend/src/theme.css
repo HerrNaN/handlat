@@ -94,12 +94,12 @@
   --wa-form-control-placeholder-color: var(--wa-color-text-quiet);
 }
 
-:root:is([data-theme="soft-white"], [data-theme="neutral"]) {
+:root:is([data-theme="soft-white"], [data-theme="neutral"], [data-theme="beet"]) {
   --wa-color-surface-default: #fcfbf9;
   --wa-color-surface-raised: #ffffff;
 }
 
-:root.wa-light:is([data-theme="soft-white"], [data-theme="neutral"]) {
+:root.wa-light:is([data-theme="soft-white"], [data-theme="neutral"], [data-theme="beet"]) {
   --handlat-row-background: #f7f5f1;
   --handlat-checkbox-padding-background: var(--wa-color-neutral-fill-normal);
   --handlat-checked-checkbox-padding-background: var(--wa-color-success-fill-normal);
@@ -114,14 +114,12 @@
 }
 
 :root[data-theme="beet"] {
-  --handlat-header-background: #f0e0ec;
-  --wa-color-surface-default: #fbf2e4;
-  --wa-color-surface-raised: #fff9ed;
-  --wa-color-surface-border: #ead8df;
+  --handlat-header-background: #f1e9ed;
+  --wa-color-surface-border: #eadfe5;
   --wa-color-text-normal: #36172f;
   --wa-color-text-quiet: #74556b;
-  --wa-color-brand-fill-normal: #f6ddd7;
-  --wa-color-brand-fill-loud: #b12d23;
+  --wa-color-brand-fill-normal: #f5dbe5;
+  --wa-color-brand-fill-loud: #9d2c62;
   --wa-color-brand-on-loud: #feefd1;
   --wa-color-neutral-border-loud: #927387;
 }
@@ -170,8 +168,8 @@
   --wa-color-surface-border: #52364b;
   --wa-color-text-normal: #feefd1;
   --wa-color-text-quiet: #d1b4c8;
-  --wa-color-brand-fill-normal: #46242f;
-  --wa-color-brand-fill-loud: #ff6859;
+  --wa-color-brand-fill-normal: #46233c;
+  --wa-color-brand-fill-loud: #f674a5;
   --wa-color-brand-on-loud: #280a24;
   --wa-color-neutral-border-loud: #9b788e;
 }

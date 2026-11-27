@@ -20,7 +20,7 @@ const themeColors = {
     dark: ["rgb(37, 34, 31)", "rgb(38, 40, 43)", "#26282b"],
   },
   beet: {
-    light: ["rgb(251, 242, 228)", "rgb(240, 224, 236)", "#f0e0ec"],
+    light: ["rgb(252, 251, 249)", "rgb(241, 233, 237)", "#f1e9ed"],
     dark: ["rgb(37, 20, 35)", "rgb(72, 10, 62)", "#480a3e"],
   },
 } as const;
