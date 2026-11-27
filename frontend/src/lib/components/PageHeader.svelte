@@ -65,6 +65,6 @@
   }
 
   .leading {
-    margin-inline-start: calc(-1 * var(--wa-space-m));
+    margin-inline-start: calc(-1 * var(--wa-space-s));
   }
 </style>
