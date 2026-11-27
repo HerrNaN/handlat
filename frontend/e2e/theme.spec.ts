@@ -4,7 +4,7 @@ test.beforeEach(async ({ context }) => {
   await context.route("**/api/auth/me", (route) =>
     route.fulfill({ json: { id: "theme-user", name: "Theme User" } }),
   );
-  await page.route("**/api/lists", (route) => route.fulfill({ json: [] }));
+  await context.route("**/api/lists", (route) => route.fulfill({ json: [] }));
 });
 
 const themeColors = {
