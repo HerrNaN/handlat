@@ -17,6 +17,12 @@ export const sv: Messages = {
     recipesEnableInProfile: "Aktivera i profilen",
     user: "Profil",
   },
+  install: {
+    title: `Installera ${appName}`,
+    description: "Öppna dina inköpslistor direkt från hemskärmen.",
+    action: "Installera",
+    dismiss: "Stäng installationsmeddelandet",
+  },
   recipes: {
     description:
       "Spara dina recept, ändra antalet portioner och lägg till ingredienser i en inköpslista.",
@@ -111,6 +117,8 @@ export const sv: Messages = {
     emptyTitle: "Här börjar din första lista",
     emptyDescription: "För veckohandlingen, en snabb tur eller något du vill komma ihåg.",
     shared: "Delad",
+    defaultBadge: "Förvald",
+    setDefault: "Ange som förvald",
     loading: "Laddar listor",
     loadingList: "Laddar listan",
     actions: "Listalternativ",
@@ -166,6 +174,7 @@ export const sv: Messages = {
     loadList: "Det gick inte att ladda listan. Försök igen.",
     saveList: "Det gick inte att spara listan. Försök igen.",
     loadLists: "Det gick inte att ladda dina listor. Försök igen.",
+    setDefaultList: "Det gick inte att ändra din förvalda inköpslista. Försök igen.",
     createList: "Det gick inte att skapa listan. Försök igen.",
     renameList: "Det gick inte att byta namn på listan. Försök igen.",
     leaveList: "Det gick inte att lämna listan. Försök igen.",

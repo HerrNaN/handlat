@@ -14,7 +14,7 @@
   import { addItems, type ListSummary, type NewItem, type ShoppingList } from "../list/api";
   import { classify, departments } from "../list/classifier";
   import { formatQuantity, maxAmountLength } from "../list/quantity";
-  import { listKey, summariesKey, summariesQuery } from "../list/queries";
+  import { listKey, preferredList, summariesKey, summariesQuery } from "../list/queries";
   import { queryClient } from "../query";
   import { session } from "../user/session";
   import type { Recipe } from "./api";
@@ -52,7 +52,9 @@
   const selected = $derived(scaled.filter(({ index }) => !excluded.includes(index)));
   const lists = createQuery(() => ({ ...summariesQuery(account), enabled: reviewing }));
   const destination = $derived(
-    lists.data?.length === 1 ? lists.data[0] : lists.data?.find(({ id }) => id === destinationID),
+    destinationID
+      ? lists.data?.find(({ id }) => id === destinationID)
+      : preferredList(lists.data ?? []),
   );
   const canTransfer = $derived(
     Boolean(
@@ -80,6 +82,7 @@
   const review = () => {
     reviewing = true;
     excluded = [];
+    destinationID = "";
     addedTo = undefined;
     transfer.reset();
     if (dialog) {

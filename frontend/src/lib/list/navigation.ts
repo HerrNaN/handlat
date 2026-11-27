@@ -1,20 +1,27 @@
 import { get } from "svelte/store";
 
-import { navigate } from "../../router";
+import { navigate, route } from "../../router";
 import { queryClient } from "../query";
 import { session } from "../user/session";
-import type { ListSummary } from "./api";
-import { summariesKey } from "./queries";
+import { preferredList, summariesQuery } from "./queries";
 
 export const navigateToDefaultList = async () => {
-  const lists = queryClient.getQueryData<ListSummary[]>(summariesKey(get(session)?.id)) ?? [];
-  const defaultList = lists.at(0);
+  const account = get(session)?.id;
+  const pathname = route.pathname;
+  if (!account) {
+    return;
+  }
 
-  if (lists.length === 1 && defaultList) {
+  const lists = await queryClient.fetchQuery(summariesQuery(account)).catch(() => []);
+  if (account !== get(session)?.id || pathname !== route.pathname) {
+    return;
+  }
+
+  const defaultList = preferredList(lists);
+  if (defaultList) {
     return navigate("/lists/:id", {
       params: { id: defaultList.id },
     });
-  } else {
-    return navigate("/lists", { replace: true });
   }
+  return navigate("/lists", { replace: true });
 };

@@ -113,7 +113,7 @@ func TestInvitationLifecycle(t *testing.T) {
 	summaries := f.request(http.MethodGet, "/lists", other, "")
 	require.JSONEq(
 		t,
-		`[{"id":"list","name":"Weekend","itemCount":0,"memberCount":2}]`,
+		`[{"id":"list","name":"Weekend","itemCount":0,"memberCount":2,"isDefault":true}]`,
 		summaries.Body.String(),
 	)
 	// Every member can invite; expiry, invalid tokens and list deletion invalidate links.
@@ -169,6 +169,69 @@ func TestInvitationAcceptedOnceConcurrently(t *testing.T) {
 	count, err := listdb.New(f.conn).CountMembers(t.Context(), "list")
 	require.NoError(t, err)
 	require.EqualValues(t, 2, count)
+}
+
+func TestDefaultShoppingListFollowsMembership(t *testing.T) {
+	f := newFixture(t)
+	other := f.user(t, "other")
+	q := listdb.New(f.conn)
+
+	for _, id := range []string{"list", "weekend"} {
+		require.NoError(t, seedList(t.Context(), q, seedListParams{
+			ID: id, UserID: []byte("owner"), Name: id, Now: time.Now().Unix(),
+		}))
+	}
+
+	setDefault := func(token, id string) int {
+		return f.request(http.MethodPut, "/lists/default", token, `{"listId":"`+id+`"}`).Code
+	}
+	defaults := func(token string) []string {
+		response := f.request(http.MethodGet, "/lists", token, "")
+		require.Equal(t, http.StatusOK, response.Code)
+
+		var summaries []listapi.Summary
+		require.NoError(t, json.Unmarshal(response.Body.Bytes(), &summaries))
+
+		var ids []string
+
+		for _, summary := range summaries {
+			if summary.IsDefault {
+				ids = append(ids, summary.ID)
+			}
+		}
+
+		return ids
+	}
+
+	require.Equal(t, http.StatusUnauthorized, setDefault("", "list"))
+	require.Equal(t, http.StatusNotFound, setDefault(other, "list"))
+	require.Empty(t, defaults(f.owner))
+	require.Equal(t, http.StatusNoContent, setDefault(f.owner, "weekend"))
+	require.Equal(t, []string{"weekend"}, defaults(f.owner))
+	require.Equal(t, http.StatusNoContent, setDefault(f.owner, "list"))
+	require.Equal(t, []string{"list"}, defaults(f.owner))
+
+	require.Equal(
+		t,
+		http.StatusOK,
+		f.request(http.MethodPost, f.invite(t, f.owner)+"/accept", other, "").Code,
+	)
+	require.Equal(t, []string{"list"}, defaults(other))
+
+	require.Equal(
+		t,
+		http.StatusNoContent,
+		f.request(http.MethodDelete, "/lists/list", f.owner, "").Code,
+	)
+	require.Equal(t, []string{"weekend"}, defaults(f.owner))
+	require.Equal(t, []string{"list"}, defaults(other))
+
+	require.Equal(
+		t,
+		http.StatusOK,
+		f.request(http.MethodPost, f.invite(t, other)+"/accept", f.owner, "").Code,
+	)
+	require.Equal(t, []string{"weekend"}, defaults(f.owner))
 }
 
 func TestLeavingRevokesStreamsAndPreservesOtherMembers(t *testing.T) {

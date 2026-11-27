@@ -164,6 +164,21 @@ func (q *Queries) DeleteItem(ctx context.Context, arg DeleteItemParams) error {
 	return err
 }
 
+const ensureDefaultShoppingList = `-- name: EnsureDefaultShoppingList :exec
+INSERT INTO default_shopping_lists (user_id, list_id)
+SELECT list_members.user_id, lists.id FROM lists
+JOIN list_members ON list_members.list_id = lists.id
+WHERE list_members.user_id = ?1
+ORDER BY lists.created_at, lists.id
+LIMIT 1
+ON CONFLICT (user_id) DO NOTHING
+`
+
+func (q *Queries) EnsureDefaultShoppingList(ctx context.Context, userID []byte) error {
+	_, err := q.db.ExecContext(ctx, ensureDefaultShoppingList, userID)
+	return err
+}
+
 const getInvitation = `-- name: GetInvitation :one
 SELECT lists.id, lists.name FROM list_invitations
 JOIN lists ON lists.id = list_invitations.list_id
@@ -265,7 +280,9 @@ func (q *Queries) ListItems(ctx context.Context, listID string) ([]Item, error) 
 
 const listLists = `-- name: ListLists :many
 SELECT lists.id, lists.name, count(items.id) AS item_count,
-    (SELECT count(*) FROM list_members WHERE list_id = lists.id) AS member_count
+    (SELECT count(*) FROM list_members WHERE list_id = lists.id) AS member_count,
+    EXISTS (SELECT 1 FROM default_shopping_lists
+        WHERE default_shopping_lists.list_id = lists.id AND default_shopping_lists.user_id = ?1) AS is_default
 FROM lists LEFT JOIN items ON items.list_id = lists.id AND items.deleted_at IS NULL
 WHERE EXISTS (SELECT 1 FROM list_members WHERE list_members.list_id = lists.id AND list_members.user_id = ?1)
 GROUP BY lists.id ORDER BY lists.created_at, lists.id
@@ -276,6 +293,7 @@ type ListListsRow struct {
 	Name        string
 	ItemCount   int64
 	MemberCount int64
+	IsDefault   bool
 }
 
 func (q *Queries) ListLists(ctx context.Context, userID []byte) ([]ListListsRow, error) {
@@ -292,6 +310,7 @@ func (q *Queries) ListLists(ctx context.Context, userID []byte) ([]ListListsRow,
 			&i.Name,
 			&i.ItemCount,
 			&i.MemberCount,
+			&i.IsDefault,
 		); err != nil {
 			return nil, err
 		}
@@ -384,6 +403,26 @@ type RenameListParams struct {
 func (q *Queries) RenameList(ctx context.Context, arg RenameListParams) error {
 	_, err := q.db.ExecContext(ctx, renameList, arg.Name, arg.ID)
 	return err
+}
+
+const setDefaultShoppingList = `-- name: SetDefaultShoppingList :one
+INSERT INTO default_shopping_lists (list_id, user_id)
+SELECT list_members.list_id, list_members.user_id FROM list_members
+WHERE list_members.list_id = ?1 AND list_members.user_id = ?2
+ON CONFLICT (user_id) DO UPDATE SET list_id = excluded.list_id
+RETURNING default_shopping_lists.list_id
+`
+
+type SetDefaultShoppingListParams struct {
+	ListID string
+	UserID []byte
+}
+
+func (q *Queries) SetDefaultShoppingList(ctx context.Context, arg SetDefaultShoppingListParams) (string, error) {
+	row := q.db.QueryRowContext(ctx, setDefaultShoppingList, arg.ListID, arg.UserID)
+	var list_id string
+	err := row.Scan(&list_id)
+	return list_id, err
 }
 
 const touchList = `-- name: TouchList :exec

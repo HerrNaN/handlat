@@ -58,6 +58,7 @@ type Summary struct {
 	Name        string `json:"name"`
 	ItemCount   int64  `json:"itemCount"`
 	MemberCount int64  `json:"memberCount"`
+	IsDefault   bool   `json:"isDefault,omitempty"`
 }
 
 func New(conn *sql.DB, log *slog.Logger) *Handler {
@@ -73,6 +74,7 @@ func (h *Handler) Register(mux *http.ServeMux, requireSession func(http.Handler)
 	routes := http.NewServeMux()
 	routes.HandleFunc("GET /lists", h.index)
 	routes.HandleFunc("POST /lists", h.create)
+	routes.HandleFunc("PUT /lists/default", h.setDefault)
 	routes.HandleFunc("GET /lists/{id}", h.get)
 	routes.HandleFunc("GET /lists/{id}/events", h.stream)
 	routes.HandleFunc("PATCH /lists/{id}", h.rename)
@@ -102,10 +104,37 @@ func (h *Handler) index(w http.ResponseWriter, r *http.Request) {
 
 	result := make([]Summary, 0, len(rows))
 	for _, row := range rows {
-		result = append(result, Summary{row.ID, row.Name, row.ItemCount, row.MemberCount})
+		result = append(result, Summary{
+			ID:          row.ID,
+			Name:        row.Name,
+			ItemCount:   row.ItemCount,
+			MemberCount: row.MemberCount,
+			IsDefault:   row.IsDefault,
+		})
 	}
 
 	h.respond(w, http.StatusOK, result)
+}
+
+func (h *Handler) setDefault(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		ListID string `json:"listId"`
+	}
+	if !decode(w, r, &body) {
+		return
+	}
+
+	_, err := h.queries.SetDefaultShoppingList(r.Context(), db.SetDefaultShoppingListParams{
+		ListID: body.ListID,
+		UserID: auth.UserID(r.Context()),
+	})
+	if err != nil {
+		h.fail(w, err)
+		return
+	}
+
+	w.Header().Set("Cache-Control", "no-store")
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *Handler) create(w http.ResponseWriter, r *http.Request) {
@@ -150,10 +179,7 @@ func (h *Handler) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := q.AddMember(
-		r.Context(),
-		db.AddMemberParams{ListID: id.String(), UserID: auth.UserID(r.Context())},
-	); err != nil {
+	if err := addMember(r.Context(), q, id.String(), auth.UserID(r.Context())); err != nil {
 		h.fail(w, err)
 		return
 	}
@@ -320,6 +346,10 @@ func (h *Handler) commitLeave(r *http.Request) error {
 		r.Context(),
 		db.RemoveMemberParams{ListID: value.ID, UserID: auth.UserID(r.Context())},
 	); err != nil {
+		return err
+	}
+
+	if err := q.EnsureDefaultShoppingList(r.Context(), auth.UserID(r.Context())); err != nil {
 		return err
 	}
 
