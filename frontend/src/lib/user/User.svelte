@@ -8,6 +8,7 @@
   import PageHeader from "../components/PageHeader.svelte";
   import { languagePreference, messages, setLanguage } from "../i18n";
   import { errorMessage } from "../i18n/errors";
+  import { canInstall, requestInstall } from "../installPrompt";
   import { queryClient } from "../query";
   import { enableRecipes, recipesKey } from "../recipe/api";
   import { setTheme, theme } from "../theme";
@@ -120,6 +121,15 @@
         <wa-radio appearance="button" value="browser">{$messages.profile.browserLanguage}</wa-radio>
       </wa-radio-group>
     </section>
+    {#if $canInstall}
+      <section class="install-details" aria-labelledby="install-heading">
+        <div>
+          <h2 id="install-heading">{$messages.install.title}</h2>
+          <p>{$messages.install.description}</p>
+        </div>
+        <wa-button variant="brand" onclick={requestInstall}>{$messages.install.action}</wa-button>
+      </section>
+    {/if}
     {#if $session}
       <section aria-labelledby="experimental-features-heading">
         <h2 id="experimental-features-heading">{$messages.profile.experimentalFeatures}</h2>
@@ -216,6 +226,22 @@
 
   p {
     margin: 0;
+  }
+
+  .install-details {
+    display: flex;
+    align-items: center;
+    gap: var(--wa-space-m);
+  }
+
+  .install-details > div {
+    flex: 1;
+    min-inline-size: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .install-details > wa-button {
+    flex: none;
   }
 
   dl {

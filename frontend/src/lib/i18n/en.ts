@@ -18,6 +18,12 @@ export const en = {
     recipesEnableInProfile: "Enable in profile",
     user: "User",
   },
+  install: {
+    title: `Install ${appName}`,
+    description: "Get to your shopping lists from your home screen.",
+    action: "Install",
+    dismiss: "Dismiss install banner",
+  },
   recipes: {
     description: "Save your recipes, scale portions, and add ingredients to a shopping list.",
     collection: "My recipes",

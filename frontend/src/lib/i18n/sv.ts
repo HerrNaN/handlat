@@ -17,6 +17,12 @@ export const sv: Messages = {
     recipesEnableInProfile: "Aktivera i profilen",
     user: "Profil",
   },
+  install: {
+    title: `Installera ${appName}`,
+    description: "Öppna dina inköpslistor direkt från hemskärmen.",
+    action: "Installera",
+    dismiss: "Stäng installationsmeddelandet",
+  },
   recipes: {
     description:
       "Spara dina recept, ändra antalet portioner och lägg till ingredienser i en inköpslista.",

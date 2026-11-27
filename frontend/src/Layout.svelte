@@ -1,6 +1,7 @@
 <script lang="ts">
   import { type Snippet } from "svelte";
 
+  import InstallBanner from "./lib/components/InstallBanner.svelte";
   import { messages } from "./lib/i18n";
   import { navigateToDefaultList } from "./lib/list/navigation";
 
@@ -29,6 +30,7 @@
 </script>
 
 <main>
+  <InstallBanner />
   <div class="wrapper">
     {#if children}
       {@render children()}
