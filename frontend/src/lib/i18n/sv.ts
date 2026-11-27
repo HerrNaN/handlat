@@ -86,6 +86,7 @@ export const sv: Messages = {
     warmTheme: "Varm",
     softWhiteTheme: "Mjukvit",
     neutralTheme: "Neutral",
+    beetTheme: "Rödbeta",
     colorMode: "Färgläge",
     light: "Ljust",
     dark: "Mörkt",

@@ -101,6 +101,7 @@
           >{$messages.profile.softWhiteTheme}</wa-radio
         >
         <wa-radio appearance="button" value="neutral">{$messages.profile.neutralTheme}</wa-radio>
+        <wa-radio appearance="button" value="beet">{$messages.profile.beetTheme}</wa-radio>
       </wa-radio-group>
       <wa-radio-group
         label={$messages.profile.colorMode}
@@ -351,6 +352,7 @@
   }
 
   wa-radio-group[name="theme"] wa-radio {
+    flex-basis: auto;
     padding-inline: var(--wa-space-2xs);
     text-align: center;
   }

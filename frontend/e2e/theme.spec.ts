@@ -19,6 +19,10 @@ const themeColors = {
     light: ["rgb(252, 251, 249)", "rgb(232, 234, 236)", "#e8eaec"],
     dark: ["rgb(37, 34, 31)", "rgb(38, 40, 43)", "#26282b"],
   },
+  beet: {
+    light: ["rgb(251, 242, 228)", "rgb(240, 224, 236)", "#f0e0ec"],
+    dark: ["rgb(37, 20, 35)", "rgb(72, 10, 62)", "#480a3e"],
+  },
 } as const;
 
 const expectScheme = async (
@@ -103,6 +107,7 @@ test("compares themes and remembers the choice independently of color mode", asy
   const warm = page.getByRole("radio", { name: "Warm", exact: true });
   const softWhite = page.getByRole("radio", { name: "Soft White", exact: true });
   const neutral = page.getByRole("radio", { name: "Neutral", exact: true });
+  const beet = page.getByRole("radio", { name: "Beet", exact: true });
   await expect(warm).toBeChecked();
   await expectScheme(page, "light");
 
@@ -117,11 +122,18 @@ test("compares themes and remembers the choice independently of color mode", asy
   await expect(neutral).toBeFocused();
   await expectScheme(page, "light", "neutral");
 
+  await neutral.press("ArrowRight");
+  await expect(beet).toBeChecked();
+  await expect(beet).toBeFocused();
+  await expectScheme(page, "light", "beet");
+
   await page.reload();
-  await expect(neutral).toBeChecked();
-  await expectScheme(page, "light", "neutral");
+  await expect(beet).toBeChecked();
+  await expectScheme(page, "light", "beet");
   await selectRadio(page, "Dark");
-  await expect(neutral).toBeChecked();
+  await expect(beet).toBeChecked();
+  await expectScheme(page, "dark", "beet");
+  await selectRadio(page, "Neutral");
   await expectScheme(page, "dark", "neutral");
   await selectRadio(page, "Soft White");
   await expectScheme(page, "dark", "soft-white");
