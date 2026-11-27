@@ -16,7 +16,7 @@
 
 <header>
   {#if leading}
-    <div>{@render leading()}</div>
+    <div class="leading">{@render leading()}</div>
   {/if}
   <h1 title={title || undefined}>
     {#if titleContent}
@@ -62,5 +62,9 @@
     flex-shrink: 0;
     display: flex;
     align-items: center;
+  }
+
+  .leading {
+    margin-inline-start: calc(-1 * var(--wa-space-s));
   }
 </style>
