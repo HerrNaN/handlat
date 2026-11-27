@@ -335,7 +335,7 @@ test("applies the palette to shopping-list rows and actions", async ({ page }) =
   await expect(swipeDelete).toHaveCSS("background-color", "rgb(240, 162, 174)");
 });
 
-test("keeps Soft White rows distinct on shopping lists and recipes", async ({ page }) => {
+test("uses a subtle tint for Soft White rows on shopping lists and recipes", async ({ page }) => {
   const summary = { id: "theme-list", name: "Shopping List", itemCount: 1, memberCount: 1 };
   const snapshot = {
     ...summary,
@@ -365,21 +365,8 @@ test("keeps Soft White rows distinct on shopping lists and recipes", async ({ pa
   await page.emulateMedia({ colorScheme: "light" });
 
   const expectRow = async (row: Locator) => {
-    await expect(row).toBeVisible();
-    await expect(row).toHaveCSS("outline-style", "solid");
-    await expect(row).toHaveCSS("outline-width", "1px");
-    const colors = await row.evaluate((element) => {
-      const style = getComputedStyle(element);
-      const surface = getComputedStyle(element.closest(".list-area, article")!);
-      return {
-        fill: style.backgroundColor,
-        outline: style.outlineColor,
-        background: surface.backgroundColor,
-      };
-    });
-    expect(colors.fill).toBe("rgb(242, 240, 235)");
-    expect(contrast(colors.outline, colors.background)).toBeGreaterThanOrEqual(3);
-    expect(contrast(colors.outline, colors.fill)).toBeGreaterThanOrEqual(3);
+    await expect(row).toHaveCSS("background-color", "rgb(247, 245, 241)");
+    await expect(row).toHaveCSS("outline-style", "none");
   };
 
   await page.goto("/lists");

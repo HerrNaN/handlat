@@ -6,7 +6,6 @@
   --wa-color-surface-default: #f7f3ed;
   --wa-color-surface-raised: #fffcf8;
   --handlat-row-background: var(--wa-color-surface-raised);
-  --handlat-row-outline: none;
   --wa-color-surface-lowered: var(--wa-color-surface-default);
   --wa-color-surface-border: #e6ded5;
   --wa-color-text-normal: #352b28;
@@ -101,8 +100,7 @@
 }
 
 :root.wa-light:is([data-theme="soft-white"], [data-theme="neutral"]) {
-  --handlat-row-background: #f2f0eb;
-  --handlat-row-outline: 1px solid #8a857f;
+  --handlat-row-background: #f7f5f1;
 }
 
 :root[data-theme="soft-white"] {

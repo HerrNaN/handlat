@@ -65,8 +65,6 @@
     padding-inline: var(--wa-space-m);
     background-color: var(--handlat-row-background);
     border-radius: var(--wa-border-radius-s);
-    outline: var(--handlat-row-outline);
-    outline-offset: -1px;
   }
 
   .overview .row {
