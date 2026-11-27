@@ -4,6 +4,7 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/auth/me", (route) =>
     route.fulfill({ json: { id: "theme-user", name: "Theme User" } }),
   );
+  await page.route("**/api/lists", (route) => route.fulfill({ json: [] }));
 });
 
 const expectScheme = async (page: Page, scheme: "light" | "dark") => {

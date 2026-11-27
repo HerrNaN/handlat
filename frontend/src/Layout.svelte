@@ -58,13 +58,8 @@
         {/if}
       </li>
       <li class:active={route.pathname.startsWith("/lists")}>
-        <wa-button
-          onclick={navigateToDefaultList}
-          aria-label={$messages.lists.title}
-          appearance="plain"
-          disabled={!$session}
-        >
-          <wa-icon name="list-check"></wa-icon>
+        <wa-button onclick={navigateToDefaultList} appearance="plain" disabled={!$session}>
+          <wa-icon name="list-check" label={$messages.lists.title}></wa-icon>
         </wa-button>
       </li>
       <li class:active={route.pathname.startsWith("/user")}>

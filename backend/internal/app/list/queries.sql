@@ -7,10 +7,28 @@ SELECT * FROM lists WHERE id = @id;
 
 -- name: ListLists :many
 SELECT lists.id, lists.name, count(items.id) AS item_count,
-    (SELECT count(*) FROM list_members WHERE list_id = lists.id) AS member_count
+    (SELECT count(*) FROM list_members WHERE list_id = lists.id) AS member_count,
+    EXISTS (SELECT 1 FROM default_shopping_lists
+        WHERE default_shopping_lists.list_id = lists.id AND default_shopping_lists.user_id = @user_id) AS is_default
 FROM lists LEFT JOIN items ON items.list_id = lists.id AND items.deleted_at IS NULL
 WHERE EXISTS (SELECT 1 FROM list_members WHERE list_members.list_id = lists.id AND list_members.user_id = @user_id)
 GROUP BY lists.id ORDER BY lists.created_at, lists.id;
+
+-- name: SetDefaultShoppingList :one
+INSERT INTO default_shopping_lists (list_id, user_id)
+SELECT list_members.list_id, list_members.user_id FROM list_members
+WHERE list_members.list_id = @list_id AND list_members.user_id = @user_id
+ON CONFLICT (user_id) DO UPDATE SET list_id = excluded.list_id
+RETURNING default_shopping_lists.list_id;
+
+-- name: EnsureDefaultShoppingList :exec
+INSERT INTO default_shopping_lists (user_id, list_id)
+SELECT list_members.user_id, lists.id FROM lists
+JOIN list_members ON list_members.list_id = lists.id
+WHERE list_members.user_id = @user_id
+ORDER BY lists.created_at, lists.id
+LIMIT 1
+ON CONFLICT (user_id) DO NOTHING;
 
 -- name: TouchList :exec
 UPDATE lists SET updated_at = @now
