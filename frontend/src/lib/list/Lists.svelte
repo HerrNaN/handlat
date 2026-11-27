@@ -126,8 +126,10 @@
     display: flex;
     align-items: center;
     padding-inline-end: var(--wa-space-xs);
-    background-color: var(--wa-color-surface-raised);
+    background-color: var(--handlat-row-background);
     border-radius: var(--wa-border-radius-s);
+    outline: var(--handlat-row-outline);
+    outline-offset: -1px;
   }
 
   a {

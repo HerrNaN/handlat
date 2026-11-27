@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 test.beforeEach(async ({ context }) => {
   await context.route("**/api/auth/me", (route) =>
@@ -333,6 +333,68 @@ test("applies the palette to shopping-list rows and actions", async ({ page }) =
   await expect(checkmark).toHaveCSS("background-color", "rgb(169, 194, 141)");
   await expect(checkmark).toHaveCSS("color", "rgb(43, 37, 33)");
   await expect(swipeDelete).toHaveCSS("background-color", "rgb(240, 162, 174)");
+});
+
+test("keeps Soft White rows distinct on shopping lists and recipes", async ({ page }) => {
+  const summary = { id: "theme-list", name: "Shopping List", itemCount: 1, memberCount: 1 };
+  const snapshot = {
+    ...summary,
+    items: [
+      {
+        id: "milk",
+        text: "Milk",
+        createdAt: "2026-01-01T00:00:00Z",
+        checkedAt: "2026-01-01T00:01:00Z",
+      },
+    ],
+  };
+  await page.route("**/api/auth/me", (route) =>
+    route.fulfill({ json: { id: "theme-user", name: "Theme User", recipesEnabled: true } }),
+  );
+  await page.route("**/api/lists", (route) => route.fulfill({ json: [summary] }));
+  await page.route("**/api/lists/theme-list/events", (route) =>
+    route.fulfill({
+      contentType: "text/event-stream",
+      body: `data: ${JSON.stringify(snapshot)}\n\n`,
+    }),
+  );
+  await page.route("**/api/recipes", (route) =>
+    route.fulfill({ json: { enabled: true, recipes: [{ id: "soup", name: "Tomato Soup" }] } }),
+  );
+  await page.addInitScript(() => localStorage.setItem("handlat-palette", "soft-white"));
+  await page.emulateMedia({ colorScheme: "light" });
+
+  const expectRow = async (row: Locator) => {
+    await expect(row).toBeVisible();
+    await expect(row).toHaveCSS("outline-style", "solid");
+    await expect(row).toHaveCSS("outline-width", "1px");
+    const colors = await row.evaluate((element) => {
+      const style = getComputedStyle(element);
+      const surface = getComputedStyle(element.closest(".list-area, article")!);
+      return {
+        fill: style.backgroundColor,
+        outline: style.outlineColor,
+        background: surface.backgroundColor,
+      };
+    });
+    expect(colors.fill).toBe("rgb(242, 240, 235)");
+    expect(contrast(colors.outline, colors.background)).toBeGreaterThanOrEqual(3);
+    expect(contrast(colors.outline, colors.fill)).toBeGreaterThanOrEqual(3);
+  };
+
+  await page.goto("/lists");
+  const list = page.getByRole("link", { name: /Shopping List/ });
+  await expectRow(list.locator(".."));
+  await list.click();
+  await expectRow(page.getByRole("button", { name: "Edit Milk", exact: true }).locator(".."));
+  const checkedText = await page.getByText("Milk", { exact: true }).evaluate((label) => {
+    const row = label.closest(".content")!;
+    return { color: getComputedStyle(label).color, fill: getComputedStyle(row).backgroundColor };
+  });
+  expect(contrast(checkedText.color, checkedText.fill)).toBeGreaterThanOrEqual(4.5);
+
+  await page.goto("/recipes");
+  await expectRow(page.getByRole("link", { name: "Tomato Soup", exact: true }).locator(".."));
 });
 
 test("uses the warning palette for the recipe opt-in", async ({ page }) => {
