@@ -13,12 +13,12 @@
   <!-- Apple adapted from Font Awesome Free 7.3.1, Copyright 2026 Fonticons, Inc. CC BY 4.0: https://fontawesome.com/license/free -->
   <defs>
     <linearGradient id={`${id}-basket`} x2="0.6" y2="1">
-      <stop stop-color="var(--wa-color-neutral-50)" />
-      <stop offset="1" stop-color="var(--wa-color-neutral-40)" />
+      <stop stop-color="var(--basket-fill)" />
+      <stop offset="1" stop-color="var(--basket-shade)" />
     </linearGradient>
     <linearGradient id={`${id}-carton`} x2="0.35" y2="1">
-      <stop stop-color="var(--wa-color-brand-80)" />
-      <stop offset="1" stop-color="var(--wa-color-brand-70)" />
+      <stop stop-color="var(--carton-fill)" />
+      <stop offset="1" stop-color="var(--carton-shade)" />
     </linearGradient>
     <mask id={`${id}-slots`} maskUnits="userSpaceOnUse" x="0" y="0" width="320" height="320">
       <!-- Mask luminance controls cutouts; these are not visible artwork colors. -->
@@ -44,17 +44,12 @@
       />
     </mask>
   </defs>
-  <circle
-    cx="160"
-    cy="160"
-    r="140"
-    fill="light-dark(var(--wa-color-neutral-90), var(--wa-color-neutral-fill-quiet))"
-  />
+  <circle cx="160" cy="160" r="140" fill="var(--wa-color-brand-fill-normal)" />
   <g transform="translate(8 15) scale(0.92) rotate(-8 111 117)">
     <path
       d="M111 102c1-8-3-13-9-17"
       fill="none"
-      stroke="var(--wa-color-neutral-40)"
+      stroke="var(--basket-shade)"
       stroke-width="4"
       stroke-linecap="round"
     />
@@ -66,15 +61,15 @@
     </svg>
   </g>
   <g transform="translate(178 67) rotate(12 29 49) scale(0.86)">
-    <rect x="11" width="46" height="10" rx="3" fill="var(--wa-color-brand-70)" />
-    <path d="M11 10h46l11 22H0z" fill="var(--wa-color-brand-90)" />
-    <path d="M57 10l11 22H52z" fill="var(--wa-color-brand-70)" />
+    <rect x="11" width="46" height="10" rx="3" fill="var(--carton-shade)" />
+    <path d="M11 10h46l11 22H0z" fill="var(--carton-highlight)" />
+    <path d="M57 10l11 22H52z" fill="var(--carton-shade)" />
     <path d="M0 32h68v78a4 4 0 0 1-4 4H4a4 4 0 0 1-4-4z" fill={`url(#${id}-carton)`} />
-    <path d="M52 32h16v78a4 4 0 0 1-4 4H52z" fill="var(--wa-color-brand-70)" />
-    <rect x="12" y="56" width="31" height="26" rx="3" fill="var(--wa-color-neutral-95)" />
+    <path d="M52 32h16v78a4 4 0 0 1-4 4H52z" fill="var(--carton-shade)" />
+    <rect x="12" y="56" width="31" height="26" rx="3" fill="var(--artwork-highlight)" />
   </g>
   <!-- Three equal rays on a regular fan, with a shared origin beside the carton. -->
-  <g fill="none" stroke="var(--wa-color-brand-50)" stroke-width="4" stroke-linecap="round">
+  <g fill="none" stroke="var(--wa-color-brand-fill-loud)" stroke-width="4" stroke-linecap="round">
     <path d="M248.78 110.24L250.86 98.43" />
     <path d="M258.26 115.72L267.45 108.00" />
     <path d="M262.00 126.00L274.00 126.00" />
@@ -87,7 +82,7 @@
   <path
     d="M73 170h174l-13 68q-3 15-18 15H104q-15 0-18-15z"
     fill="none"
-    stroke="var(--wa-color-neutral-95)"
+    stroke="var(--artwork-highlight)"
     stroke-opacity="0.65"
     stroke-width="1.25"
   />
@@ -98,7 +93,7 @@
     height="23"
     rx="11.5"
     fill={`url(#${id}-basket)`}
-    stroke="var(--wa-color-neutral-95)"
+    stroke="var(--artwork-highlight)"
     stroke-opacity="0.65"
     stroke-width="1.25"
   />
@@ -106,6 +101,13 @@
 
 <style>
   .illustration {
+    --basket-fill: #908075;
+    --basket-shade: #66584f;
+    --carton-fill: #f2b5a6;
+    --carton-shade: #e58d78;
+    --carton-highlight: #f8d9ce;
+    --artwork-highlight: #fffcf8;
+
     display: block;
     width: 12rem;
     max-width: 100%;

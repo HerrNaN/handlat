@@ -11,7 +11,7 @@
   import { canInstall, requestInstall } from "../installPrompt";
   import { queryClient } from "../query";
   import { enableRecipes, recipesKey } from "../recipe/api";
-  import { setTheme, theme } from "../theme";
+  import { appearance, setColorMode, setTheme } from "../theme";
   import type { ChangeEvent } from "../utils/events";
   import "@awesome.me/webawesome/dist/components/button/button.js";
   import "@awesome.me/webawesome/dist/components/callout/callout.js";
@@ -94,8 +94,21 @@
         label={$messages.profile.theme}
         name="theme"
         orientation="horizontal"
-        value={$theme}
+        value={$appearance.theme}
         onchange={(event: ChangeEvent) => setTheme(event.target.value)}
+      >
+        <wa-radio appearance="button" value="warm">{$messages.profile.warmTheme}</wa-radio>
+        <wa-radio appearance="button" value="soft-white"
+          >{$messages.profile.softWhiteTheme}</wa-radio
+        >
+        <wa-radio appearance="button" value="neutral">{$messages.profile.neutralTheme}</wa-radio>
+      </wa-radio-group>
+      <wa-radio-group
+        label={$messages.profile.colorMode}
+        name="color-mode"
+        orientation="horizontal"
+        value={$appearance.colorMode}
+        onchange={(event: ChangeEvent) => setColorMode(event.target.value)}
       >
         <wa-radio appearance="button" value="light">
           <span><wa-icon name="sun" aria-hidden="true"></wa-icon>{$messages.profile.light}</span>
@@ -270,6 +283,7 @@
   }
 
   .preview-feature {
+    background-color: var(--wa-color-surface-raised);
     border: 1px solid var(--wa-color-surface-border);
     border-radius: var(--wa-border-radius-m);
     padding: var(--wa-space-m);
@@ -307,14 +321,63 @@
     gap: var(--wa-space-m);
   }
 
-  wa-radio {
+  wa-radio[appearance="button"] {
     flex: 1;
     justify-content: center;
+    background-color: var(--wa-color-surface-raised);
+    padding-inline: var(--wa-space-xs);
+    transition: none;
+
+    @media (hover: hover) {
+      &:hover:not(:state(checked), :state(disabled)) {
+        background-color: var(--wa-color-neutral-fill-quiet);
+        border-color: var(--wa-color-text-quiet);
+      }
+    }
+
+    &:state(checked) {
+      background-color: var(--wa-color-brand-fill-loud);
+      border-color: var(--wa-color-brand-fill-loud);
+      color: var(--wa-color-brand-on-loud);
+
+      &::after {
+        content: "";
+        position: absolute;
+        inset-inline: 0;
+        inset-block-end: var(--wa-space-2xs);
+        margin-inline: auto;
+        inline-size: 1em;
+        border-block-end: 2px solid currentColor;
+      }
+    }
+
+    &:focus-visible {
+      outline-color: var(--wa-color-text-normal);
+      outline-offset: 2px;
+    }
+
+    @media (forced-colors: active) {
+      &:state(checked) {
+        forced-color-adjust: none;
+        background-color: Highlight;
+        border-color: Highlight;
+        color: HighlightText;
+      }
+
+      &:focus-visible {
+        outline-color: CanvasText;
+      }
+    }
   }
 
   wa-radio span {
     display: inline-flex;
     align-items: center;
     gap: var(--wa-space-xs);
+  }
+
+  wa-radio-group[name="theme"] wa-radio {
+    padding-inline: var(--wa-space-2xs);
+    text-align: center;
   }
 </style>
