@@ -10,6 +10,7 @@ import { hasActiveSession, session } from "./lib/user/session";
 export const { p, navigate, isActive, route } = createRouter({
   "/invitations/:token": () => import("./lib/list/Invitation.svelte"),
   "/login": () => import("./lib/user/Authenticate.svelte"),
+  "/connect": () => import("./lib/user/ConnectApp.svelte"),
   "/user": () => import("./lib/user/User.svelte"),
   "/recipes": {
     "/": () => import("./lib/recipe/Recipes.svelte"),
@@ -25,6 +26,9 @@ export const { p, navigate, isActive, route } = createRouter({
     // Anonymous visitors use one screen for both passkey actions;
     // logged-in visitors skip authentication altogether.
     beforeLoad: async ({ pathname }) => {
+      if (pathname === "/connect") {
+        return;
+      }
       const isLoggedIn = await hasActiveSession();
       const isAuthPage = pathname === "/login";
       if (!isAuthPage && !pathname.startsWith("/invitations/") && !isLoggedIn) {

@@ -51,6 +51,51 @@ type LoginAttempt struct {
 	ExpiresAt int64
 }
 
+type McpAccessToken struct {
+	TokenHash []byte
+	GrantID   string
+	ExpiresAt int64
+}
+
+type McpApproval struct {
+	ID             string
+	BrowserHash    []byte
+	Resource       string
+	ClientID       string
+	ClientName     string
+	RedirectUri    string
+	State          string
+	Challenge      string
+	ExpiresAt      int64
+	RefreshAllowed int64
+}
+
+type McpCode struct {
+	CodeHash       []byte
+	GrantID        string
+	RedirectUri    string
+	Challenge      string
+	ExpiresAt      int64
+	RefreshAllowed int64
+	Spent          int64
+}
+
+type McpGrant struct {
+	ID         string
+	UserID     []byte
+	ClientID   string
+	ClientName string
+	Scope      string
+	Resource   string
+	CreatedAt  int64
+}
+
+type McpRefreshToken struct {
+	TokenHash []byte
+	GrantID   string
+	Spent     int64
+}
+
 type Recipe struct {
 	ID           string
 	CollectionID int64

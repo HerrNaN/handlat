@@ -54,6 +54,8 @@ spec:
               value: {{ required "webAuthn.rpID is required" .Values.webAuthn.rpID | quote }}
             - name: WEBAUTHN_ORIGIN
               value: {{ required "webAuthn.origin is required" .Values.webAuthn.origin | quote }}
+            - name: MCP_ENABLED
+              value: {{ .Values.mcp.enabled | quote }}
             - name: LOG_LEVEL
               value: {{ .Values.logLevel | quote }}
           startupProbe:

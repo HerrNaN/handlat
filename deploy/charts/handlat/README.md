@@ -216,3 +216,16 @@ mise test-chart-packages
 The CI values contain a placeholder digest for rendering only, not installation.
 The package checks verify default and explicit retention, disposable PVCs, image
 pinning, and reuse of existing claims. PR and trunk workflows run these checks.
+
+
+## Remote MCP
+
+Remote MCP is enabled by default. Connect a compatible MCP client to `/mcp`
+on the public HTTPS origin configured in `WEBAUTHN_ORIGIN`. The client must
+support OAuth Client ID Metadata Documents and PKCE. Handlat needs outbound
+HTTPS access to the client's public metadata document.
+
+Users approve the connection in Handlat with a passkey and can revoke it in
+**Profile → Connected apps**. To pause MCP connections, set `mcp.enabled: false`
+in the chart values or set `MCP_ENABLED=false` when running the application
+directly. Users can still revoke paused connections from their profile.

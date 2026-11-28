@@ -11,6 +11,7 @@ import (
 	"github.com/herrnan/handlat/internal/app/auth"
 	"github.com/herrnan/handlat/internal/app/database"
 	"github.com/herrnan/handlat/internal/app/list"
+	"github.com/herrnan/handlat/internal/app/mcpserver"
 	"github.com/herrnan/handlat/internal/app/migrations"
 	"github.com/herrnan/handlat/internal/app/recipe"
 	"github.com/herrnan/handlat/internal/app/web"
@@ -47,8 +48,24 @@ func Run(ctx context.Context, log *slog.Logger, cfg Config) error {
 
 	apiMux := http.NewServeMux()
 	authHandler.Register(apiMux)
-	list.New(db, log).Register(apiMux, authHandler.RequireSession)
-	recipe.New(db, log).Register(apiMux, authHandler.RequireSession)
+
+	listHandler := list.New(db, log)
+	recipeHandler := recipe.New(db, log)
+
+	listHandler.Register(apiMux, authHandler.RequireSession)
+	recipeHandler.Register(apiMux, authHandler.RequireSession)
+
+	// This mux is reachable only through the bearer-authenticated MCP server.
+	operations := http.NewServeMux()
+
+	if cfg.MCPEnabled {
+		authenticated := func(next http.Handler) http.Handler { return next }
+		listHandler.Register(operations, authenticated)
+		recipeHandler.Register(operations, authenticated)
+	}
+
+	mcpserver.New(db, log, authHandler, cfg.WebAuthnOrigin, cfg.MCPEnabled).
+		Register(mux, apiMux, operations, cfg.AppVersion)
 
 	mux.Handle(
 		"/api/",
@@ -68,14 +85,14 @@ func Run(ctx context.Context, log *slog.Logger, cfg Config) error {
 			"external_web_server_address",
 			cfg.ExternalWebServerAddress,
 		)
-		mux.HandleFunc("/", serveWeb)
+		registerWeb(mux, serveWeb)
 	} else {
 		serveWeb, err := web.ServeStatic(cfg.AppVersion)
 		if err != nil {
 			return fmt.Errorf("create static web server: %w", err)
 		}
 
-		mux.HandleFunc("/", serveWeb)
+		registerWeb(mux, serveWeb)
 	}
 
 	server := &http.Server{
@@ -97,6 +114,16 @@ func Run(ctx context.Context, log *slog.Logger, cfg Config) error {
 	})
 
 	return eg.Wait()
+}
+
+func registerWeb(mux *http.ServeMux, serveWeb http.HandlerFunc) {
+	mux.HandleFunc("/", serveWeb)
+	mux.HandleFunc("GET /connect", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Referrer-Policy", "no-referrer")
+		w.Header().Set("Content-Security-Policy", "frame-ancestors 'none'")
+		w.Header().Set("X-Frame-Options", "DENY")
+		serveWeb(w, r)
+	})
 }
 
 func loggingMiddleware(next http.Handler) http.Handler {

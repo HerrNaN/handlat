@@ -21,6 +21,7 @@
   import "@awesome.me/webawesome/dist/components/radio-group/radio-group.js";
   import "@awesome.me/webawesome/dist/components/radio/radio.js";
 
+  import ConnectedApps from "./ConnectedApps.svelte";
   import { session, clearSession, markRecipesEnabled } from "./session";
 
   const appVersion = document.querySelector<HTMLMetaElement>(
@@ -87,6 +88,9 @@
     </div>
     {#if logout.isError}
       <p role="alert">{errorMessage(logout.error, $messages, $messages.errors.logout)}</p>
+    {/if}
+    {#if $session}
+      <ConnectedApps account={$session.id} />
     {/if}
     <section aria-labelledby="appearance-heading">
       <h2 id="appearance-heading">{$messages.profile.appearance}</h2>
