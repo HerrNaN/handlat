@@ -15,9 +15,18 @@ import (
 	"unicode"
 )
 
-const metadataLimit = 32 << 10
+const (
+	metadataLimit      = 32 << 10
+	metadataTimeout    = 5 * time.Second
+	maxMetadataFetches = 8
+)
 
-var errClientMetadata = errors.New("invalid OAuth client metadata")
+var (
+	errClientMetadata      = errors.New("invalid OAuth client metadata")
+	errClientIDMismatch    = errors.New("OAuth client metadata ID mismatch")
+	errMetadataUnavailable = errors.New("OAuth client metadata unavailable")
+	errMetadataBusy        = errors.New("OAuth client metadata fetch limit reached")
+)
 
 type clientMetadata struct {
 	ID            string   `json:"client_id"`
@@ -46,14 +55,53 @@ func httpsClientID(raw string) (*url.URL, bool) {
 	return u, true
 }
 
-func readClient(ctx context.Context, httpClient *http.Client, id string) (clientMetadata, error) {
-	metadata := clientMetadata{
-		GrantTypes: []string{"authorization_code"}, ResponseTypes: []string{"code"},
-	}
-
+func (h *Handler) lookupClient(ctx context.Context, id string) (clientMetadata, error) {
 	u, ok := httpsClientID(id)
 	if !ok {
-		return metadata, errClientMetadata
+		return clientMetadata{}, errClientMetadata
+	}
+
+	result := h.metadataLookups.DoChan(id, func() (any, error) {
+		select {
+		case h.metadataSlots <- struct{}{}:
+		default:
+			return clientMetadata{}, errMetadataBusy
+		}
+
+		defer func() { <-h.metadataSlots }()
+
+		// A browser closing the request must not cancel a shared lookup or revocation.
+		lookupCtx := context.WithoutCancel(ctx)
+
+		metadata, err := readClient(lookupCtx, h.metadata, id, u)
+		if errors.Is(err, errClientIDMismatch) {
+			revokeCtx, cancel := context.WithTimeout(lookupCtx, metadataTimeout)
+			defer cancel()
+
+			if err := h.invalidateClientRefresh(revokeCtx, id); err != nil {
+				return metadata, err
+			}
+		}
+
+		return metadata, err
+	})
+	select {
+	case <-ctx.Done():
+		return clientMetadata{}, errMetadataUnavailable
+	case lookup := <-result:
+		metadata, _ := lookup.Val.(clientMetadata)
+		return metadata, lookup.Err
+	}
+}
+
+func readClient(
+	ctx context.Context,
+	httpClient *http.Client,
+	id string,
+	u *url.URL,
+) (clientMetadata, error) {
+	metadata := clientMetadata{
+		GrantTypes: []string{"authorization_code"}, ResponseTypes: []string{"code"},
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
@@ -65,20 +113,38 @@ func readClient(ctx context.Context, httpClient *http.Client, id string) (client
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return metadata, errClientMetadata
+		if errors.Is(err, errClientMetadata) {
+			return metadata, errClientMetadata
+		}
+
+		return metadata, errMetadataUnavailable
 	}
 	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode == http.StatusRequestTimeout ||
+		resp.StatusCode == http.StatusTooManyRequests ||
+		resp.StatusCode >= http.StatusInternalServerError {
+		return metadata, errMetadataUnavailable
+	}
 
 	if resp.StatusCode != http.StatusOK || resp.ContentLength > metadataLimit {
 		return metadata, errClientMetadata
 	}
 
 	body, err := io.ReadAll(io.LimitReader(resp.Body, metadataLimit+1))
-	if err != nil || len(body) > metadataLimit || json.Unmarshal(body, &metadata) != nil {
+	if err != nil {
+		return metadata, errMetadataUnavailable
+	}
+
+	if len(body) > metadataLimit || json.Unmarshal(body, &metadata) != nil {
 		return metadata, errClientMetadata
 	}
 
-	if metadata.ID != id || len(metadata.Redirects) == 0 ||
+	if metadata.ID != "" && metadata.ID != id {
+		return metadata, errClientIDMismatch
+	}
+
+	if metadata.ID == "" || len(metadata.Redirects) == 0 ||
 		(len(metadata.AuthMethods) != 0 && !slices.Contains(metadata.AuthMethods, "none")) ||
 		(len(metadata.AuthMethods) == 0 && metadata.AuthMethod != "" && metadata.AuthMethod != "none") {
 		return metadata, errClientMetadata
@@ -128,7 +194,7 @@ func redirectMatches(registered, requested string) bool {
 
 func metadataHTTPClient() *http.Client {
 	return &http.Client{
-		Timeout: 5 * time.Second,
+		Timeout: metadataTimeout,
 		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
@@ -176,19 +242,28 @@ func dialPublic(ctx context.Context, network, address string) (net.Conn, error) 
 	}
 
 	ips, err := net.DefaultResolver.LookupNetIP(ctx, "ip", host)
-	if err != nil || len(ips) == 0 ||
+	if err != nil {
+		return nil, err
+	}
+
+	if len(ips) == 0 ||
 		slices.ContainsFunc(ips, func(ip netip.Addr) bool { return !isPublic(ip) }) {
 		return nil, errClientMetadata
 	}
 
 	// Dial the checked addresses directly to avoid a second DNS lookup.
 	dialer := net.Dialer{Timeout: 2 * time.Second}
+
+	var dialErr error
+
 	for _, ip := range ips {
 		conn, err := dialer.DialContext(ctx, network, net.JoinHostPort(ip.String(), port))
 		if err == nil {
 			return conn, nil
 		}
+
+		dialErr = err
 	}
 
-	return nil, errClientMetadata
+	return nil, dialErr
 }

@@ -48,6 +48,31 @@ func digest(value string) []byte {
 	return hash[:]
 }
 
+func (h *Handler) invalidateClientRefresh(ctx context.Context, client string) error {
+	return h.inTransaction(ctx, func(tx *sql.Tx) error {
+		if _, err := tx.ExecContext(ctx, `
+			DELETE FROM mcp_refresh_tokens WHERE grant_id IN (
+				SELECT id FROM mcp_grants WHERE client_id = ? AND resource = ?
+			)`, client, h.resource()); err != nil {
+			return err
+		}
+
+		if _, err := tx.ExecContext(ctx, `
+			DELETE FROM mcp_approvals WHERE client_id = ? AND resource = ?
+		`, client, h.resource()); err != nil {
+			return err
+		}
+
+		// An unexchanged code can still mint credentials from the old document.
+		_, err := tx.ExecContext(ctx, `
+			DELETE FROM mcp_grants WHERE client_id = ? AND resource = ? AND id IN (
+				SELECT grant_id FROM mcp_codes WHERE spent = 0
+			)`, client, h.resource())
+
+		return err
+	})
+}
+
 func (h *Handler) saveApproval(ctx context.Context, p approval, browser string) error {
 	return h.inTransaction(ctx, func(tx *sql.Tx) error {
 		if _, err := tx.ExecContext(

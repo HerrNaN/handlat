@@ -50,7 +50,7 @@ type fixture struct {
 	key      *ecdsa.PrivateKey
 	count    uint32
 	server   http.Handler
-	metadata string
+	metadata http.RoundTripper
 }
 
 func newFixture(t *testing.T) *fixture {
@@ -65,7 +65,7 @@ func newFixture(t *testing.T) *fixture {
 	authHandler, err := auth.New(db, "handlat.example", origin, logger)
 	require.NoError(t, err)
 
-	f := &fixture{t: t, db: db, user: []byte("owner"), auth: authHandler, metadata: defaultMetadata}
+	f := &fixture{t: t, db: db, user: []byte("owner"), auth: authHandler}
 	f.exec(
 		"INSERT INTO users (id, name) VALUES (?, 'Owner'), (?, 'Other')",
 		f.user,
@@ -92,7 +92,7 @@ func newFixture(t *testing.T) *fixture {
 		f.user,
 		string(credential),
 	)
-	f.server = f.handler(origin, true)
+	f.useMetadata(defaultMetadata)
 
 	return f
 }
@@ -104,17 +104,8 @@ func (f *fixture) handler(issuer string, enabled bool) http.Handler {
 	recipe.New(f.db, slog.New(slog.DiscardHandler)).Register(operations, identity)
 
 	handler := mcpserver.New(f.db, slog.New(slog.DiscardHandler), f.auth, issuer, enabled)
-	if f.metadata != "" {
-		handler.SetMetadataTransportForTest(
-			metadataTransport(func(request *http.Request) (*http.Response, error) {
-				require.Equal(f.t, clientID, request.URL.String())
-
-				return &http.Response{
-					StatusCode: http.StatusOK,
-					Body:       io.NopCloser(strings.NewReader(f.metadata)),
-				}, nil
-			}),
-		)
+	if f.metadata != nil {
+		handler.SetMetadataTransportForTest(f.metadata)
 	}
 
 	handler.Register(root, browser, operations, "test")
@@ -130,7 +121,21 @@ func (transport metadataTransport) RoundTrip(request *http.Request) (*http.Respo
 }
 
 func (f *fixture) useMetadata(metadata string) {
-	f.metadata = metadata
+	if metadata == "" {
+		f.useMetadataTransport(nil)
+		return
+	}
+
+	f.useMetadataTransport(metadataTransport(func(_ *http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(strings.NewReader(metadata)),
+		}, nil
+	}))
+}
+
+func (f *fixture) useMetadataTransport(transport http.RoundTripper) {
+	f.metadata = transport
 	f.server = f.handler(origin, true)
 }
 

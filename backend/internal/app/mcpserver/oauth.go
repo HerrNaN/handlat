@@ -16,6 +16,7 @@ import (
 
 	"github.com/herrnan/handlat/internal/app/auth"
 	"github.com/herrnan/handlat/internal/util"
+	"golang.org/x/sync/singleflight"
 )
 
 const (
@@ -26,12 +27,14 @@ const (
 )
 
 type Handler struct {
-	db       *sql.DB
-	log      *slog.Logger
-	auth     *auth.Handler
-	origin   string
-	enabled  bool
-	metadata *http.Client
+	db              *sql.DB
+	log             *slog.Logger
+	auth            *auth.Handler
+	origin          string
+	enabled         bool
+	metadata        *http.Client
+	metadataSlots   chan struct{}
+	metadataLookups singleflight.Group
 }
 
 func New(
@@ -42,12 +45,13 @@ func New(
 	enabled bool,
 ) *Handler {
 	return &Handler{
-		db:       db,
-		log:      log,
-		auth:     authHandler,
-		origin:   origin,
-		enabled:  enabled,
-		metadata: metadataHTTPClient(),
+		db:            db,
+		log:           log,
+		auth:          authHandler,
+		origin:        origin,
+		enabled:       enabled,
+		metadata:      metadataHTTPClient(),
+		metadataSlots: make(chan struct{}, maxMetadataFetches),
 	}
 }
 
@@ -158,12 +162,30 @@ func (h *Handler) authorize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client, err := readClient(r.Context(), h.metadata, p.ClientID)
-	if err != nil ||
-		!slices.ContainsFunc(
-			client.Redirects,
-			func(uri string) bool { return redirectMatches(uri, p.Redirect) },
-		) {
+	client, err := h.lookupClient(r.Context(), p.ClientID)
+	switch {
+	case errors.Is(err, errMetadataBusy):
+		w.Header().Set("Retry-After", "1")
+		oauthError(w, http.StatusServiceUnavailable, "temporarily_unavailable")
+
+		return
+	case errors.Is(err, errMetadataUnavailable):
+		oauthError(w, http.StatusServiceUnavailable, "temporarily_unavailable")
+		return
+	case errors.Is(err, errClientIDMismatch):
+		oauthError(w, http.StatusBadRequest, "invalid_client")
+		return
+	case errors.Is(err, errClientMetadata):
+		oauthError(w, http.StatusBadRequest, "invalid_request")
+		return
+	case err != nil:
+		h.fail(w, err)
+		return
+	}
+
+	if !slices.ContainsFunc(client.Redirects, func(uri string) bool {
+		return redirectMatches(uri, p.Redirect)
+	}) {
 		oauthError(w, http.StatusBadRequest, "invalid_request")
 		return
 	}
