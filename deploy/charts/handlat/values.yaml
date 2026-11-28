@@ -15,7 +15,7 @@ webAuthn:
 logLevel: INFO
 
 mcp:
-  enabled: false
+  enabled: true
 
 persistence:
   # Keep the PVC when the release is removed. Disable only for disposable data.

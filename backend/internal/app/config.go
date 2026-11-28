@@ -3,7 +3,7 @@ package app
 import "log/slog"
 
 type Config struct {
-	MCPEnabled               bool       `envconfig:"MCP_ENABLED"                 default:"false"`
+	MCPEnabled               bool       `envconfig:"MCP_ENABLED"                 default:"true"`
 	LogLevel                 slog.Level `envconfig:"LOG_LEVEL"`
 	AppVersion               string     `envconfig:"APP_VERSION"`
 	Port                     int        `envconfig:"PORT"                                        required:"true"`
