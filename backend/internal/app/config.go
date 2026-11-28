@@ -6,9 +6,9 @@ type Config struct {
 	MCPEnabled               bool       `envconfig:"MCP_ENABLED"                 default:"true"`
 	LogLevel                 slog.Level `envconfig:"LOG_LEVEL"`
 	AppVersion               string     `envconfig:"APP_VERSION"`
-	Port                     int        `envconfig:"PORT"                                        required:"true"`
+	Port                     int        `envconfig:"PORT"                                       required:"true"`
 	ExternalWebServerAddress string     `envconfig:"EXTERNAL_WEB_SERVER_ADDRESS"`
-	DatabasePath             string     `envconfig:"DATABASE_PATH"                               required:"true"`
-	WebAuthnRPID             string     `envconfig:"WEBAUTHN_RP_ID"                              required:"true"`
-	WebAuthnOrigin           string     `envconfig:"WEBAUTHN_ORIGIN"                             required:"true"`
+	DatabasePath             string     `envconfig:"DATABASE_PATH"                              required:"true"`
+	WebAuthnRPID             string     `envconfig:"WEBAUTHN_RP_ID"                             required:"true"`
+	WebAuthnOrigin           string     `envconfig:"WEBAUTHN_ORIGIN"                            required:"true"`
 }
