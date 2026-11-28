@@ -58,23 +58,26 @@ type McpAccessToken struct {
 }
 
 type McpApproval struct {
-	ID          string
-	BrowserHash []byte
-	Resource    string
-	ClientID    string
-	ClientName  string
-	RedirectUri string
-	State       string
-	Challenge   string
-	ExpiresAt   int64
+	ID             string
+	BrowserHash    []byte
+	Resource       string
+	ClientID       string
+	ClientName     string
+	RedirectUri    string
+	State          string
+	Challenge      string
+	ExpiresAt      int64
+	RefreshAllowed int64
 }
 
 type McpCode struct {
-	CodeHash    []byte
-	GrantID     string
-	RedirectUri string
-	Challenge   string
-	ExpiresAt   int64
+	CodeHash       []byte
+	GrantID        string
+	RedirectUri    string
+	Challenge      string
+	ExpiresAt      int64
+	RefreshAllowed int64
+	Spent          int64
 }
 
 type McpGrant struct {

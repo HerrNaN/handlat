@@ -17,12 +17,13 @@ const (
 )
 
 type approval struct {
-	ID        string
-	ClientID  string
-	Name      string
-	Redirect  string
-	State     string
-	Challenge string
+	ID             string
+	ClientID       string
+	Name           string
+	Redirect       string
+	State          string
+	Challenge      string
+	RefreshAllowed bool
 }
 
 type connection struct {
@@ -34,7 +35,7 @@ type connection struct {
 
 type tokenResponse struct {
 	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
+	RefreshToken string `json:"refresh_token,omitempty"`
 	TokenType    string `json:"token_type"`
 	ExpiresIn    int64  `json:"expires_in"`
 	Scope        string `json:"scope"`
@@ -59,8 +60,14 @@ func (h *Handler) saveApproval(ctx context.Context, p approval, browser string) 
 		if _, err := tx.ExecContext(
 			ctx, `
 			DELETE FROM mcp_grants WHERE id IN (
-				SELECT grant_id FROM mcp_codes WHERE expires_at <= unixepoch()
+				SELECT grant_id FROM mcp_codes WHERE spent = 0 AND expires_at <= unixepoch()
 			)`,
+		); err != nil {
+			return err
+		}
+
+		if _, err := tx.ExecContext(
+			ctx, "DELETE FROM mcp_codes WHERE spent = 1 AND expires_at <= unixepoch()",
 		); err != nil {
 			return err
 		}
@@ -68,8 +75,9 @@ func (h *Handler) saveApproval(ctx context.Context, p approval, browser string) 
 		_, err := tx.ExecContext(
 			ctx,
 			`
-			INSERT INTO mcp_approvals (id, browser_hash, resource, client_id, client_name, redirect_uri, state, challenge, expires_at)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			INSERT INTO mcp_approvals
+				(id, browser_hash, resource, client_id, client_name, redirect_uri, state, challenge, expires_at, refresh_allowed)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			p.ID,
 			digest(browser),
 			h.resource(),
@@ -79,6 +87,7 @@ func (h *Handler) saveApproval(ctx context.Context, p approval, browser string) 
 			p.State,
 			p.Challenge,
 			time.Now().Add(approvalLifetime).Unix(),
+			p.RefreshAllowed,
 		)
 
 		return err
@@ -89,10 +98,10 @@ func (h *Handler) loadApproval(ctx context.Context, id, browser string) (approva
 	p := approval{ID: id}
 	err := h.db.QueryRowContext(
 		ctx, `
-		SELECT client_id, client_name, redirect_uri, state, challenge FROM mcp_approvals
+		SELECT client_id, client_name, redirect_uri, state, challenge, refresh_allowed FROM mcp_approvals
 		WHERE id = ? AND browser_hash = ? AND resource = ? AND expires_at > unixepoch()`,
 		id, digest(browser), h.resource(),
-	).Scan(&p.ClientID, &p.Name, &p.Redirect, &p.State, &p.Challenge)
+	).Scan(&p.ClientID, &p.Name, &p.Redirect, &p.State, &p.Challenge, &p.RefreshAllowed)
 
 	return p, err
 }
@@ -148,9 +157,9 @@ func (h *Handler) approve(
 
 		_, err := tx.ExecContext(
 			ctx, `
-			INSERT INTO mcp_codes (code_hash, grant_id, redirect_uri, challenge, expires_at)
-			VALUES (?, ?, ?, ?, ?)`, digest(code), grant, p.Redirect, p.Challenge,
-			time.Now().Add(codeLifetime).Unix(),
+			INSERT INTO mcp_codes (code_hash, grant_id, redirect_uri, challenge, expires_at, refresh_allowed)
+			VALUES (?, ?, ?, ?, ?, ?)`, digest(code), grant, p.Redirect, p.Challenge,
+			time.Now().Add(codeLifetime).Unix(), p.RefreshAllowed,
 		)
 
 		return err
@@ -163,19 +172,28 @@ func (h *Handler) exchangeCode(
 	ctx context.Context,
 	client, code, redirect, verifier string,
 ) (tokenResponse, error) {
-	var tokens tokenResponse
+	var (
+		tokens tokenResponse
+		spent  bool
+	)
 
+	hash := digest(code)
 	challenge := base64.RawURLEncoding.EncodeToString(digest(verifier))
+
 	err := h.inTransaction(ctx, func(tx *sql.Tx) error {
-		var grant string
+		var (
+			grant          string
+			refreshAllowed bool
+		)
 
 		err := tx.QueryRowContext(
 			ctx, `
-			DELETE FROM mcp_codes WHERE code_hash = ? AND redirect_uri = ? AND challenge = ?
-				AND expires_at > unixepoch() AND grant_id IN (
-					SELECT id FROM mcp_grants WHERE client_id = ? AND scope = ? AND resource = ?
-				) RETURNING grant_id`, digest(code), redirect, challenge, client, permissionScope, h.resource(),
-		).Scan(&grant)
+			SELECT c.grant_id, c.spent, c.refresh_allowed
+			FROM mcp_codes AS c JOIN mcp_grants AS g ON g.id = c.grant_id
+			WHERE c.code_hash = ? AND c.redirect_uri = ? AND c.challenge = ? AND c.expires_at > unixepoch()
+				AND g.client_id = ? AND g.scope = ? AND g.resource = ?`,
+			hash, redirect, challenge, client, permissionScope, h.resource(),
+		).Scan(&grant, &spent, &refreshAllowed)
 		if errors.Is(err, sql.ErrNoRows) {
 			return errInvalidGrant
 		}
@@ -184,10 +202,27 @@ func (h *Handler) exchangeCode(
 			return err
 		}
 
-		tokens, err = issueTokens(ctx, tx, grant)
+		if spent {
+			_, err := tx.ExecContext(ctx, "DELETE FROM mcp_grants WHERE id = ?", grant)
+			return err
+		}
+
+		// Keep the binding briefly so a confirmed replay can revoke the issued tokens.
+		_, err = tx.ExecContext(
+			ctx, "UPDATE mcp_codes SET spent = 1, expires_at = ? WHERE code_hash = ?",
+			time.Now().Add(codeLifetime).Unix(), hash,
+		)
+		if err != nil {
+			return err
+		}
+
+		tokens, err = issueTokens(ctx, tx, grant, refreshAllowed)
 
 		return err
 	})
+	if err == nil && spent {
+		err = errInvalidGrant
+	}
 
 	return tokens, err
 }
@@ -234,7 +269,7 @@ func (h *Handler) refresh(ctx context.Context, client, refreshToken string) (tok
 			return err
 		}
 
-		tokens, err = issueTokens(ctx, tx, grant)
+		tokens, err = issueTokens(ctx, tx, grant, true)
 
 		return err
 	})
@@ -245,10 +280,17 @@ func (h *Handler) refresh(ctx context.Context, client, refreshToken string) (tok
 	return tokens, err
 }
 
-func issueTokens(ctx context.Context, tx *sql.Tx, grant string) (tokenResponse, error) {
+func issueTokens(
+	ctx context.Context,
+	tx *sql.Tx,
+	grant string,
+	refreshAllowed bool,
+) (tokenResponse, error) {
 	tokens := tokenResponse{
-		AccessToken: rand.Text(), RefreshToken: rand.Text(),
-		TokenType: "Bearer", ExpiresIn: int64(accessLifetime / time.Second), Scope: permissionScope,
+		AccessToken: rand.Text(),
+		TokenType:   "Bearer",
+		ExpiresIn:   int64(accessLifetime / time.Second),
+		Scope:       permissionScope,
 	}
 
 	if _, err := tx.ExecContext(
@@ -266,6 +308,11 @@ func issueTokens(ctx context.Context, tx *sql.Tx, grant string) (tokenResponse, 
 		return tokens, err
 	}
 
+	if !refreshAllowed {
+		return tokens, nil
+	}
+
+	tokens.RefreshToken = rand.Text()
 	_, err := tx.ExecContext(
 		ctx, "INSERT INTO mcp_refresh_tokens (token_hash, grant_id) VALUES (?, ?)",
 		digest(tokens.RefreshToken), grant,

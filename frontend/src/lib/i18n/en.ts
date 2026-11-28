@@ -108,9 +108,13 @@ export const en = {
     approveTitle: "Connect an app",
     approveDescription: (name: string) =>
       `Allow ${name} to view and change your shopping lists and private recipes?`,
+    callbackDestination: "Handlat will send your response to",
+    localCallback: "A local application will receive your response at",
     approveDuration: "Access continues until you disconnect the app from your Handlat profile.",
+    approveLimitedDuration:
+      "Access expires after an hour. You can disconnect the app sooner from your Handlat profile.",
     approve: "Approve with passkey",
-    decline: "Decline",
+    decline: "Decline and return",
     expired: "This connection request is unavailable. Start again from the app.",
     approveFailed: "Could not approve the connection. Try again.",
     declineFailed: "Could not decline the connection. Try again.",

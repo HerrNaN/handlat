@@ -108,9 +108,13 @@ export const sv: Messages = {
     approveTitle: "Anslut en app",
     approveDescription: (name: string) =>
       `Vill du låta ${name} se och ändra dina inköpslistor och privata recept?`,
+    callbackDestination: "Handlat skickar ditt svar till",
+    localCallback: "En lokal app tar emot ditt svar på",
     approveDuration: "Åtkomsten gäller tills du kopplar från appen i din Handlat-profil.",
+    approveLimitedDuration:
+      "Åtkomsten upphör efter en timme. Du kan koppla från appen tidigare i din Handlat-profil.",
     approve: "Godkänn med nyckel",
-    decline: "Neka",
+    decline: "Neka och gå tillbaka",
     expired: "Anslutningsförfrågan är inte tillgänglig. Börja om från appen.",
     approveFailed: "Det gick inte att godkänna anslutningen. Försök igen.",
     declineFailed: "Det gick inte att neka anslutningen. Försök igen.",

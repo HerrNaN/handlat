@@ -139,18 +139,6 @@ func (h *Handler) authorize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client, err := readClient(r.Context(), h.metadata, p.ClientID)
-	if err != nil ||
-		!slices.ContainsFunc(
-			client.Redirects,
-			func(uri string) bool { return redirectMatches(uri, p.Redirect) },
-		) {
-		oauthError(w, http.StatusBadRequest, "invalid_request")
-		return
-	}
-
-	p.Name = client.Name
-
 	problem := ""
 
 	switch {
@@ -165,9 +153,28 @@ func (h *Handler) authorize(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if problem != "" {
-		http.Redirect(w, r, h.callback(p, "error", problem), http.StatusSeeOther)
+		// The browser has yet to approve navigation to this client's callback.
+		oauthError(w, http.StatusBadRequest, problem)
 		return
 	}
+
+	client, err := readClient(r.Context(), h.metadata, p.ClientID)
+	if err != nil ||
+		!slices.ContainsFunc(
+			client.Redirects,
+			func(uri string) bool { return redirectMatches(uri, p.Redirect) },
+		) {
+		oauthError(w, http.StatusBadRequest, "invalid_request")
+		return
+	}
+
+	if !client.supportsCode() {
+		oauthError(w, http.StatusBadRequest, "unauthorized_client")
+		return
+	}
+
+	p.Name = client.Name
+	p.RefreshAllowed = slices.Contains(client.GrantTypes, "refresh_token")
 
 	browser := rand.Text()
 	if err := h.saveApproval(r.Context(), p, browser); err != nil {

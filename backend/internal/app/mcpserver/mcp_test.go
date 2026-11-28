@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -32,19 +33,24 @@ const (
 	origin      = "https://handlat.example"
 	resource    = origin + "/mcp"
 	clientID    = "https://client.example/oauth/client.json"
-	redirectURI = "https://client.example/oauth/callback?original=1"
+	redirectURI = "https://callback.example/oauth/callback?original=1"
 	verifier    = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFG"
 	scope       = "handlat:lists-recipes"
 )
 
+const metadataIdentity = `"client_id":"` + clientID + `","client_name":"Example agent","redirect_uris":["` + redirectURI + `"]`
+
+const defaultMetadata = `{` + metadataIdentity + `,"grant_types":["authorization_code","refresh_token"],"response_types":["code"]}`
+
 type fixture struct {
-	t      *testing.T
-	db     *sql.DB
-	user   []byte
-	auth   *auth.Handler
-	key    *ecdsa.PrivateKey
-	count  uint32
-	server http.Handler
+	t        *testing.T
+	db       *sql.DB
+	user     []byte
+	auth     *auth.Handler
+	key      *ecdsa.PrivateKey
+	count    uint32
+	server   http.Handler
+	metadata string
 }
 
 func newFixture(t *testing.T) *fixture {
@@ -59,7 +65,7 @@ func newFixture(t *testing.T) *fixture {
 	authHandler, err := auth.New(db, "handlat.example", origin, logger)
 	require.NoError(t, err)
 
-	f := &fixture{t: t, db: db, user: []byte("owner"), auth: authHandler}
+	f := &fixture{t: t, db: db, user: []byte("owner"), auth: authHandler, metadata: defaultMetadata}
 	f.exec(
 		"INSERT INTO users (id, name) VALUES (?, 'Owner'), (?, 'Other')",
 		f.user,
@@ -96,11 +102,36 @@ func (f *fixture) handler(issuer string, enabled bool) http.Handler {
 	identity := func(next http.Handler) http.Handler { return next }
 	list.New(f.db, slog.New(slog.DiscardHandler)).Register(operations, identity)
 	recipe.New(f.db, slog.New(slog.DiscardHandler)).Register(operations, identity)
-	mcpserver.New(f.db, slog.New(slog.DiscardHandler), f.auth, issuer, enabled).
-		Register(root, browser, operations, "test")
+
+	handler := mcpserver.New(f.db, slog.New(slog.DiscardHandler), f.auth, issuer, enabled)
+	if f.metadata != "" {
+		handler.SetMetadataTransportForTest(
+			metadataTransport(func(request *http.Request) (*http.Response, error) {
+				require.Equal(f.t, clientID, request.URL.String())
+
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Body:       io.NopCloser(strings.NewReader(f.metadata)),
+				}, nil
+			}),
+		)
+	}
+
+	handler.Register(root, browser, operations, "test")
 	root.Handle("/api/", http.NewCrossOriginProtection().Handler(http.StripPrefix("/api", browser)))
 
 	return root
+}
+
+type metadataTransport func(*http.Request) (*http.Response, error)
+
+func (transport metadataTransport) RoundTrip(request *http.Request) (*http.Response, error) {
+	return transport(request)
+}
+
+func (f *fixture) useMetadata(metadata string) {
+	f.metadata = metadata
+	f.server = f.handler(origin, true)
 }
 
 func (f *fixture) exec(query string, args ...any) {
@@ -117,24 +148,48 @@ func perform(handler http.Handler, request *http.Request) *httptest.ResponseReco
 	return response
 }
 
-func (f *fixture) seedApproval(id, browser string) string {
+func authorizationQuery(redirect string) url.Values {
+	challenge := sha256.Sum256([]byte(verifier))
+
+	return url.Values{
+		"response_type": {"code"}, "client_id": {clientID},
+		"redirect_uri": {redirect}, "resource": {resource}, "scope": {scope},
+		"code_challenge":        {base64.RawURLEncoding.EncodeToString(challenge[:])},
+		"code_challenge_method": {"S256"}, "state": {"client-state"},
+	}
+}
+
+func (f *fixture) authorize(query url.Values) *httptest.ResponseRecorder {
 	f.t.Helper()
 
-	challenge := sha256.Sum256([]byte(verifier))
-	binding := sha256.Sum256([]byte(browser))
-	f.exec(
-		`
-		INSERT INTO mcp_approvals (id, browser_hash, resource, client_id, client_name, redirect_uri, state, challenge, expires_at)
-		VALUES (?, ?, ?, ?, 'Example agent', ?, 'client-state', ?, unixepoch() + 300)`,
-		id,
-		binding[:],
-		resource,
-		clientID,
-		redirectURI,
-		base64.RawURLEncoding.EncodeToString(challenge[:]),
+	request := httptest.NewRequestWithContext(
+		f.t.Context(), http.MethodGet, origin+"/oauth/authorize?"+query.Encode(), nil,
 	)
 
-	return "/api/mcp/approvals/" + id
+	return perform(f.server, request)
+}
+
+func (f *fixture) beginApproval(redirect string) (string, string) {
+	f.t.Helper()
+
+	response := f.authorize(authorizationQuery(redirect))
+	require.Equal(f.t, http.StatusSeeOther, response.Code, response.Body.String())
+	location, err := url.Parse(response.Header().Get("Location"))
+	require.NoError(f.t, err)
+	require.Equal(f.t, "/connect", location.Path)
+	require.Empty(f.t, location.Host)
+	id := location.Query().Get("request")
+	require.NotEmpty(f.t, id)
+
+	result := response.Result()
+
+	f.t.Cleanup(func() { assert.NoError(f.t, result.Body.Close()) })
+
+	cookies := result.Cookies()
+	require.Len(f.t, cookies, 1)
+	require.Equal(f.t, "handlat_mcp_approval", cookies[0].Name)
+
+	return "/api/mcp/approvals/" + id, cookies[0].Value
 }
 
 func (f *fixture) approvalRequest(
@@ -189,12 +244,10 @@ func (f *fixture) assertion(challenge string) string {
 	return string(body)
 }
 
-func (f *fixture) approve(id string) string {
+func (f *fixture) approve() string {
 	f.t.Helper()
 
-	const browser = "browser-secret"
-
-	root := f.seedApproval(id, browser)
+	root, browser := f.beginApproval(redirectURI)
 	require.Equal(
 		f.t,
 		http.StatusNotFound,
@@ -202,7 +255,6 @@ func (f *fixture) approve(id string) string {
 	)
 	info := f.approvalRequest(http.MethodGet, root, browser, "")
 	require.Equal(f.t, http.StatusOK, info.Code)
-	assert.JSONEq(f.t, `{"name":"Example agent","domain":"client.example"}`, info.Body.String())
 	require.Equal(
 		f.t, http.StatusBadRequest,
 		f.approvalRequest(http.MethodPost, root+"/passkey/finish", browser, "{}").Code,
@@ -239,7 +291,7 @@ func (f *fixture) approve(id string) string {
 	require.NoError(f.t, json.Unmarshal(finish.Body.Bytes(), &response))
 	callback, err := url.Parse(response.Redirect)
 	require.NoError(f.t, err)
-	assert.Equal(f.t, "client.example", callback.Host)
+	assert.Equal(f.t, "callback.example", callback.Host)
 	assert.Equal(f.t, "1", callback.Query().Get("original"))
 	assert.Equal(f.t, "client-state", callback.Query().Get("state"))
 	assert.Equal(f.t, origin, callback.Query().Get("iss"))
@@ -275,7 +327,6 @@ func (f *fixture) decodeTokens(response *httptest.ResponseRecorder) tokens {
 	var result tokens
 	require.NoError(f.t, json.Unmarshal(response.Body.Bytes(), &result))
 	require.NotEmpty(f.t, result.Access)
-	require.NotEmpty(f.t, result.Refresh)
 
 	return result
 }
@@ -381,7 +432,7 @@ func TestOAuthGrantLifecycle(t *testing.T) {
 		"/.well-known/oauth-protected-resource/mcp",
 	)
 
-	code := f.approve("first")
+	code := f.approve()
 	form := codeForm(code)
 	form.Set("code_verifier", strings.Repeat("Z", 43))
 	assert.JSONEq(t, `{"error":"invalid_grant"}`, f.token(f.server, form).Body.String())
@@ -389,7 +440,7 @@ func TestOAuthGrantLifecycle(t *testing.T) {
 	form.Set("resource", "https://other.example/mcp")
 	assert.JSONEq(t, `{"error":"invalid_target"}`, f.token(f.server, form).Body.String())
 	fresh := f.decodeTokens(f.token(f.server, codeForm(code)))
-	assert.JSONEq(t, `{"error":"invalid_grant"}`, f.token(f.server, codeForm(code)).Body.String())
+	require.NotEmpty(t, fresh.Refresh)
 
 	rotated := f.decodeTokens(f.token(f.server, refreshForm(fresh.Refresh)))
 	assert.NotEqual(t, fresh.Refresh, rotated.Refresh)
@@ -406,9 +457,129 @@ func TestOAuthGrantLifecycle(t *testing.T) {
 	)
 }
 
+func TestAuthorizationErrorsStayOnHandlat(t *testing.T) {
+	f := newFixture(t)
+	query := authorizationQuery(redirectURI)
+	query.Set("code_challenge_method", "plain")
+
+	response := f.authorize(query)
+	assert.Equal(t, http.StatusBadRequest, response.Code)
+	assert.JSONEq(t, `{"error":"invalid_request"}`, response.Body.String())
+	assert.Empty(t, response.Header().Get("Location"))
+	assert.Empty(t, response.Header().Get("Set-Cookie"))
+}
+
+func TestAuthorizationRequiresDeclaredCodeFlow(t *testing.T) {
+	for _, claims := range []string{
+		`"grant_types":["client_credentials"]`,
+		`"response_types":["token"]`,
+		`"grant_types":[]`,
+		`"response_types":null`,
+	} {
+		t.Run(claims, func(t *testing.T) {
+			f := newFixture(t)
+			f.useMetadata(`{` + metadataIdentity + `,` + claims + `}`)
+
+			response := f.authorize(authorizationQuery(redirectURI))
+			assert.Equal(t, http.StatusBadRequest, response.Code)
+			assert.JSONEq(t, `{"error":"unauthorized_client"}`, response.Body.String())
+			assert.Empty(t, response.Header().Get("Location"))
+		})
+	}
+}
+
+func TestRefreshTokenRequiresDeclaredGrant(t *testing.T) {
+	f := newFixture(t)
+	f.useMetadata(`{` + metadataIdentity + `}`)
+
+	response := f.token(f.server, codeForm(f.approve()))
+	issued := f.decodeTokens(response)
+	assert.NotContains(t, response.Body.String(), "refresh_token")
+	assert.Equal(t, http.StatusOK, f.rpc(f.server, issued.Access, "tools/list", "{}").Code)
+
+	f.exec("UPDATE mcp_access_tokens SET expires_at = unixepoch() - 1")
+	assert.Equal(
+		t,
+		http.StatusUnauthorized,
+		f.rpc(f.server, issued.Access, "tools/list", "{}").Code,
+	)
+	assert.JSONEq(
+		t,
+		`{"enabled":true,"apps":[]}`,
+		f.profile(f.server, http.MethodGet, "", true).Body.String(),
+	)
+}
+
+func TestApprovalShowsCallbackDestination(t *testing.T) {
+	f := newFixture(t)
+	path, browser := f.beginApproval(redirectURI)
+	response := f.approvalRequest(http.MethodGet, path, browser, "")
+	require.Equal(t, http.StatusOK, response.Code)
+	assert.JSONEq(t, `{
+		"name":"Example agent","domain":"client.example","callbackHost":"callback.example",
+		"localCallback":false,"renewable":true
+	}`, response.Body.String())
+
+	f.useMetadata(strings.ReplaceAll(defaultMetadata, redirectURI, "http://127.0.0.1/callback"))
+	path, browser = f.beginApproval("http://127.0.0.1:51005/callback")
+	response = f.approvalRequest(http.MethodGet, path, browser, "")
+	require.Equal(t, http.StatusOK, response.Code)
+	assert.JSONEq(t, `{
+		"name":"Example agent","domain":"client.example","callbackHost":"127.0.0.1:51005",
+		"localCallback":true,"renewable":true
+	}`, response.Body.String())
+}
+
+func TestAuthorizationCodeReplayRevokesGrant(t *testing.T) {
+	f := newFixture(t)
+	code := f.approve()
+	issued := f.decodeTokens(f.token(f.server, codeForm(code)))
+	require.NotEmpty(t, issued.Refresh)
+
+	for key, value := range map[string]string{
+		"code_verifier": strings.Repeat("Z", 43),
+		"client_id":     "https://other.example/client.json",
+		"redirect_uri":  "https://other.example/callback",
+	} {
+		form := codeForm(code)
+		form.Set(key, value)
+		response := f.token(f.server, form)
+		assert.Equal(t, http.StatusBadRequest, response.Code)
+		assert.JSONEq(t, `{"error":"invalid_grant"}`, response.Body.String())
+		assert.Equal(t, http.StatusOK, f.rpc(f.server, issued.Access, "tools/list", "{}").Code)
+	}
+
+	replayed := f.token(f.server, codeForm(code))
+	assert.Equal(t, http.StatusBadRequest, replayed.Code)
+	assert.JSONEq(t, `{"error":"invalid_grant"}`, replayed.Body.String())
+	assert.Equal(
+		t,
+		http.StatusUnauthorized,
+		f.rpc(f.server, issued.Access, "tools/list", "{}").Code,
+	)
+	assert.JSONEq(
+		t,
+		`{"error":"invalid_grant"}`,
+		f.token(f.server, refreshForm(issued.Refresh)).Body.String(),
+	)
+}
+
+func TestExpiredSpentCodeKeepsLiveGrant(t *testing.T) {
+	f := newFixture(t)
+	code := f.approve()
+	issued := f.decodeTokens(f.token(f.server, codeForm(code)))
+	f.exec("UPDATE mcp_codes SET expires_at = unixepoch() - 1")
+
+	assert.JSONEq(t, `{"error":"invalid_grant"}`, f.token(f.server, codeForm(code)).Body.String())
+	assert.Contains(t, f.profile(f.server, http.MethodGet, "", true).Body.String(), "Example agent")
+	f.beginApproval(redirectURI)
+	assert.Equal(t, http.StatusOK, f.rpc(f.server, issued.Access, "tools/list", "{}").Code)
+	assert.NotEmpty(t, f.decodeTokens(f.token(f.server, refreshForm(issued.Refresh))).Refresh)
+}
+
 func TestMCPMembershipAndRecipePermissions(t *testing.T) {
 	f := newFixture(t)
-	token := f.decodeTokens(f.token(f.server, codeForm(f.approve("first")))).Access
+	token := f.decodeTokens(f.token(f.server, codeForm(f.approve()))).Access
 	f.exec("INSERT INTO lists (id, name, created_at, updated_at) VALUES ('family', 'Family', 1, 1)")
 	f.exec("INSERT INTO list_members (list_id, user_id) VALUES ('family', ?)", []byte("other"))
 
@@ -455,8 +626,8 @@ func TestMCPMembershipAndRecipePermissions(t *testing.T) {
 
 func TestPauseReplacementAndRevocation(t *testing.T) {
 	f := newFixture(t)
-	first := f.decodeTokens(f.token(f.server, codeForm(f.approve("first"))))
-	second := f.decodeTokens(f.token(f.server, codeForm(f.approve("second"))))
+	first := f.decodeTokens(f.token(f.server, codeForm(f.approve())))
+	second := f.decodeTokens(f.token(f.server, codeForm(f.approve())))
 	assert.Equal(t, http.StatusUnauthorized, f.rpc(f.server, first.Access, "tools/list", "{}").Code)
 
 	paused := f.handler(origin, false)
@@ -500,17 +671,11 @@ func TestPauseReplacementAndRevocation(t *testing.T) {
 
 func TestInvalidClientMetadataReturnsLocalError(t *testing.T) {
 	f := newFixture(t)
-	query := url.Values{
-		"client_id":    {"https://127.0.0.1/client.json"},
-		"redirect_uri": {redirectURI},
-	}
-	req := httptest.NewRequestWithContext(
-		t.Context(),
-		http.MethodGet,
-		origin+"/oauth/authorize?"+query.Encode(),
-		nil,
-	)
-	response := perform(f.server, req)
+	f.useMetadata("")
+
+	query := authorizationQuery(redirectURI)
+	query.Set("client_id", "https://127.0.0.1/client.json")
+	response := f.authorize(query)
 	assert.Equal(t, http.StatusBadRequest, response.Code)
 	assert.Empty(t, response.Header().Get("Location"))
 }
@@ -543,7 +708,7 @@ func assertToolAnnotations(t *testing.T, result *httptest.ResponseRecorder) {
 
 func TestCurrentMCPProtocolVersion(t *testing.T) {
 	f := newFixture(t)
-	token := f.decodeTokens(f.token(f.server, codeForm(f.approve("first")))).Access
+	token := f.decodeTokens(f.token(f.server, codeForm(f.approve()))).Access
 	body := `{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{
 		"name":"list_shopping_lists","arguments":{},"_meta":{
 			"io.modelcontextprotocol/protocolVersion":"2026-07-28",

@@ -20,11 +20,18 @@ const metadataLimit = 32 << 10
 var errClientMetadata = errors.New("invalid OAuth client metadata")
 
 type clientMetadata struct {
-	ID          string   `json:"client_id"`
-	Name        string   `json:"client_name"`
-	Redirects   []string `json:"redirect_uris"`
-	AuthMethod  string   `json:"token_endpoint_auth_method"`
-	AuthMethods []string `json:"token_endpoint_auth_methods_supported"`
+	ID            string   `json:"client_id"`
+	Name          string   `json:"client_name"`
+	Redirects     []string `json:"redirect_uris"`
+	AuthMethod    string   `json:"token_endpoint_auth_method"`
+	AuthMethods   []string `json:"token_endpoint_auth_methods_supported"`
+	GrantTypes    []string `json:"grant_types"`
+	ResponseTypes []string `json:"response_types"`
+}
+
+func (c clientMetadata) supportsCode() bool {
+	return slices.Contains(c.GrantTypes, "authorization_code") &&
+		slices.Contains(c.ResponseTypes, "code")
 }
 
 func httpsClientID(raw string) (*url.URL, bool) {
@@ -40,7 +47,9 @@ func httpsClientID(raw string) (*url.URL, bool) {
 }
 
 func readClient(ctx context.Context, httpClient *http.Client, id string) (clientMetadata, error) {
-	var metadata clientMetadata
+	metadata := clientMetadata{
+		GrantTypes: []string{"authorization_code"}, ResponseTypes: []string{"code"},
+	}
 
 	u, ok := httpsClientID(id)
 	if !ok {

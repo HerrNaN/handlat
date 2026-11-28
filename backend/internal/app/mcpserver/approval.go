@@ -4,7 +4,9 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
+	"net/netip"
 	"net/url"
+	"strings"
 
 	"github.com/herrnan/handlat/internal/app/auth"
 	"github.com/herrnan/handlat/internal/util"
@@ -51,7 +53,17 @@ func (h *Handler) approvalInfo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	client, _ := url.Parse(p.ClientID)
-	writeJSON(w, http.StatusOK, map[string]string{"name": p.Name, "domain": client.Host})
+	callback, _ := url.Parse(p.Redirect)
+	host := strings.ToLower(strings.TrimSuffix(callback.Hostname(), "."))
+	ip, _ := netip.ParseAddr(host)
+	writeJSON(w, http.StatusOK, map[string]any{
+		"name":         p.Name,
+		"domain":       client.Host,
+		"callbackHost": callback.Host,
+		"localCallback": ip.Unmap().IsLoopback() || host == "localhost" ||
+			strings.HasSuffix(host, ".localhost"),
+		"renewable": p.RefreshAllowed,
+	})
 }
 
 func (h *Handler) beginPasskey(w http.ResponseWriter, r *http.Request) {
@@ -117,10 +129,12 @@ func (h *Handler) approvalFailure(w http.ResponseWriter, err error) {
 func (h *Handler) connections(w http.ResponseWriter, r *http.Request) {
 	rows, err := h.db.QueryContext(
 		r.Context(), `
-		SELECT id, client_id, client_name, created_at FROM mcp_grants
-		WHERE user_id = ? AND NOT EXISTS (
-			SELECT 1 FROM mcp_codes WHERE grant_id = mcp_grants.id AND expires_at <= unixepoch()
-		) ORDER BY created_at DESC, id`, auth.UserID(r.Context()),
+		SELECT g.id, g.client_id, g.client_name, g.created_at FROM mcp_grants AS g
+		WHERE g.user_id = ? AND (
+			EXISTS (SELECT 1 FROM mcp_codes WHERE grant_id = g.id AND spent = 0 AND expires_at > unixepoch())
+			OR EXISTS (SELECT 1 FROM mcp_access_tokens WHERE grant_id = g.id AND expires_at > unixepoch())
+			OR EXISTS (SELECT 1 FROM mcp_refresh_tokens WHERE grant_id = g.id AND spent = 0)
+		) ORDER BY g.created_at DESC, g.id`, auth.UserID(r.Context()),
 	)
 	if err != nil {
 		h.fail(w, err)

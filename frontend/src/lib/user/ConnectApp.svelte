@@ -10,7 +10,13 @@
 
   const request = new URLSearchParams(location.search).get("request") ?? "";
   const path = `/api/mcp/approvals/${encodeURIComponent(request)}`;
-  const clientSchema = z.object({ name: z.string(), domain: z.string() });
+  const clientSchema = z.object({
+    name: z.string(),
+    domain: z.string(),
+    callbackHost: z.string(),
+    localCallback: z.boolean(),
+    renewable: z.boolean(),
+  });
   const redirectSchema = z.object({ redirect: z.url() });
 
   const client = createQuery(() => ({
@@ -59,7 +65,17 @@
   {:else if client.data}
     <p class="domain" dir="ltr">{client.data.domain}</p>
     <p>{$messages.connectedApps.approveDescription(client.data.name)}</p>
-    <p>{$messages.connectedApps.approveDuration}</p>
+    <p>
+      {client.data.localCallback
+        ? $messages.connectedApps.localCallback
+        : $messages.connectedApps.callbackDestination}
+      <strong class="domain" dir="ltr">{client.data.callbackHost}</strong>.
+    </p>
+    <p>
+      {client.data.renewable
+        ? $messages.connectedApps.approveDuration
+        : $messages.connectedApps.approveLimitedDuration}
+    </p>
     {#if !browserSupportsWebAuthn()}
       <p role="alert">{$messages.auth.passkeysUnsupported}</p>
     {/if}
